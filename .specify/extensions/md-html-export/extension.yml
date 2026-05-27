@@ -1,0 +1,54 @@
+schema_version: "1.0"
+
+extension:
+  id: md-html-export
+  name: "Markdown to HTML Export"
+  version: "1.1.0"
+  description: "Generates a single navigable index.html with cover page, section cards, and sticky nav from all Markdown artifacts in the feature directory"
+  author: afianza-local
+  license: MIT
+
+requires:
+  speckit_version: ">=0.8.0"
+  tools:
+    - name: python3
+      required: true
+
+provides:
+  commands:
+    - name: md-html-export.export
+      file: commands/md-html-export.export.md
+      description: "Convert all Markdown files in the current feature directory to self-contained HTML"
+
+hooks:
+  after_specify:
+    command: md-html-export.export
+    optional: true
+    prompt: "Generate HTML versions of the spec files?"
+    description: "Convert spec.md to HTML after specification"
+  after_clarify:
+    command: md-html-export.export
+    optional: true
+    prompt: "Regenerate HTML after clarification updates?"
+    description: "Convert spec.md to HTML after clarification"
+  after_plan:
+    command: md-html-export.export
+    optional: true
+    prompt: "Generate HTML versions of the plan files?"
+    description: "Convert plan files to HTML after planning"
+  after_tasks:
+    command: md-html-export.export
+    optional: true
+    prompt: "Generate HTML versions of the task files?"
+    description: "Convert tasks.md to HTML after task generation"
+  after_checklist:
+    command: md-html-export.export
+    optional: true
+    prompt: "Generate HTML versions of the checklist files?"
+    description: "Convert checklist files to HTML after generation"
+
+tags:
+  - html
+  - export
+  - preview
+  - markdown

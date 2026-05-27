@@ -1,0 +1,57 @@
+schema_version: "1.0"
+workflow:
+  id: "planning"
+  name: "Feature Planning"
+  version: "1.0.1"
+  author: "afianza-local"
+  description: "Plan → HTML preview → tasks → analyze → HTML preview. Produces implementation-ready artifacts."
+
+requires:
+  speckit_version: ">=0.7.2"
+  integrations:
+    any: ["copilot", "claude", "gemini"]
+
+inputs:
+  integration:
+    type: string
+    default: "copilot"
+    prompt: "Integration to use (e.g. claude, copilot, gemini)"
+  scope:
+    type: string
+    default: "full"
+    enum: ["full", "backend-only", "frontend-only"]
+
+steps:
+  - id: plan
+    command: speckit.plan
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.scope }}"
+
+  - id: export-plan
+    command: md-html-export.export
+    integration: "{{ inputs.integration }}"
+
+  - id: review-plan
+    type: gate
+    message: "Revisa el plan técnico en HTML. ¿El enfoque y la arquitectura son correctos?"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: tasks
+    command: speckit.tasks
+    integration: "{{ inputs.integration }}"
+
+  - id: analyze
+    command: speckit.analyze
+    integration: "{{ inputs.integration }}"
+
+  - id: export-tasks
+    command: md-html-export.export
+    integration: "{{ inputs.integration }}"
+
+  - id: review-analyze
+    type: gate
+    message: "Revisa el análisis y las tareas en HTML. ¿Hay issues CRITICAL que resolver antes de implementar?"
+    options: [approve, reject]
+    on_reject: abort

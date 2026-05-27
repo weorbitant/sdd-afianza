@@ -1,0 +1,27 @@
+schema_version: "1.0"
+
+extension:
+  id: figma-export
+  name: "Figma Frame Export"
+  version: "1.0.0"
+  description: "Downloads Figma frames as PNG images into the feature designs/ folder using the Figma REST API"
+  author: afianza-local
+  license: MIT
+
+requires:
+  speckit_version: ">=0.8.0"
+  tools:
+    - name: python3
+      required: true
+
+provides:
+  commands:
+    - name: speckit.figma-export.fetch
+      file: commands/speckit.figma-export.fetch.md
+      description: "Download frames from a Figma file URL into specs/<feature>/designs/"
+
+tags:
+  - figma
+  - design
+  - export
+  - images

@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "extensions": {
+    "md-html-export": {
+      "version": "1.1.0",
+      "source": "local",
+      "manifest_hash": "sha256:c54799b8a0d152c7852563bb0bfc8fe16a99100d4e37edc85bcb1f9fcd492691",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.md-html-export.export"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-05-25T11:17:53.545769+00:00"
+    },
+    "figma-export": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:b5a0259f7d33e885a0b77cb0f7f13396e822c9c77eecd20a9ec80b2e86883edc",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.figma-export.fetch"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-05-25T12:25:13.805444+00:00"
+    },
+    "atlassian-sync": {
+      "version": "1.4.0",
+      "source": "local",
+      "manifest_hash": "sha256:cd5aa686e6b4f3fecb10a5512eee8833ddf073f2466cbcfd011b09facf0300f7",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.atlassian-sync.fetch",
+          "speckit.atlassian-sync.push"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-05-26T09:00:00.000000+00:00"
+    },
+    "git-pr": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:b1a98c7452c6666110dfd7da456df7bb9a58fe6cdda9631777e95c176fe9969e",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.git-pr.create"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-05-26T09:00:00.000000+00:00"
+    }
+  }
+}

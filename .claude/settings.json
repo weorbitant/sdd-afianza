@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp list)",
+      "Bash(npm run typecheck)"
+    ]
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "compound-engineering@compound-engineering-plugin": false,
+    "ops-suite@workbench-dev": true,
+    "azure@azure-skills": true
+  }
+}

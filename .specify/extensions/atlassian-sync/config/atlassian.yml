@@ -1,0 +1,12 @@
+# Atlassian Sync — default configuration
+# Override any value per-feature in specs/<feature>/atlassian.yml
+
+cloudId: "2dca67d5-bd8d-4522-aea4-079ceee40982"
+projectKey: "DEVPT"
+
+issueTypes:
+  epic: "Epic"
+  story: "Story"
+
+# epicLinkField: custom field used to link Stories to an Epic in classic projects
+epicLinkField: "customfield_10014"

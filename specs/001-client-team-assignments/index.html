@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Asignaciones Múltiples en Ficha de Cliente</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.7;color:#1a1a2e;background:#f8f9fc;margin:0;padding:0}
+
+    /* ── Top nav ── */
+    nav{position:sticky;top:0;z-index:100;background:#0f172a;border-bottom:1px solid #1e293b;padding:.55rem 2rem;display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center}
+    nav a{color:#94a3b8;text-decoration:none;font-size:.8rem;font-weight:500;white-space:nowrap;padding:.2rem .4rem;border-radius:4px;transition:background .15s,color .15s}
+    nav a:hover{color:#f1f5f9;background:#1e293b}
+    nav a.active{color:#60a5fa;background:#1e3a5f}
+    nav .brand{color:#3b82f6;font-weight:800;font-size:.9rem;margin-right:.5rem;letter-spacing:-.01em}
+    nav .sep{color:#334155;font-size:.7rem}
+
+    /* ── Layout ── */
+    .page{max-width:940px;margin:2rem auto 4rem;padding:0 1.5rem}
+
+    /* ── Cover / index card ── */
+    .cover{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);border-radius:12px;padding:2.5rem 3rem 2rem;margin-bottom:2rem;color:#f1f5f9;box-shadow:0 4px 24px rgba(0,0,0,.18)}
+    .cover h1{font-size:1.75rem;font-weight:800;color:#fff;margin:0 0 .5rem;border:none;padding:0}
+    .cover .meta{display:flex;gap:1.2rem;flex-wrap:wrap;font-size:.82rem;color:#94a3b8;margin-bottom:1.5rem}
+    .cover .meta span{display:flex;align-items:center;gap:.3rem}
+    .cover .meta a{color:#60a5fa;text-decoration:none}
+    .cover .meta a:hover{text-decoration:underline}
+    .cover .badge{display:inline-block;background:#1e3a5f;color:#60a5fa;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.15rem .55rem;border-radius:20px;border:1px solid #2563eb}
+    .index-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.75rem;margin-top:.25rem}
+    .index-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.85rem 1rem;text-decoration:none;color:#cbd5e1;transition:background .15s,border-color .15s,transform .1s;display:flex;flex-direction:column;gap:.25rem}
+    .index-card:hover{background:rgba(255,255,255,.11);border-color:#3b82f6;transform:translateY(-1px);color:#f1f5f9}
+    .index-card .card-icon{font-size:1.1rem}
+    .index-card .card-label{font-size:.82rem;font-weight:600;color:#e2e8f0}
+    .index-card .card-sub{font-size:.72rem;color:#64748b}
+    .index-group-title{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#475569;margin:.9rem 0 .35rem}
+
+    /* ── Content sections ── */
+    .section{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:2.5rem 3rem;box-shadow:0 2px 12px rgba(0,0,0,.05);margin-bottom:1.75rem;scroll-margin-top:52px}
+    .section-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#3b82f6;margin-bottom:.75rem;display:flex;align-items:center;gap:.4rem}
+    .section-label .icon{font-size:.95rem}
+    h1{font-size:1.9rem;font-weight:700;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:.5rem;margin-top:0}
+    h2{font-size:1.35rem;font-weight:600;color:#1e293b;border-bottom:1px solid #f1f5f9;padding-bottom:.25rem;margin-top:2rem}
+    h3{font-size:1.1rem;font-weight:600;color:#334155;margin-top:1.6rem}
+    h4{font-size:1rem;font-weight:600;color:#475569;margin-top:1.3rem}
+    h5,h6{font-size:.9rem;font-weight:600;color:#64748b;margin-top:1.1rem}
+    p{margin:.65rem 0}
+    a{color:#2563eb;text-decoration:none} a:hover{text-decoration:underline}
+    strong{font-weight:600} em{font-style:italic}
+    code{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;font-size:.855rem;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:.1em .35em}
+    pre{background:#0f172a;color:#e2e8f0;border-radius:6px;padding:1.1rem 1.4rem;overflow-x:auto;font-size:.82rem;line-height:1.6;margin:1rem 0}
+    pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+    blockquote{border-left:4px solid #3b82f6;margin:1rem 0;padding:.5rem 1rem;background:#eff6ff;color:#1e40af;border-radius:0 4px 4px 0}
+    blockquote p{margin:0}
+    ul,ol{margin:.65rem 0;padding-left:1.7rem} li{margin:.2rem 0}
+    li input[type=checkbox]{margin-right:.4rem}
+    hr{border:none;border-top:1px solid #f1f5f9;margin:1.75rem 0}
+    table{border-collapse:collapse;width:100%;margin:.9rem 0;font-size:.875rem}
+    th{background:#f8fafc;font-weight:600;text-align:left;padding:.55rem .85rem;border:1px solid #e2e8f0;color:#334155}
+    td{padding:.5rem .85rem;border:1px solid #e2e8f0;vertical-align:top}
+    tr:nth-child(even) td{background:#fafafa}
+    .nc{background:#fef3c7;border:1px solid #f59e0b;border-radius:4px;padding:.1em .4em;font-size:.82em;color:#92400e}
+    .footer{margin-top:3rem;padding-top:1rem;border-top:1px solid #e2e8f0;font-size:.78rem;color:#94a3b8;text-align:center}
+    .mermaid{margin:1rem 0;text-align:center}
+    .mermaid svg{max-width:100%;height:auto}
+    .oq-badge{display:inline-block;background:#fef9c3;color:#854d0e;font-size:.7rem;font-weight:700;padding:.1rem .45rem;border-radius:20px;border:1px solid #fbbf24;margin-left:.4rem;vertical-align:middle}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({startOnLoad:true,theme:'base',themeVariables:{primaryColor:'#eff6ff',primaryBorderColor:'#3b82f6',primaryTextColor:'#1e293b',lineColor:'#64748b',fontSize:'14px'}});</script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const links = document.querySelectorAll('nav a[href^="#"]');
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+          }
+        });
+      }, {rootMargin: '-10% 0px -80% 0px'});
+      document.querySelectorAll('.section[id],.cover[id]').forEach(s => obs.observe(s));
+    });
+  </script>
+</head>
+<body>
+<nav>
+  <span class="brand">Spec Kit</span>
+  <span class="sep">|</span>
+  <a href="#index">Index</a>
+  <a href="#spec">📋 Specification</a>
+  <a href="#plan">🏗️ Technical Plan</a>
+  <a href="#data-model">🗄️ Data Model</a>
+  <a href="#research">🔬 Research</a>
+  <a href="#tasks">✅ Tasks</a>
+  <a href="#quickstart">⚡ Quickstart</a>
+  <a href="#checklists-business-rules">☑️ Checklists · Business Rules</a>
+  <a href="#checklists-requirements">☑️ Checklists · Requirements</a>
+  <a href="#contracts-client-assignments-history">📑 Contracts · Client Assignments History</a>
+  <a href="#contracts-client-teams">📑 Contracts · Client Teams</a>
+</nav>
+<div class="page">
+<div class="cover" id="index"><h1>Asignaciones Múltiples en Ficha de Cliente</h1><div class="meta"><span>🔗 <a href="https://afianza.atlassian.net/browse/DEVPT-518" target="_blank">DEVPT-518</a></span><span>📌 Draft</span><span>🗓 Updated 2026-05-26</span><span>⚠️ <strong>4 open questions</strong> pending PO</span></div><div class="index-group-title">Core</div><div class="index-grid"><a class="index-card" href="#spec"><span class="card-icon">📋</span><span class="card-label">Specification <span class="oq-badge">⚠️ OQ</span></span><span class="card-sub">Requirements &amp; user stories</span></a><a class="index-card" href="#plan"><span class="card-icon">🏗️</span><span class="card-label">Technical Plan</span><span class="card-sub">Architecture &amp; design</span></a><a class="index-card" href="#data-model"><span class="card-icon">🗄️</span><span class="card-label">Data Model</span><span class="card-sub">Entities &amp; relationships</span></a><a class="index-card" href="#research"><span class="card-icon">🔬</span><span class="card-label">Research</span><span class="card-sub">Spikes &amp; findings</span></a><a class="index-card" href="#tasks"><span class="card-icon">✅</span><span class="card-label">Tasks</span><span class="card-sub">Implementation plan</span></a><a class="index-card" href="#quickstart"><span class="card-icon">⚡</span><span class="card-label">Quickstart</span><span class="card-sub">Getting started guide</span></a></div><div class="index-group-title">Checklists</div><div class="index-grid"><a class="index-card" href="#checklists-business-rules"><span class="card-icon">☑️</span><span class="card-label">Checklists · Business Rules</span><span class="card-sub">Checklists</span></a><a class="index-card" href="#checklists-requirements"><span class="card-icon">☑️</span><span class="card-label">Checklists · Requirements</span><span class="card-sub">Checklists</span></a></div><div class="index-group-title">Contracts</div><div class="index-grid"><a class="index-card" href="#contracts-client-assignments-history"><span class="card-icon">📑</span><span class="card-label">Contracts · Client Assignments History</span><span class="card-sub">Contracts</span></a><a class="index-card" href="#contracts-client-teams"><span class="card-icon">📑</span><span class="card-label">Contracts · Client Teams</span><span class="card-sub">Contracts</span></a></div></div>
+<div class="section" id="spec">
+  <div class="section-label"><span class="icon">📋</span> Specification</div>
+  <h1>Feature Specification: Asignaciones Múltiples en Ficha de Cliente</h1>
+<p><strong>Feature Branch</strong>: <code>001-client-team-assignments</code></p>
+<p><strong>Epic</strong>: <a href="https://afianza.atlassian.net/browse/DEVPT-518">DEVPT-518</a> — PGI - Asignaciones con porcentajes en Fiscal y Laboral</p>
+<p><strong>Created</strong>: 2026-05-25</p>
+<p><strong>Updated</strong>: 2026-05-26</p>
+<p><strong>Status</strong>: Draft</p>
+<p><strong>Input</strong>: Asignaciones múltiples — equipos por cliente con distribución de carga porcentual, histórico, y reasignación de tareas.</p>
+<hr/>
+<h2>User Scenarios &amp; Testing <em>(mandatory)</em></h2>
+<h3>User Story 1 — Crear y gestionar el equipo de un cliente (Priority: P1)</h3>
+<p>Un responsable accede a la ficha de un cliente y constituye su equipo: asigna un coordinador (opcional), uno o más asesores y cero o más técnicos. Cada miembro entra con una fecha de inicio y un porcentaje de carga (por defecto 100%). El sistema valida que los asesores sumen 100% y los técnicos sumen 100% dentro del departamento antes de guardar.</p>
+<p><strong>Why this priority</strong>: Es el bloque fundacional. Sin poder crear equipos no hay ninguna otra funcionalidad posible. Además, el día a día de los responsables depende directamente de poder ver y editar quién está asignado a cada cliente.</p>
+<p><strong>Independent Test</strong>: Un responsable puede abrir la ficha de un cliente sin equipo, crear el equipo añadiendo al menos un asesor, guardar y ver el equipo activo reflejado en la UI — todo ello sin tocar ninguna otra funcionalidad.</p>
+<p><strong>Acceptance Scenarios</strong>:</p>
+<ol>
+<li><strong>Given</strong> un cliente sin equipo asignado,</li>
+</ol>
+<p><strong>When</strong> el responsable añade un asesor con porcentaje 100% y guarda, <strong>Then</strong> el equipo queda activo y visible en la ficha del cliente.</p>
+<ol>
+<li><strong>Given</strong> un equipo con dos asesores al 60% y 40%,</li>
+</ol>
+<p><strong>When</strong> el responsable intenta cambiar el segundo al 50%, <strong>Then</strong> el sistema rechaza el guardado con el mensaje "Los asesores deben sumar 100%".</p>
+<ol>
+<li><strong>Given</strong> un equipo ya existente,</li>
+</ol>
+<p><strong>When</strong> un asesor o técnico accede a la ficha, <strong>Then</strong> puede ver el equipo pero no puede editar ningún miembro.</p>
+<ol>
+<li><strong>Given</strong> que un responsable ya tiene un equipo en el Departamento A,</li>
+</ol>
+<p><strong>When</strong> intenta crear un segundo equipo en ese mismo departamento, <strong>Then</strong> el sistema rechaza la operación con el mensaje correspondiente.</p>
+<hr/>
+<h3>User Story 2 — Distribución de carga por porcentaje (Priority: P2)</h3>
+<p>El responsable o coordinador puede ajustar el porcentaje de carga de cada asesor y técnico dentro del equipo. El sistema valida en tiempo real que la suma por rol (asesores / técnicos) dentro del departamento sea exactamente 100% antes de permitir guardar.</p>
+<p><strong>Why this priority</strong>: La distribución de carga es la razón de negocio principal de la feature: rentabilidad y visibilidad de quién absorbe qué parte del cliente.</p>
+<p><strong>Independent Test</strong>: Puede verificarse únicamente modificando porcentajes en un equipo existente y comprobando que el sistema acepta o rechaza según la regla del 100%.</p>
+<p><strong>Acceptance Scenarios</strong>:</p>
+<ol>
+<li><strong>Given</strong> un equipo con un solo asesor al 100%,</li>
+</ol>
+<p><strong>When</strong> el responsable añade un segundo asesor al 40% sin ajustar el primero, <strong>Then</strong> el sistema muestra advertencia "La suma de asesores es 140%: ajusta antes de guardar".</p>
+<ol>
+<li><strong>Given</strong> un equipo con dos asesores al 60% y 40%,</li>
+</ol>
+<p><strong>When</strong> el responsable cambia ambos a 50% y guarda, <strong>Then</strong> el cambio se persiste correctamente.</p>
+<ol>
+<li><strong>Given</strong> un equipo sin técnicos,</li>
+</ol>
+<p><strong>When</strong> se añade un técnico con porcentaje 80%, <strong>Then</strong> el sistema rechaza el guardado porque el único técnico no llega al 100%.</p>
+<hr/>
+<h3>User Story 3 — Histórico de cambios de asignación (Priority: P3)</h3>
+<p>Existe una vista de histórico en la ficha de cliente que muestra todos los cambios de asignación: quién entró, quién salió, qué porcentaje tenía y en qué período estuvo activo. La vista es de solo lectura y accesible para todos los perfiles con acceso a la ficha.</p>
+<p><strong>Why this priority</strong>: Imprescindible para auditoría, trazabilidad y resolución de disputas sobre rentabilidad histórica. No bloquea la operativa diaria, pero es requisito de negocio no negociable.</p>
+<p><strong>Independent Test</strong>: Puede verificarse creando un equipo, modificando un porcentaje y comprobando que el histórico registra ambos estados con sus fechas.</p>
+<p><strong>Acceptance Scenarios</strong>:</p>
+<ol>
+<li><strong>Given</strong> un equipo en el que se cambió el porcentaje de un asesor el día 10,</li>
+</ol>
+<p><strong>When</strong> cualquier usuario accede al histórico, <strong>Then</strong> ve dos entradas: la original (con fecha inicio y fecha fin = día 9) y la nueva (con fecha inicio = día 10 y sin fecha fin).</p>
+<ol>
+<li><strong>Given</strong> un miembro que fue eliminado del equipo,</li>
+</ol>
+<p><strong>When</strong> se consulta el histórico, <strong>Then</strong> aparece con fecha inicio y fecha fin y no aparece en la vista activa.</p>
+<hr/>
+<h3>User Story 4 — Cierre de equipo (Priority: P4)</h3>
+<p>El responsable puede cerrar el equipo de un cliente fijando una fecha de fin global que aplica a todos sus miembros activos. El cierre no borra datos: queda registrado en el histórico. Las tareas y obligaciones activas pendientes del equipo siguen la lógica definida en FR-010: el asesor que continúa en la empresa conserva y cierra sus propias tareas; el asesor que causa baja tiene sus tareas reasignadas automáticamente al sucesor. El responsable o coordinador puede además reasignar tareas concretas de forma manual en cualquier momento.</p>
+<p><strong>Why this priority</strong>: Necesario para ciclos de vida completos (altas y bajas de clientes, cambios organizativos), pero no bloquea el uso cotidiano de la feature.</p>
+<p><strong>Independent Test</strong>: Un responsable puede cerrar un equipo sin miembros con tareas pendientes y comprobar que el equipo queda inactivo y registrado en el histórico.</p>
+<p><strong>Acceptance Scenarios</strong>:</p>
+<ol>
+<li><strong>Given</strong> un equipo activo sin tareas pendientes,</li>
+</ol>
+<p><strong>When</strong> el responsable fija la fecha de cierre y confirma, <strong>Then</strong> todos los miembros reciben esa fecha como fecha fin y el equipo pasa a inactivo.</p>
+<ol>
+<li><strong>Given</strong> un asesor activo que sigue en la empresa y tiene tareas abiertas,</li>
+</ol>
+<p><strong>When</strong> se define un nuevo asesor para el siguiente período, <strong>Then</strong> el asesor original conserva sus tareas abiertas y las cierra él mismo; las nuevas tareas/obligaciones del nuevo período se asignan al nuevo asesor.</p>
+<ol>
+<li><strong>Given</strong> un asesor que causa baja en la empresa y tiene tareas abiertas pendientes,</li>
+</ol>
+<p><strong>When</strong> el responsable cierra su asignación con <code>causesBaja: true</code>, <strong>Then</strong> sus tareas abiertas se reasignan automáticamente al asesor sucesor definido para ese cliente en el siguiente período.</p>
+<ol>
+<li><strong>Given</strong> un responsable o coordinador que necesita anticipar o controlar una reasignación</li>
+</ol>
+<p>puntual de tareas (sin que el asesor haya causado baja), <strong>When</strong> utiliza la opción de reasignación manual, <strong>Then</strong> puede seleccionar tareas concretas y reasignarlas a otro miembro del equipo, quedando trazabilidad del cambio (quién tenía la tarea, a quién se transfirió y en qué fecha).</p>
+<hr/>
+<h3>Edge Cases</h3>
+<ul>
+<li>¿Qué ocurre si se intenta asignar a una persona que ya forma parte de un equipo activo en otro</li>
+</ul>
+<p>cliente del mismo departamento? → El sistema DEBE permitirlo (un asesor puede trabajar en varios clientes); la validación del 100% es por cliente+departamento, no por persona.</p>
+<ul>
+<li>¿Qué ocurre si el responsable intenta dejar el equipo sin ningún asesor? → El sistema DEBE rechazarlo</li>
+</ul>
+<p>(requisito mínimo: 1..n asesores).</p>
+<ul>
+<li>¿Puede un coordinador añadirse a sí mismo como asesor? → No: los roles son excluyentes dentro del</li>
+</ul>
+<p>mismo equipo.</p>
+<ul>
+<li>¿Qué ocurre si se intenta crear un equipo con fecha de inicio en el pasado? → Se permite, pero se</li>
+</ul>
+<p>registra la fecha real de creación en el histórico (audit trail).</p>
+<ul>
+<li>¿Puede el responsable crear un nuevo equipo el mismo día en que se cierra el anterior? → <strong>Sí</strong> — los períodos contiguos son válidos. El patrón estándar es: equipo anterior con <code>endDate</code> = último día del mes M, nuevo equipo con <code>startDate</code> = primer día del mes M+1. No existe restricción mínima de tiempo entre el cierre y la apertura de un nuevo equipo en el mismo cliente+departamento.</li>
+</ul>
+<hr/>
+<h2>Requirements <em>(mandatory)</em></h2>
+<h3>Functional Requirements</h3>
+<ul>
+<li><strong>FR-001</strong>: El sistema DEBE permitir a un responsable crear un equipo para un cliente, designando</li>
+</ul>
+<p>opcionalmente un coordinador, al menos un asesor y cero o más técnicos. <em>(El flujo exacto de creación — desde la ficha del cliente o desde una pantalla de equipos — depende de la decisión Modelo A vs Modelo B; ver Key Entities.)</em></p>
+<ul>
+<li><strong>FR-002</strong>: Cada miembro del equipo DEBE tener una fecha de inicio, un porcentaje de carga</li>
+</ul>
+<p>(por defecto 100%) y opcionalmente una fecha de fin.</p>
+<ul>
+<li><strong>FR-003</strong>: El sistema DEBE validar que la suma de porcentajes de los asesores sea exactamente 100%</li>
+</ul>
+<p>y que la suma de los técnicos sea exactamente 100% (si hay alguno), ambas validaciones por departamento dentro del cliente, antes de permitir guardar cualquier cambio.</p>
+<ul>
+<li><strong>FR-004</strong>: Solo los perfiles <strong>responsable</strong> y <strong>coordinador</strong> DEBEN poder crear, modificar o cerrar</li>
+</ul>
+<p>asignaciones. Los asesores y técnicos tienen acceso de solo lectura.</p>
+<ul>
+<li><strong>FR-005</strong>: Un <strong>cliente</strong> NO PUEDE tener más de un equipo activo por departamento (unicidad: <code>cliente + departamento</code> cuando el equipo no tiene fecha de fin). La restricción es sobre el cliente, no sobre el empleado que ejerce de responsable.</li>
+<li><strong>FR-006</strong>: Un responsable NO PUEDE pertenecer a más de un departamento.</li>
+<li><strong>FR-007</strong>: El sistema DEBE mostrar el estado actual de las asignaciones en la ficha del cliente</li>
+</ul>
+<p>(quién está activo, con qué porcentaje y desde cuándo).</p>
+<ul>
+<li><strong>FR-008</strong>: El sistema DEBE mantener un histórico inmutable de todos los cambios de asignación</li>
+</ul>
+<p>(altas, bajas, cambios de porcentaje), con fecha de inicio y fin de cada período.</p>
+<ul>
+<li><strong>FR-009</strong>: El sistema DEBE permitir cerrar un equipo fijando una fecha de fin que se propaga a</li>
+</ul>
+<p>todos sus miembros activos. El cierre es <strong>permanente e irreversible</strong>: no se puede reabrir ni modificar la fecha de fin una vez confirmada. Para reanudar la atención al cliente en el mismo departamento se DEBE crear un nuevo equipo con una nueva fecha de inicio.</p>
+<ul>
+<li><strong>FR-010</strong>: Las tareas existentes NUNCA se cancelan. La asignación de tareas sigue esta lógica:</li>
+<li>Las <strong>nuevas tareas y obligaciones</strong> se asignan al miembro activo en el período correspondiente.</li>
+<li>Si un asesor <strong>sigue en la empresa</strong> tras un cambio de asignación, conserva y cierra sus tareas</li>
+</ul>
+<p>abiertas; las nuevas tareas del siguiente período van al nuevo asignado.</p>
+<ul>
+<li>Si un asesor <strong>causa baja en la empresa</strong>, el responsable o coordinador indica <code>causesBaja: true</code></li>
+</ul>
+<p>al cerrar su asignación; el sistema reasigna <strong>automáticamente</strong> sus tareas abiertas al asesor sucesor definido para ese cliente. Si no hay sucesor definido, el sistema <strong>bloquea el cierre</strong> y exige designar un sucesor antes de confirmar (comportamiento provisional — pendiente de validación con PO).</p>
+<ul>
+<li>El sistema DEBE ofrecer una <strong>opción manual de reasignación</strong> para que responsable o coordinador</li>
+</ul>
+<p>puedan transferir tareas concretas en cualquier momento (p. ej., anticipar una sustitución o gestionar casos especiales).</p>
+<ul>
+<li>Toda reasignación DEBE quedar registrada con trazabilidad: quién tenía la tarea, a quién se</li>
+</ul>
+<p>transfirió y en qué fecha.</p>
+<ul>
+<li><strong>FR-011</strong>: No puede existir ningún período sin cobertura (gap) para un cliente con equipo activo:</li>
+</ul>
+<p>el sistema DEBE rechazar cualquier cambio que deje al cliente sin al menos un asesor activo.</p>
+<ul>
+<li><strong>FR-012</strong>: La granularidad de las fechas de asignación es <strong>híbrida</strong>: se almacena la fecha exacta</li>
+</ul>
+<p>(tipo <code>date</code>), pero el servicio valida que <code>dateFrom</code> sea siempre el primer día del mes y <code>dateTo</code> el último. Los porcentajes y la rentabilidad se calculan a granularidad mensual. Esta decisión no requiere cambio de esquema y permite mayor precisión en el histórico de auditoría.</p>
+<ul>
+<li><strong>FR-013</strong>: El sistema DEBE migrar automáticamente todas las asignaciones 1-a-1 existentes al modelo</li>
+</ul>
+<p>de porcentajes, asignando un 100% a cada miembro único en su rol y departamento. La migración DEBE ser idempotente, no destructiva y ejecutarse en una única pasada sin afectar a los registros de histórico existentes.</p>
+<ul>
+<li><strong>FR-014</strong>: El sistema DEBE sincronizar los datos de asignación (empleado, rol, porcentaje, período)</li>
+</ul>
+<p>con la <strong>Plataforma del Dato</strong> publicando un <strong>evento en el bus de mensajería interno</strong> (RabbitMQ, exchange <code>internal</code>) al confirmar cada cambio. La Plataforma del Dato consume el evento y actualiza sus informes de rentabilidad y cuadros de mando. La propagación DEBE completarse en menos de 5 minutos desde el guardado confirmado.</p>
+<ul>
+<li><strong>FR-015</strong>: En el <strong>MVP</strong>, únicamente la <strong>ficha de cliente</strong> DEBE actualizarse para reflejar la lista</li>
+</ul>
+<p>completa de miembros del equipo activo con sus porcentajes. Las pantallas "Mis Clientes", buscador global del PGI y los informes internos quedan fuera del alcance de esta iteración y se abordarán en una fase posterior. El seguimiento por asesor/técnico en Plataforma del Dato (informes externos) queda cubierto por FR-014 vía sincronización.</p>
+<h3>Key Entities</h3>
+<blockquote><p>⚠️ <strong>Decisión pendiente</strong>: el modelo de <code>Team</code> depende de si los equipos son <strong>por cliente</strong> (Modelo A)</p></blockquote>
+<blockquote><p>o <strong>entidades independientes asignables a clientes</strong> (Modelo B). Resolver antes de <code>/speckit-plan</code>.</p></blockquote>
+<blockquote><p></p></blockquote>
+<blockquote><p>- <strong>Modelo A</strong> — <code>Team { client_id, department_id }</code>: el equipo se crea y vive en la ficha del cliente.</p></blockquote>
+<blockquote><p>  Cada cliente tiene su propia composición ad-hoc. Mayor simplicidad.</p></blockquote>
+<blockquote><p>- <strong>Modelo B</strong> — <code>Team {}</code> + <code>ClientTeamAssignment { team_id, client_id }</code>: los equipos existen de</p></blockquote>
+<blockquote><p>  forma autónoma y se asignan a carteras de clientes. Permite reutilizar un mismo equipo en varios</p></blockquote>
+<blockquote><p>  clientes. Mayor flexibilidad pero mayor complejidad de ciclo de vida.</p></blockquote>
+<ul>
+<li><strong>Equipo</strong> (<code>Team</code>): Agrupación de personas con un responsable, una fecha de inicio y opcionalmente</li>
+</ul>
+<p>una fecha de cierre. <em>(Scope: ver decisión pendiente arriba.)</em></p>
+<ul>
+<li><strong>Miembro del Equipo</strong> (<code>TeamMember</code>): Persona que pertenece al equipo, con rol (responsable,</li>
+</ul>
+<p>coordinador, asesor, técnico), porcentaje de carga, fecha de inicio y fecha de fin opcional.</p>
+<ul>
+<li><strong>Rol</strong> (<code>Role</code>): Enum — responsable | coordinador | asesor | técnico. Excluyentes dentro del</li>
+</ul>
+<p>mismo equipo.</p>
+<ul>
+<li><strong>Período de Asignación</strong> (<code>AssignmentPeriod</code>): Registro histórico de un miembro en un equipo para</li>
+</ul>
+<p>un intervalo de tiempo determinado. Inmutable una vez cerrado.</p>
+<ul>
+<li><strong>Departamento</strong> (<code>Department</code>): Contexto organizativo dentro del cual se valida la regla del 100%.</li>
+</ul>
+<p>Un cliente puede tener equipos en más de un departamento.</p>
+<hr/>
+<h2>Success Criteria <em>(mandatory)</em></h2>
+<h3>Measurable Outcomes</h3>
+<ul>
+<li><strong>SC-001</strong>: Un responsable puede constituir el equipo completo de un cliente nuevo (añadir miembros,</li>
+</ul>
+<p>asignar porcentajes y guardar) en menos de 3 minutos.</p>
+<ul>
+<li><strong>SC-002</strong>: El sistema rechaza el 100% de los intentos de guardar con suma de porcentajes diferente</li>
+</ul>
+<p>a 100% (por rol y departamento), sin excepción.</p>
+<ul>
+<li><strong>SC-003</strong>: Cualquier cambio de asignación queda registrado en el histórico en menos de 1 segundo</li>
+</ul>
+<p>desde el guardado, visible inmediatamente para todos los usuarios con acceso.</p>
+<ul>
+<li><strong>SC-004</strong>: No existe ningún cliente con equipo activo que pueda quedarse sin cobertura de asesor</li>
+</ul>
+<p>como resultado de una operación permitida por el sistema.</p>
+<ul>
+<li><strong>SC-005</strong>: Los responsables y coordinadores pueden consultar el histórico completo de asignaciones</li>
+</ul>
+<p>de cualquier cliente al que tengan acceso, sin limitación temporal.</p>
+<ul>
+<li><strong>SC-006</strong>: El 0% de las tareas existentes se pierde o cancela como resultado de un cambio de</li>
+</ul>
+<p>asignación o cierre de equipo.</p>
+<hr/>
+<h2>Assumptions</h2>
+<ul>
+<li>Existe ya un concepto de <strong>Departamento</strong> en el sistema que se reutiliza (no es un nuevo concepto</li>
+</ul>
+<p>a crear desde cero).</p>
+<ul>
+<li>Existe ya un sistema de <strong>Tareas</strong> y un sistema de <strong>Obligaciones</strong> al que esta feature debe</li>
+</ul>
+<p>conectarse; los detalles de esa integración se detallarán en la fase de planificación técnica.</p>
+<ul>
+<li>Los perfiles de usuario (responsable, coordinador, asesor, técnico) ya están definidos en el</li>
+</ul>
+<p>sistema de autenticación / control de acceso existente.</p>
+<ul>
+<li>Un mismo empleado puede ser asesor en varios clientes simultáneamente (la restricción del 100%</li>
+</ul>
+<p>es por cliente+departamento, no por persona).</p>
+<ul>
+<li>La UI de la ficha de cliente ya existe y esta feature añade una nueva sección/tab; no implica</li>
+</ul>
+<p>rediseño de la ficha completa.</p>
+<ul>
+<li>La rentabilidad se calcula a partir de los porcentajes de asignación; el motor de cálculo de</li>
+</ul>
+<p>rentabilidad se actualiza como parte de esta feature o en una fase posterior (a definir en planning).</p>
+<ul>
+<li>El histórico es de solo lectura y no requiere exportación en esta fase (MVP).</li>
+</ul>
+<h2>Designs</h2>
+<p>Frames exportados desde Figma — Portal Asesor / Ficha de cliente:</p>
+<p>!<a href="designs/ficha-cliente-01.png">Ficha de cliente 01</a> !<a href="designs/ficha-cliente-02.png">Ficha de cliente 02</a> !<a href="designs/ficha-cliente-03.png">Ficha de cliente 03</a> !<a href="designs/ficha-cliente-04.png">Ficha de cliente 04</a> !<a href="designs/ficha-cliente-05.png">Ficha de cliente 05</a> !<a href="designs/ficha-cliente-06.png">Ficha de cliente 06</a> !<a href="designs/ficha-cliente-07.png">Ficha de cliente 07</a> !<a href="designs/ficha-cliente-08.png">Ficha de cliente 08</a> !<a href="designs/ficha-cliente-09.png">Ficha de cliente 09</a> !<a href="designs/ficha-cliente-10.png">Ficha de cliente 10</a> !<a href="designs/ficha-cliente-11.png">Ficha de cliente 11</a> !<a href="designs/ficha-cliente-12.png">Ficha de cliente 12</a> !<a href="designs/ficha-cliente-13.png">Ficha de cliente 13</a> !<a href="designs/ficha-cliente-14.png">Ficha de cliente 14</a> !<a href="designs/ficha-cliente-15.png">Ficha de cliente 15</a> !<a href="designs/ficha-cliente-16.png">Ficha de cliente 16</a> !<a href="designs/ficha-cliente-17.png">Ficha de cliente 17</a> !<a href="designs/ficha-cliente-18.png">Ficha de cliente 18</a> !<a href="designs/ficha-cliente-19.png">Ficha de cliente 19</a></p>
+<blockquote><p>Fuente: <a href="https://www.figma.com/design/ra1egztv3K3yBTrWbHVacy">Portal Asesor - Mis clientes</a> · Página: Mis clientes · 2026-05-25</p></blockquote>
+<hr/>
+<h2>Open Questions — Pending PO Decision</h2>
+<blockquote><p>Estas preguntas quedaron abiertas durante el refinamiento de DEVPT-518 (2026-05-26).</p></blockquote>
+<blockquote><p>Deben responderse antes de iniciar la fase de planificación técnica.</p></blockquote>
+<blockquote><p>Se documentan también en la Epic de Jira para visibilidad del equipo.</p></blockquote>
+<table>
+<tr><th>#</th><th>Área</th><th>Pregunta</th><th>Impacto</th></tr>
+<tr><td>OQ-001</td><td>FR-010 / CHK025</td><td>Si un asesor causa baja pero no hay sucesor definido para ese cliente+departamento, ¿qué ocurre con sus tareas abiertas? ¿Se bloquea el cierre, se asignan al responsable como guardián, o quedan en una bandeja sin asignar?</td><td>Alto — bloquea acceptance scenario 3 de US4</td></tr>
+<tr><td>OQ-002</td><td>FR-001 / Epic scope</td><td>¿Cómo se designa el "asesor principal" cuando hay un único equipo, y el "equipo principal" cuando hay dos? ¿Es automático (primer asesor añadido) o explícito (responsable lo selecciona)? ¿Qué implica operativamente (asignación de tareas, NOA al cliente)?</td><td>Alto — afecta modelo de datos y lógica de distribución de tareas</td></tr>
+<tr><td>OQ-003</td><td>Concurrencia</td><td>Si dos responsables intentan guardar cambios en el mismo equipo al mismo tiempo, ¿cuál es el comportamiento esperado? ¿Último en guardar gana, o se rechaza la segunda operación con aviso?</td><td>Medio — afecta decisión técnica de locking</td></tr>
+<tr><td>OQ-004</td><td>FR-014</td><td>Si la sincronización con Plataforma del Dato falla, ¿el guardado de la asignación falla también (consistencia fuerte) o se guarda y se reintenta en background (consistencia eventual)?</td><td>Medio — afecta UX y contrato de integración</td></tr>
+</table>
+<hr/>
+<h2>Clarifications</h2>
+<h3>Session 2026-05-26</h3>
+<ul>
+<li>Q: FR-015 — ¿Qué pantallas/módulos reflejan el equipo múltiple en el MVP? → A: <strong>Solo la ficha de cliente.</strong> "Mis Clientes", buscador PGI e informes internos quedan para una iteración posterior. Informes externos vía Plataforma del Dato cubiertos por FR-014.</li>
+<li>Q: FR-014 — ¿Mecanismo de sincronización con Plataforma del Dato? → A: <strong>Evento RabbitMQ (exchange <code>internal</code>)</strong> publicado al confirmar cada cambio. Propagación garantizada en &lt;5 minutos.</li>
+<li>Q: FR-010 / CHK025 — ¿Qué ocurre al cerrar asignación con <code>causesBaja: true</code> sin sucesor? → A: <strong>Bloquear el cierre</strong> hasta designar sucesor <em>(provisional — pendiente de confirmar con PO)</em>.</li>
+<li>Q: Modelo de equipos — ¿Los equipos se crean por cliente (Modelo A) o existen como entidades independientes que se asignan a clientes (Modelo B)? → <strong>[PENDIENTE DE DECISIÓN]</strong> Ver sección Assumptions para detalle de implicaciones.</li>
+</ul>
+<h3>Session 2026-05-25</h3>
+<ul>
+<li>Q: FR-005 — ¿La unicidad del equipo activo aplica al cliente o al empleado responsable? → A: Al <strong>cliente</strong> — un cliente no puede tener más de un equipo activo por departamento; la unicidad es <code>client_id + department WHERE end_date IS NULL</code>.</li>
+<li>Q: FR-012 — ¿Qué granularidad de fechas se usa para los períodos de asignación? → A: <strong>Híbrida</strong> — fecha exacta en base de datos, convención de primer/último día de mes aplicada en el servicio; cálculo de porcentajes y rentabilidad a granularidad mensual.</li>
+<li>Q: FR-009 — ¿El cierre de un equipo es reversible? → A: <strong>No — permanente</strong>. No se puede reabrir ni modificar <code>endDate</code> una vez confirmado. Para continuar se crea un nuevo equipo.</li>
+<li>Q: FR-010 / CHK025 — ¿Qué ocurre si no hay sucesor al dar de baja a un asesor? → A: <strong>Diferido — pendiente de decisión con PO</strong>.</li>
+<li>Q: CHK012 — ¿Se puede crear un nuevo equipo el mismo día del cierre del anterior? → A: <strong>Sí</strong> — períodos contiguos son válidos (<code>endDate</code> = último día del mes M, <code>startDate</code> = primer día del mes M+1). No hay restricción mínima de tiempo entre cierre y nueva apertura.</li>
+<li>Q: CHK024 — ¿Cómo detecta el sistema que un asesor "causa baja en la empresa"? → A: <strong>Campo explícito</strong> — el endpoint de cierre de asignación incluye un parámetro <code>causesBaja: boolean</code>. Cuando <code>true</code>, el sistema activa la reasignación automática de tareas al sucesor; cuando <code>false</code> (asesor que sigue en la empresa), el asesor conserva sus tareas. Sin un <code>causesBaja</code> explícito el sistema no puede distinguir ambos casos de forma fiable.</li>
+</ul>
+</div>
+<div class="section" id="plan">
+  <div class="section-label"><span class="icon">🏗️</span> Technical Plan</div>
+  <h1>Implementation Plan: Asignaciones Múltiples en Ficha de Cliente</h1>
+<p><strong>Branch</strong>: <code>001-client-team-assignments</code> | <strong>Date</strong>: 2026-05-25 | <strong>Spec</strong>: <a href="spec.md">spec.md</a></p>
+<p><strong>Input</strong>: Feature specification from <code>specs/001-client-team-assignments/spec.md</code></p>
+<hr/>
+<h2>Summary</h2>
+<p>Extend the existing flat <code>ClientAssignment</code> model with team grouping (<code>ClientTeam</code>), percentage-based load tracking, 100% sum validation per role group per department, historical period tracking, team lifecycle (create → close), and manual task reassignment via RabbitMQ. Changes span <code>pgi-service-pgi-api</code> (new entity + domain service), <code>pgi-app-pgi-web</code> (new team management UI in client ficha), and <code>pd-service-obligations-api</code> (new AMQP subscriber for manual reassignment).</p>
+<p><strong>Date granularity decision (FR-012)</strong>: Hybrid — store exact dates (PostgreSQL <code>date</code>), enforce first-of-month for <code>dateFrom</code> and last-of-month for <code>dateTo</code> via service validation. No schema change vs today.</p>
+<hr/>
+<h2>Technical Context</h2>
+<p><strong>Language/Version</strong>: TypeScript 5.7.3</p>
+<p><strong>Primary Dependencies</strong>:</p>
+<ul>
+<li>Backend: NestJS 10, MikroORM 6.4.3 (PostgreSQL), <code>@afianza-ac/lib-core-definitions@0.0.124</code>, <code>@afianza-ac/nest-module-rabbitmq@1.3.5</code></li>
+<li>Frontend: React 19, TanStack React Query v5, TanStack React Form v1.1, Zod v4.1, shadcn/ui (Radix UI), React Router v7.2</li>
+</ul>
+<p><strong>Storage</strong>: PostgreSQL (MikroORM, <code>postgres:17-alpine</code> in dev/test)</p>
+<p><strong>Testing</strong>: Jest + <code>@testcontainers/postgresql</code> (backend); Vitest + <code>@testing-library/react</code> (frontend)</p>
+<p><strong>Target Platform</strong>: Linux server (NestJS API) + Web SPA (React + Vite)</p>
+<p><strong>Project Type</strong>: Web service + Web application (polyrepo — changes across 3 services)</p>
+<p><strong>Performance Goals</strong>: &lt; 200ms p95 on team read/write endpoints (consistent with existing assignment endpoints)</p>
+<p><strong>Constraints</strong>:</p>
+<ul>
+<li>Strict 3-layer architecture (application → domain → infrastructure) — no exceptions</li>
+<li>No NestJS feature modules — all providers in AppModule</li>
+<li><code>em.fork()</code> before all writes; <code>disableIdentityMap: true</code> for reads</li>
+<li>Cross-service communication via RabbitMQ only (one exception justified below)</li>
+<li><code>lib-core-definitions</code> changes require publishing a new npm version — avoid unless necessary</li>
+</ul>
+<p><strong>Scale/Scope</strong>: 2 departments × ~hundreds of clients × up to 10 members per team. No high-throughput requirement; assignment operations are infrequent (HR-cadence).</p>
+<hr/>
+<h2>Constitution Check</h2>
+<p><em>GATE: Must pass before Phase 0 research. Re-checked post-design.</em></p>
+<table>
+<tr><th>Principle</th><th>Status</th><th>Notes</th></tr>
+<tr><td>I. Strict 3-Layer Architecture</td><td>✅ PASS</td><td><code>ClientTeam</code> entity in domain; <code>ClientTeamsService</code> in domain/services; <code>ClientTeamsController</code> in application/rest; no layer skipping</td></tr>
+<tr><td>II. Real-Container Testing</td><td>✅ PASS</td><td>New service tests use <code>@testcontainers/postgresql</code> with real postgres:17-alpine</td></tr>
+<tr><td>III. MikroORM Unit of Work</td><td>✅ PASS</td><td>All writes use <code>em.fork()</code>; reads use <code>disableIdentityMap: true</code>; partial unique index added via migration</td></tr>
+<tr><td>IV. Event-Driven Cross-Service</td><td>✅ PASS</td><td>Manual task reassignment uses new RabbitMQ event <code>backoffice-api.v1.task-reassignment.requested</code>; no new HTTP calls</td></tr>
+<tr><td>V. Simplicity / YAGNI</td><td>✅ PASS</td><td>Extends existing <code>ClientAssignment</code> entity (2 new columns); new <code>ClientTeam</code> entity is minimal; no new abstractions</td></tr>
+</table>
+<p><strong>No constitution violations.</strong></p>
+<hr/>
+<h2>Project Structure</h2>
+<h3>Documentation (this feature)</h3>
+<pre><code class="language-text">specs/001-client-team-assignments/
+├── spec.md              # Feature specification
+├── plan.md              # This file
+├── research.md          # Phase 0 output — FR-012 resolved, task reassignment approach decided
+├── data-model.md        # Phase 1 output — entity definitions, validation rules, migration SQL
+├── quickstart.md        # Phase 1 output — smoke tests, run instructions
+└── contracts/
+    ├── client-teams.md              # New team management REST endpoints
+    └── client-assignments-history.md # Extended assignment endpoints + RabbitMQ events</code></pre>
+<h3>Source Code</h3>
+<pre><code class="language-text"># pgi-service-pgi-api (backend)
+asesores/pgi-service-pgi-api/src/
+├── domain/
+│   ├── models/
+│   │   ├── client-team.ts              [NEW] ClientTeam entity
+│   │   └── client-assignment.ts        [EDIT] + percentage, + team FK
+│   └── services/
+│       ├── client-teams/
+│       │   └── client-teams.service.ts [NEW] createTeam, closeTeam, getTeams, validateTeam
+│       └── client-assignments/
+│           └── client-assignments.service.ts [EDIT] + validatePercentageSum, + addMember, + removeMember, + reassignTasks event
+├── application/
+│   └── rest/
+│       ├── client-teams/               [NEW]
+│       │   ├── client-teams.controller.ts
+│       │   └── dto/
+│       │       ├── create-team-params.dto.ts
+│       │       ├── close-team-params.dto.ts
+│       │       ├── add-member-params.dto.ts
+│       │       ├── patch-percentage-params.dto.ts
+│       │       ├── reassign-tasks-params.dto.ts
+│       │       └── client-team.dto.ts
+│       └── client-assignments/         [EDIT] extend response DTO with percentage + teamId
+│           └── dto/
+│               └── client-assignment-dto.ts [EDIT]
+└── migrations/
+    └── MigrationXXXX.ts                [NEW] ClientTeam table + percentage column
+
+# pgi-app-pgi-web (frontend)
+asesores/pgi-app-pgi-web/src/
+└── features/
+    ├── client-teams/                   [NEW feature module]
+    │   ├── domain/
+    │   │   ├── models/client-team.model.ts
+    │   │   └── repositories/client-teams.repository.ts
+    │   ├── application/use-cases/
+    │   │   ├── get-client-teams.use-case.ts
+    │   │   ├── create-team.use-case.ts
+    │   │   ├── close-team.use-case.ts
+    │   │   ├── add-member.use-case.ts
+    │   │   ├── update-member-percentage.use-case.ts
+    │   │   ├── remove-member.use-case.ts
+    │   │   ├── reassign-tasks.use-case.ts
+    │   │   └── composition-root.ts
+    │   ├── infrastructure/
+    │   │   ├── client-teams.repository-impl.ts
+    │   │   └── dto/client-team.dto.ts
+    │   └── presentation/
+    │       └── components/
+    │           ├── team-section/            # Main team UI for client ficha tab
+    │           │   ├── team-section.tsx
+    │           │   ├── team-header.tsx
+    │           │   ├── team-member-row.tsx
+    │           │   └── percentage-sum-indicator.tsx
+    │           ├── team-form/               # Add/edit member form
+    │           │   └── team-member-form.tsx
+    │           ├── close-team-dialog/
+    │           │   └── close-team-dialog.tsx
+    │           ├── team-history/
+    │           │   └── team-history-accordion.tsx
+    │           └── task-reassignment-dialog/
+    │               └── task-reassignment-dialog.tsx
+    └── client-assignments/                 [EDIT]
+        ├── domain/models/client-assignment.model.ts  [EDIT] + percentage, + teamId
+        └── infrastructure/dto/client-assignment-dto.ts [EDIT] + percentage, + teamId
+
+# pd-service-obligations-api (backend)
+plataforma-del-dato/pd-service-obligations-api/src/
+├── application/
+│   └── amqp/
+│       └── task-reassignment-subscriber/   [NEW]
+│           └── task-reassignment.subscriber.ts
+└── domain/
+    └── services/
+        └── tasks/
+            └── tasks.service.ts            [EDIT] + reassignTasksBetweenAdvisors()</code></pre>
+<hr/>
+<h2>Complexity Tracking</h2>
+<blockquote><p>No constitution violations requiring justification.</p></blockquote>
+<hr/>
+<h2>Post-Design Constitution Re-check</h2>
+<p>All 5 principles pass. The design:</p>
+<ul>
+<li>Keeps domain logic in domain services (% validation, date boundary checks, one-active-team guard)</li>
+<li>Uses real containers for all integration tests</li>
+<li>Follows MikroORM UoW patterns throughout</li>
+<li>Uses RabbitMQ for the new cross-service task reassignment operation</li>
+<li>Adds minimal new code — 1 new entity, 2 new columns, 1 new feature module in frontend</li>
+</ul>
+</div>
+<div class="section" id="data-model">
+  <div class="section-label"><span class="icon">🗄️</span> Data Model</div>
+  <h1>Data Model: Asignaciones Múltiples en Ficha de Cliente</h1>
+<p><strong>Feature</strong>: 001-client-team-assignments | <strong>Date</strong>: 2026-05-25</p>
+<hr/>
+<h2>Overview</h2>
+<p>This feature adds a <code>ClientTeam</code> entity (team header per client+department) and extends the existing <code>ClientAssignment</code> entity with <code>percentage</code> and a <code>team</code> foreign key. No other existing entities change.</p>
+<div class="mermaid">erDiagram
+    Client ||--o{ ClientTeam : "has teams"
+    Client ||--o{ ClientAssignment : "has assignments"
+    ClientTeam ||--o{ ClientAssignment : "groups members"
+    Employee ||--o{ ClientAssignment : "assigned as"
+
+    Client {
+        uuid id PK
+        string nameRazonSocial
+        string nif
+    }
+
+    ClientTeam {
+        uuid id PK
+        uuid client_id FK
+        string department
+        date start_date "first-of-month"
+        date end_date "last-of-month or null"
+        string created_by
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ClientAssignment {
+        uuid id PK
+        uuid client_id FK
+        uuid employee_id FK
+        uuid team_id FK "nullable — NEW"
+        string department
+        string role
+        date date_from "first-of-month"
+        date date_to "last-of-month or null"
+        smallint percentage "DEFAULT 100 — NEW"
+        timestamp updated_at
+        string updated_by
+    }
+
+    Employee {
+        uuid id PK
+        string name
+        string surname
+        string department
+    }</div>
+<hr/>
+<h2>Entities</h2>
+<h3><code>ClientTeam</code> (new)</h3>
+<p>Represents the team header for a given client and department. One active team per client+department at any time.</p>
+<table>
+<tr><th>Field</th><th>Type</th><th>Constraints</th><th>Notes</th></tr>
+<tr><td><code>id</code></td><td>uuid</td><td>PK</td><td>Generated via <code>uuidv4()</code></td></tr>
+<tr><td><code>client</code></td><td>FK → Client</td><td>NOT NULL</td><td>Which client this team serves</td></tr>
+<tr><td><code>department</code></td><td>Department (enum)</td><td>NOT NULL</td><td>FISCAL or LABORAL</td></tr>
+<tr><td><code>startDate</code></td><td>date</td><td>NOT NULL</td><td>Must be first day of month (enforced by service)</td></tr>
+<tr><td><code>endDate</code></td><td>date</td><td>NULL</td><td>Must be last day of month when set; null = team is active</td></tr>
+<tr><td><code>createdBy</code></td><td>varchar</td><td>NOT NULL</td><td>Email of responsable who created the team</td></tr>
+<tr><td><code>createdAt</code></td><td>timestamptz</td><td>NOT NULL</td><td>Auto-set at creation</td></tr>
+<tr><td><code>updatedAt</code></td><td>timestamptz</td><td>NOT NULL</td><td>Auto-updated on any change</td></tr>
+</table>
+<p><strong>Uniqueness</strong>: Partial unique index on <code>(client_id, department) WHERE end_date IS NULL</code> — only one active team per client+department.</p>
+<p><strong>State transitions</strong>:</p>
+<div class="mermaid">stateDiagram-v2
+    [*] --> ACTIVE : createTeam()
+    ACTIVE --> CLOSED : closeTeam(endDate)
+    CLOSED --> ACTIVE : createTeam() new period
+    note right of CLOSED : Immutable — no edits allowed</div>
+<p>Closed teams are immutable (no edits allowed). Creating a new team after closure starts fresh.</p>
+<hr/>
+<h3><code>ClientAssignment</code> (extended)</h3>
+<p>Existing entity extended with two new columns. All existing rows retain <code>team = null</code> and <code>percentage = 100</code> as defaults.</p>
+<table>
+<tr><th>Field</th><th>Type</th><th>Constraints</th><th>Change</th></tr>
+<tr><td><code>id</code></td><td>uuid</td><td>PK</td><td>Existing</td></tr>
+<tr><td><code>client</code></td><td>FK → Client</td><td>NOT NULL</td><td>Existing</td></tr>
+<tr><td><code>employee</code></td><td>FK → Employee</td><td>NOT NULL</td><td>Existing</td></tr>
+<tr><td><code>department</code></td><td>Department (enum)</td><td>NOT NULL</td><td>Existing</td></tr>
+<tr><td><code>role</code></td><td>ClientAssignmentRole (enum)</td><td>NOT NULL</td><td>Existing</td></tr>
+<tr><td><code>dateFrom</code></td><td>date</td><td>NOT NULL</td><td>Existing. First-of-month for new records (service validates)</td></tr>
+<tr><td><code>dateTo</code></td><td>date</td><td>NULL</td><td>Existing. Last-of-month when set</td></tr>
+<tr><td><code>percentage</code></td><td>smallint</td><td>NOT NULL, DEFAULT 100, CHECK 1–100</td><td><strong>NEW</strong></td></tr>
+<tr><td><code>team</code></td><td>FK → ClientTeam</td><td>NULL</td><td><strong>NEW</strong> — null for legacy rows</td></tr>
+<tr><td><code>updatedAt</code></td><td>timestamptz</td><td>NOT NULL</td><td>Existing</td></tr>
+<tr><td><code>updatedBy</code></td><td>varchar</td><td>NOT NULL</td><td>Existing</td></tr>
+</table>
+<hr/>
+<h2>Enums (no changes to <code>@afianza-ac/lib-core-definitions</code>)</h2>
+<pre><code class="language-typescript">// Already exists — no changes needed
+enum ClientAssignmentRole {
+  RESPONSABLE = 'responsable',
+  COORDINADOR = 'coordinador',
+  ASESOR      = 'asesor',
+  TECNICO     = 'tecnico',
+}
+
+enum Department {
+  FISCAL  = 'FISCAL',
+  LABORAL = 'LABORAL',
+}</code></pre>
+<hr/>
+<h2>Validation Rules</h2>
+<table>
+<tr><th>Rule</th><th>Scope</th><th>When</th><th>Error</th></tr>
+<tr><td><code>dateFrom</code> is first day of month</td><td>ClientTeam + ClientAssignment (new records)</td><td>create/update</td><td><code>DATE_NOT_MONTH_BOUNDARY</code></td></tr>
+<tr><td><code>dateTo</code> is last day of month (when set)</td><td>ClientTeam + ClientAssignment</td><td>create/update</td><td><code>DATE_NOT_MONTH_BOUNDARY</code></td></tr>
+<tr><td><code>dateTo &amp;gt;= dateFrom</code></td><td>ClientAssignment</td><td>create/update</td><td><code>DATE_RANGE_INVALID</code></td></tr>
+<tr><td>At most 1 active team per client+department</td><td>ClientTeam</td><td>createTeam</td><td><code>ACTIVE_TEAM_EXISTS</code></td></tr>
+<tr><td>ASESOR percentages sum to 100%</td><td>Team's active asesores</td><td>save/add/edit/remove</td><td><code>PERCENTAGE_VALIDATION_FAILED</code></td></tr>
+<tr><td>TECNICO percentages sum to 100% (if any)</td><td>Team's active técnicos</td><td>save/add/edit/remove</td><td><code>PERCENTAGE_VALIDATION_FAILED</code></td></tr>
+<tr><td>Team must have ≥ 1 active ASESOR</td><td>Team</td><td>remove/close</td><td><code>MIN_ASESOR_REQUIRED</code></td></tr>
+<tr><td>RESPONSABLE max 1 per team</td><td>Team</td><td>addMember</td><td><code>ROLE_ALREADY_FILLED</code></td></tr>
+<tr><td>COORDINADOR max 1 per team</td><td>Team</td><td>addMember</td><td><code>ROLE_ALREADY_FILLED</code></td></tr>
+<tr><td>COORDINADOR ≠ RESPONSABLE (same person)</td><td>Team</td><td>addMember</td><td><code>ROLE_CONFLICT</code></td></tr>
+<tr><td><code>percentage</code> in 1–100</td><td>ClientAssignment</td><td>create/update</td><td><code>PERCENTAGE_OUT_OF_RANGE</code></td></tr>
+<tr><td>Cannot add member to closed team</td><td>ClientTeam</td><td>addMember</td><td><code>TEAM_CLOSED</code></td></tr>
+<tr><td>Cannot edit closed team</td><td>ClientTeam</td><td>update</td><td><code>TEAM_CLOSED</code></td></tr>
+</table>
+<hr/>
+<h2>AssignmentPeriod (logical concept — no new entity)</h2>
+<p>The spec's "AssignmentPeriod" is represented by <code>ClientAssignment</code> rows with a non-null <code>dateTo</code>. The period becomes immutable once closed (service rejects edits to assignments where <code>dateTo &amp;lt; today</code> AND <code>team.endDate IS NOT NULL</code>).</p>
+<p><strong>History query</strong>: <code>SELECT * FROM client_assignment WHERE client_id = ? AND department = ? ORDER BY dateFrom DESC</code> — returns both active (dateTo = null) and historical (dateTo set) records.</p>
+<hr/>
+<h2>Database Migration</h2>
+<p><strong>One migration</strong> in <code>pgi-service-pgi-api</code>:</p>
+<pre><code class="language-sql">-- 1. New table
+CREATE TABLE client_team (
+  id          uuid PRIMARY KEY,
+  client_id   uuid NOT NULL REFERENCES client(id),
+  department  varchar NOT NULL,
+  start_date  date NOT NULL,
+  end_date    date,
+  created_by  varchar NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX idx_client_team_active
+  ON client_team (client_id, department)
+  WHERE end_date IS NULL;
+
+-- 2. Extend client_assignment
+ALTER TABLE client_assignment
+  ADD COLUMN percentage smallint NOT NULL DEFAULT 100
+    CHECK (percentage &gt;= 1 AND percentage &lt;= 100),
+  ADD COLUMN team_id uuid REFERENCES client_team(id);</code></pre>
+<p><strong>No data migration needed</strong> — existing rows get <code>percentage = 100</code> and <code>team_id = null</code>.</p>
+<hr/>
+<h2>RabbitMQ Event Schemas</h2>
+<h3>Extended: <code>backoffice-api.v1.client-assignment.updated</code></h3>
+<pre><code class="language-typescript">interface ClientAssignmentUpdatedEvent {
+  id: string;
+  employeeId: string;
+  clientId: string;
+  department: Department;
+  role: ClientAssignmentRole;
+  dateFrom: string; // ISO date
+  dateTo: string | null;
+  percentage: number; // NEW field — backward-compatible addition
+  updatedAt: string;
+  updatedBy: string;
+}</code></pre>
+<h3>New: <code>backoffice-api.v1.task-reassignment.requested</code></h3>
+<pre><code class="language-typescript">interface TaskReassignmentRequestedEvent {
+  clientId: string;
+  department: Department;
+  fromEmployeeId: string;
+  toEmployeeId: string;
+  taskIds: string[] | null; // null = all PENDING tasks for client+dept+fromEmployee
+  requestedBy: string; // email of coordinator/responsable
+  requestedAt: string; // ISO datetime
+}</code></pre>
+<p>Routing key: <code>backoffice-api.v1.task-reassignment.requested</code> Queue (obligations-api): <code>obligations-api:task-reassignment:process</code></p>
+<hr/>
+<h2>Frontend Domain Model Extensions</h2>
+<pre><code class="language-typescript">// Extended domain model (pgi-app-pgi-web)
+type ClientTeam = {
+  id: string;
+  clientId: string;
+  department: Department;
+  startDate: Date;
+  endDate?: Date;
+  isActive: boolean; // derived: endDate == null
+  createdBy: string;
+  createdAt: Date;
+};
+
+// Extended ClientAssignment domain model
+type ClientAssignment = {
+  id: string;
+  clientId: string;
+  employee: { id: string; name: string; surname?: string };
+  department: Department;
+  role: ClientAssignmentRole;
+  dateFrom: Date;
+  dateTo?: Date;
+  percentage: number;           // NEW
+  teamId?: string;              // NEW
+  updatedAt: Date;
+  updatedBy: string;
+};</code></pre>
+</div>
+<div class="section" id="research">
+  <div class="section-label"><span class="icon">🔬</span> Research</div>
+  <h1>Research: Asignaciones Múltiples en Ficha de Cliente</h1>
+<p><strong>Feature</strong>: 001-client-team-assignments | <strong>Date</strong>: 2026-05-25</p>
+<hr/>
+<h2>R-001 — Date Granularity for Assignment Periods (FR-012)</h2>
+<h3>Context</h3>
+<p>The <code>ClientAssignment</code> entity stores <code>dateFrom</code> / <code>dateTo</code> as PostgreSQL <code>date</code> columns. The spec left date granularity as a TODO with three options: daily, monthly, or hybrid.</p>
+<h3>Alternatives Considered</h3>
+<table>
+<tr><th>Option</th><th>Storage</th><th>Validation</th><th>Migration cost</th><th>Edge cases</th></tr>
+<tr><td><strong>Daily</strong></td><td>Exact date</td><td>% sum per day</td><td>None</td><td>Complex: what if assignment changes mid-month? Two separate days with different advisors</td></tr>
+<tr><td><strong>Monthly</strong></td><td>First-of-month convention (e.g. <code>2026-06-01</code> = "June 2026")</td><td>% sum per month</td><td>None (schema unchanged; service enforces convention)</td><td>Simpler; aligns with billing</td></tr>
+<tr><td><strong>Hybrid</strong></td><td>Exact date stored; service enforces <code>dateFrom = 1st of month</code> for new records</td><td>% sum per month</td><td>None</td><td>Allows future migration to daily without schema change</td></tr>
+</table>
+<h3>Decision: <strong>Hybrid (first-of-month convention)</strong></h3>
+<ul>
+<li><code>dateFrom</code> MUST be the first day of a month (enforced by service validation on create/update)</li>
+<li><code>dateTo</code> MUST be the last day of a month, or <code>null</code> for open-ended assignments (enforced by service)</li>
+<li>Schema: no change — keep <code>columnType: 'date'</code></li>
+<li>Validation: <code>ClientTeamsService.validateMonthBoundary(date)</code> helper</li>
+<li>Historical display: show dates as "Jun 2026 – Ago 2026" (format in frontend)</li>
+</ul>
+<h3>Rationale</h3>
+<ol>
+<li>Obligations in <code>pd-service-obligations-api</code> run on a monthly cycle; monthly granularity aligns with how advisors are actually scheduled.</li>
+<li>No schema migration needed — existing rows with daily dates are grandfathered; only new records enforce the convention.</li>
+<li>The hybrid retains exact date storage, so pivoting to daily in future requires zero DB migration.</li>
+<li>FR-003 (100% validation) is much simpler computed per month than per day.</li>
+</ol>
+<hr/>
+<h2>R-002 — Manual Task Reassignment: HTTP vs RabbitMQ</h2>
+<h3>Context</h3>
+<p>FR-010 requires a "manual reassignment" option where a coordinator can transfer specific tasks to another team member. Tasks live in <code>pd-service-obligations-api</code>. Constitution IV prohibits direct HTTP calls between backend services.</p>
+<h3>Finding: ObligationsApi adapter already performs HTTP mutations</h3>
+<p>The existing <code>infrastructure/obligations-api/ObligationsApi</code> in <code>pgi-service-pgi-api</code> already calls obligations-api HTTP endpoints for mutations: <code>updateObligationState</code>, <code>updateTask</code>, <code>updateSubmission</code>. This is a pre-existing pattern (predates the constitution's 2026-05-25 ratification).</p>
+<h3>Alternatives Considered</h3>
+<table>
+<tr><th>Option</th><th>Pro</th><th>Con</th></tr>
+<tr><td><strong>RabbitMQ event</strong> <code>pgi-api.v1.task-reassignment.requested</code></td><td>Constitution IV compliant</td><td>New AMQP consumer in obligations-api; async (response not immediate)</td></tr>
+<tr><td><strong>HTTP via existing ObligationsApi adapter</strong></td><td>Consistent with existing pattern; synchronous response</td><td>Violates Constitution IV technically; documented in Complexity Tracking</td></tr>
+</table>
+<h3>Decision: <strong>RabbitMQ event</strong> (constitution-compliant)</h3>
+<p>Even though the existing <code>ObligationsApi</code> adapter makes HTTP mutations, the recommended approach for manual reassignment is a RabbitMQ event, because:</p>
+<ol>
+<li>This is a new feature written post-constitution — it should model the correct pattern.</li>
+<li>The HTTP adapter mutations are legacy technical debt (should be migrated to events in future).</li>
+<li>Reassignment is not latency-critical; async processing is acceptable.</li>
+<li>A new AMQP subscriber in obligations-api is minimal code.</li>
+</ol>
+<p><strong>Event schema</strong>: <code>pgi-api.v1.task-reassignment.requested</code></p>
+<pre><code class="language-json">{
+  "clientId": "uuid",
+  "department": "FISCAL | LABORAL",
+  "fromEmployeeId": "uuid",
+  "toEmployeeId": "uuid",
+  "taskIds": ["uuid", "uuid"]  // null = all PENDING tasks for this client+dept+fromEmployee
+}</code></pre>
+<p>Routing key: <code>backoffice-api.v1.task-reassignment.requested</code> Queue in obligations-api: <code>obligations-api:task-reassignment:process</code></p>
+<h3>Existing path for automatic reassignment (no change needed)</h3>
+<p>When an assignment changes (new employee for same role/dept), the existing flow already handles automatic task reassignment:</p>
+<pre><code>pgi-service publishes client_assignment_updated
+  → data-factory receives → publishes client_assignment_persisted
+  → obligations-api: refreshAdvisorForClient() updates PENDING tasks</code></pre>
+<p>Only PENDING tasks are updated (IN_PROGRESS, SUBMITTED, CANCELLED preserve their original advisor). This is intentional per DEVPT-472.</p>
+<hr/>
+<h2>R-003 — Soft Uniqueness: One Active Team per Client+Department</h2>
+<h3>Context</h3>
+<p>FR-005: "Un responsable NO PUEDE tener más de un equipo activo por departamento." A partial unique index (<code>WHERE endDate IS NULL</code>) would enforce this at DB level, but MikroORM 6.x requires raw SQL for partial indexes.</p>
+<h3>Decision: <strong>Service-layer guard + raw migration index</strong></h3>
+<p>In <code>ClientTeamsService.createTeam()</code>, check for an existing active team before creation. Additionally, create a partial unique index in the migration for belt-and-suspenders:</p>
+<pre><code class="language-sql">CREATE UNIQUE INDEX idx_client_team_active
+  ON client_team (client_id, department)
+  WHERE end_date IS NULL;</code></pre>
+<p>The service-layer guard gives a clean error message; the DB constraint prevents race conditions.</p>
+<hr/>
+<h2>R-004 — Percentage Validation: ASESOR vs TECNICO grouping</h2>
+<h3>Context</h3>
+<p>FR-003: Asesores must sum to 100%; Técnicos must sum to 100% (if any técnico exists). RESPONSABLE and COORDINADOR have no percentage constraint (always 1 max, implicit 100%).</p>
+<h3>Decision: <strong>Validate at flush time in domain service</strong></h3>
+<p><code>ClientAssignmentsService</code> validates before any flush:</p>
+<ol>
+<li>Fetch all <strong>active</strong> assignments for (client, department, team) where role IN (ASESOR) → sum % must equal 100</li>
+<li>Fetch all <strong>active</strong> assignments for (client, department, team) where role IN (TECNICO) → if any exist, sum % must equal 100</li>
+<li>Guard: at least 1 active ASESOR must remain after any removal (FR-011)</li>
+</ol>
+<p>"Active" = no <code>dateTo</code>, or <code>dateTo &amp;gt;= today</code>.</p>
+<p>Validation runs synchronously before <code>em.persistAndFlush()</code>. Returns structured error:</p>
+<pre><code class="language-json">{
+  "error": "PERCENTAGE_VALIDATION_FAILED",
+  "role": "ASESOR",
+  "current": 140,
+  "required": 100
+}</code></pre>
+<hr/>
+<h2>R-005 — Frontend: Live % Sum Validation with TanStack Form</h2>
+<h3>Decision: <strong>Field array with derived sum computation</strong></h3>
+<p>The team management form uses <code>useForm</code> from <code>@tanstack/react-form</code> with a field array for members. A derived selector computes the sum per role group on every render. A <code>&amp;lt;PercentageSumIndicator&amp;gt;</code> component shows the live sum with color feedback (green = 100%, red = other).</p>
+<p>Validation: Zod schema validates each <code>percentage</code> (1–100 integer) + form-level cross-field validation for the sum. Submit is disabled if sum ≠ 100 for any required group.</p>
+<hr/>
+<h2>Summary of Resolved Decisions</h2>
+<table>
+<tr><th>ID</th><th>Topic</th><th>Decision</th></tr>
+<tr><td>R-001</td><td>Date granularity (FR-012)</td><td><strong>Hybrid</strong>: store exact date, enforce first-of-month convention in service</td></tr>
+<tr><td>R-002</td><td>Manual task reassignment</td><td><strong>RabbitMQ event</strong> <code>pgi-api.v1.task-reassignment.requested</code></td></tr>
+<tr><td>R-003</td><td>One active team enforcement</td><td>Service guard + partial unique index in migration</td></tr>
+<tr><td>R-004</td><td>% validation logic</td><td>Validate at flush time in domain service, by role group</td></tr>
+<tr><td>R-005</td><td>Frontend live validation</td><td>TanStack Form field array + derived sum + Zod cross-field</td></tr>
+</table>
+</div>
+<div class="section" id="tasks">
+  <div class="section-label"><span class="icon">✅</span> Tasks</div>
+  <h1>Tasks: Asignaciones Múltiples en Ficha de Cliente</h1>
+<p><strong>Input</strong>: Design documents from <code>specs/001-client-team-assignments/</code></p>
+<p><strong>Branch</strong>: <code>001-client-team-assignments</code> | <strong>Date</strong>: 2026-05-25</p>
+<p><strong>Services</strong>: <code>pgi-service-pgi-api</code> (backend), <code>pgi-app-pgi-web</code> (frontend), <code>pd-service-obligations-api</code> (AMQP)</p>
+<h2>Format: <code>[ID] [P?] [Story?] Description</code></h2>
+<ul>
+<li><strong>[P]</strong>: Paralelizable — ficheros distintos, sin dependencia de tarea incompleta</li>
+<li><strong>[Story]</strong>: Historia de usuario a la que pertenece (US1–US4)</li>
+<li>Sin label de story → Setup o Fundacional</li>
+</ul>
+<hr/>
+<h2>Phase 1: Setup</h2>
+<p><strong>Purpose</strong>: Verificar que el snapshot de MikroORM está limpio antes de tocar entidades. Obligatorio antes de cualquier edición de entidades.</p>
+<ul>
+<li><input type="checkbox" disabled /> T001 Verificar snapshot limpio en pgi-service-pgi-api: ejecutar <code>npx mikro-orm migration:check</code> desde <code>asesores/pgi-service-pgi-api/</code> y confirmar "No changes required"</li>
+<li><input type="checkbox" disabled /> T002 [P] Verificar snapshot limpio en pd-service-obligations-api: ejecutar <code>npx mikro-orm migration:check</code> desde <code>plataforma-del-dato/pd-service-obligations-api/</code> y confirmar "No changes required"</li>
+</ul>
+<p><strong>Checkpoint</strong>: Los dos snapshots están sincronizados. Se puede empezar a editar entidades.</p>
+<hr/>
+<h2>Phase 2: Fundacional (bloqueante para todas las historias)</h2>
+<p><strong>Purpose</strong>: Entidades, migración y configuración base que necesitan todas las historias de usuario.</p>
+<p><strong>⚠️ CRÍTICO</strong>: Ninguna historia de usuario puede empezar hasta completar esta fase.</p>
+<ul>
+<li><input type="checkbox" disabled /> T003 Crear entidad <code>ClientTeam</code> (id, client FK, department, startDate, endDate nullable, createdBy, createdAt, updatedAt) en <code>asesores/pgi-service-pgi-api/src/domain/models/client-team.ts</code></li>
+<li><input type="checkbox" disabled /> T004 Extender entidad <code>ClientAssignment</code> añadiendo columna <code>percentage</code> (smallint, NOT NULL, DEFAULT 100, CHECK 1–100) y <code>team</code> (nullable FK → ClientTeam) en <code>asesores/pgi-service-pgi-api/src/domain/models/client-assignment.ts</code></li>
+<li><input type="checkbox" disabled /> T005 Crear migración MikroORM (<code>npm run migrations:create</code>) en <code>asesores/pgi-service-pgi-api/src/migrations/</code> — añadir manualmente el índice parcial: <code>CREATE UNIQUE INDEX idx_client_team_active ON client_team (client_id, department) WHERE end_date IS NULL</code>; verificar que <code>npx mikro-orm migration:create --dump</code> devuelve "No changes required"</li>
+<li><input type="checkbox" disabled /> T006 [P] Registrar <code>ClientTeam</code> en la lista de entidades de MikroORM y añadir <code>ClientTeamsService</code> y <code>ClientTeamsController</code> como providers vacíos en <code>asesores/pgi-service-pgi-api/src/app.module.ts</code></li>
+<li><input type="checkbox" disabled /> T007 [P] Añadir publicación <code>backoffice-api.v1.task-reassignment.requested</code> (routingKey: <code>backoffice-api.v1.task-reassignment.requested</code>) al config de RabbitMQ en <code>asesores/pgi-service-pgi-api/src/config/default.config.ts</code></li>
+<li><input type="checkbox" disabled /> T008 [P] Extender <code>toClientAssignmentDto</code> y <code>ClientAssignmentDto</code> con campos <code>percentage</code> (number) y <code>teamId</code> (string | null) en <code>asesores/pgi-service-pgi-api/src/application/rest/client-assignments/dto/client-assignment-dto.ts</code></li>
+<li><input type="checkbox" disabled /> T009 [P] Extender modelo de dominio frontend <code>ClientAssignment</code> con <code>percentage</code> y <code>teamId</code> en <code>asesores/pgi-app-pgi-web/src/features/client-assignments/domain/models/client-assignment.model.ts</code> y su DTO en <code>asesores/pgi-app-pgi-web/src/features/client-assignments/infrastructure/dto/client-assignment-dto.ts</code></li>
+<li><input type="checkbox" disabled /> T010 [P] Crear estructura de carpetas vacía para el nuevo feature module <code>client-teams</code> (domain/, application/use-cases/, infrastructure/, presentation/components/) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/</code></li>
+</ul>
+<p><strong>Checkpoint</strong>: Migración aplicada, entidades compilando, feature module esqueleto listo. Historias de usuario pueden empezar en paralelo.</p>
+<hr/>
+<h2>Phase 3: User Story 1 — Crear y gestionar el equipo (Priority: P1) 🎯 MVP</h2>
+<p><strong>Goal</strong>: Un responsable puede crear el equipo de un cliente (responsable + coordinador opcional + ≥1 asesor + técnicos opcionales), guardarlo y verlo activo en la ficha del cliente.</p>
+<p><strong>Independent Test</strong>: Abrir ficha de un cliente sin equipo → crear equipo con un asesor al 100% → guardar → verificar equipo activo visible en la UI y respondiendo en <code>GET /v1/client-teams/:clientId/department/FISCAL</code>.</p>
+<h3>Backend</h3>
+<ul>
+<li><input type="checkbox" disabled /> T011 [US1] Crear <code>ClientTeamsService</code> con métodos <code>createTeam()</code> (valida first-of-month, valida no active team existe, <code>em.fork()</code> + <code>em.create()</code> + <code>em.persistAndFlush()</code>), <code>getTeamsByClient()</code> (<code>disableIdentityMap: true</code>), <code>getActiveSummary()</code> y helper <code>validateMonthBoundary(date)</code> en <code>asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.ts</code></li>
+<li><input type="checkbox" disabled /> T012 [P] [US1] Crear DTOs <code>CreateTeamParamsDto</code> (startDate: Date, @IsDateString + @IsNotEmpty) y <code>ClientTeamDto</code> (id, clientId, department, startDate, endDate, isActive, createdBy, createdAt) en <code>asesores/pgi-service-pgi-api/src/application/rest/client-teams/dto/</code></li>
+<li><input type="checkbox" disabled /> T013 [US1] Crear <code>ClientTeamsController</code> con endpoints: <code>GET /:clientId/department/:department</code> (lista equipos), <code>POST /:clientId/department/:department</code> (crea equipo), <code>GET /:clientId/department/:department/active-summary</code> en <code>asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.ts</code> — auth: <code>CLIENT_ASSIGNMENT_VIEW</code> / <code>CLIENT_ASSIGNMENT_EDIT</code></li>
+<li><input type="checkbox" disabled /> T014 [US1] Añadir método <code>addMember()</code> a <code>ClientAssignmentsService</code>: recibe teamId, employeeId, role, percentage, dateFrom; valida equipo activo; valida RESPONSABLE/COORDINADOR max 1; valida COORDINADOR ≠ RESPONSABLE; <code>em.fork()</code> + <code>em.create()</code>; publica <code>client_assignment_updated</code> en <code>asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts</code></li>
+<li><input type="checkbox" disabled /> T015 [US1] Añadir DTOs <code>AddMemberParamsDto</code> (employeeId, role, percentage, dateFrom) y endpoints <code>POST /:clientId/:teamId/members</code> y <code>DELETE /:clientId/:teamId/members/:assignmentId</code> a <code>ClientAssignmentsController</code> en <code>asesores/pgi-service-pgi-api/src/application/rest/client-assignments/client-assignments.controller.ts</code> — guard: <code>CLIENT_ASSIGNMENT_EDIT</code> + dept-specific</li>
+<li><input type="checkbox" disabled /> T016 [US1] Añadir método <code>removeMember()</code> a <code>ClientAssignmentsService</code>: fija <code>dateTo = endOfCurrentMonth()</code>, valida que queden ≥1 asesor activo tras la eliminación; publica <code>client_assignment_updated</code> en <code>asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts</code></li>
+<li><input type="checkbox" disabled /> T017 [P] [US1] Escribir test de integración (testcontainers): crear equipo → añadir asesor → verificar GET lista el equipo y miembro; intentar crear segundo equipo activo → verificar 409 en <code>asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.spec.ts</code></li>
+</ul>
+<h3>Frontend</h3>
+<ul>
+<li><input type="checkbox" disabled /> T018 [P] [US1] Crear modelo de dominio <code>ClientTeam</code> y interface <code>ClientTeamsRepository</code> en <code>asesores/pgi-app-pgi-web/src/features/client-teams/domain/</code></li>
+<li><input type="checkbox" disabled /> T019 [P] [US1] Crear <code>ClientTeamDto</code>, mapper <code>fromClientTeamDto()</code> y <code>ClientTeamsRepositoryImpl</code> (httpClient calls a <code>/v1/client-teams/</code>) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/infrastructure/</code></li>
+<li><input type="checkbox" disabled /> T020 [US1] Crear use-cases <code>get-client-teams</code>, <code>create-team</code>, <code>add-member</code>, <code>remove-member</code> con <code>composition-root.ts</code> en <code>asesores/pgi-app-pgi-web/src/features/client-teams/application/use-cases/</code></li>
+<li><input type="checkbox" disabled /> T021 [P] [US1] Crear componente <code>TeamHeader</code> (muestra startDate formateada, createdBy, badge activo/cerrado) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-header.tsx</code></li>
+<li><input type="checkbox" disabled /> T022 [P] [US1] Crear componente <code>TeamMemberRow</code> (nombre empleado, role badge, campo % readonly en US1, botón eliminar con guard de permiso) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-member-row.tsx</code></li>
+<li><input type="checkbox" disabled /> T023 [US1] Crear componente <code>TeamSection</code> (fetches team via useQuery, renderiza TeamHeader + TeamMemberRow list + botón "Añadir miembro" + botón "Crear equipo" si no hay equipo activo) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.tsx</code></li>
+<li><input type="checkbox" disabled /> T024 [US1] Crear <code>TeamMemberForm</code> dialog (TanStack Form: employee autocomplete, role select, dateFrom date picker, campo % — Zod: todos requeridos, % 1–100) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-form/team-member-form.tsx</code></li>
+<li><input type="checkbox" disabled /> T025 [US1] Integrar <code>TeamSection</code> en el tab "Asignaciones" de la ficha del cliente en <code>asesores/pgi-app-pgi-web/src/features/clients/presentation/components/client-profile-tabs/</code></li>
+</ul>
+<p><strong>Checkpoint</strong>: Un responsable puede crear un equipo, añadir asesores y verlo en la ficha. MVP funcionalmente completo.</p>
+<hr/>
+<h2>Phase 4: User Story 2 — Distribución de carga por porcentaje (Priority: P2)</h2>
+<p><strong>Goal</strong>: El responsable puede ajustar el % de carga de cada miembro y el sistema valida en tiempo real que asesores sumen 100% y técnicos sumen 100% (si los hay) antes de permitir guardar.</p>
+<p><strong>Independent Test</strong>: Equipo existente con 1 asesor al 100% → añadir segundo asesor al 40% sin ajustar el primero → sistema muestra advertencia y bloquea el guardado. Ajustar a 60%+40% → permite guardar.</p>
+<h3>Backend</h3>
+<ul>
+<li><input type="checkbox" disabled /> T026 [US2] Añadir <code>validatePercentageSum(teamId, role, newPercentage?, excludeAssignmentId?)</code> a <code>ClientTeamsService</code>: consulta asesores activos del equipo, suma porcentajes, devuelve error estructurado si ≠ 100 en <code>asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.ts</code></li>
+<li><input type="checkbox" disabled /> T027 [US2] Llamar a <code>validatePercentageSum()</code> desde <code>ClientAssignmentsService.addMember()</code> y <code>removeMember()</code> (solo para roles ASESOR y TECNICO) en <code>asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts</code></li>
+<li><input type="checkbox" disabled /> T028 [US2] Crear <code>PatchPercentageParamsDto</code> (percentage: number, effectiveFrom: Date) y añadir endpoint <code>PATCH /:clientId/:teamId/members/:assignmentId</code> a <code>ClientAssignmentsController</code> — servicio: cierra asignación actual (dateTo = effectiveFrom - 1d) y crea nueva con nuevo % en <code>asesores/pgi-service-pgi-api/src/application/rest/client-assignments/</code></li>
+<li><input type="checkbox" disabled /> T029 [P] [US2] Añadir endpoint <code>POST /:clientId/:teamId/validate</code> a <code>ClientTeamsController</code> (llama <code>validatePercentageSum</code> por grupo de rol, devuelve <code>{ valid, violations[] }</code>) en <code>asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.ts</code></li>
+<li><input type="checkbox" disabled /> T030 [P] [US2] Escribir test de integración: 2 asesores al 60%+50% → 400 <code>PERCENTAGE_VALIDATION_FAILED</code>; al 60%+40% → 201; 1 técnico al 80% → 400 en <code>asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.spec.ts</code></li>
+</ul>
+<h3>Frontend</h3>
+<ul>
+<li><input type="checkbox" disabled /> T031 [P] [US2] Crear componente <code>PercentageSumIndicator</code> (recibe role + assignments[], muestra suma actual, verde si =100, rojo si ≠100, con tooltip de distribución) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/percentage-sum-indicator.tsx</code></li>
+<li><input type="checkbox" disabled /> T032 [US2] Añadir campo % editable a <code>TeamMemberRow</code> y validación Zod cross-field (sum de asesores = 100, sum de técnicos = 100 si los hay) en <code>TeamMemberForm</code> en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/</code></li>
+<li><input type="checkbox" disabled /> T033 [US2] Integrar <code>PercentageSumIndicator</code> en <code>TeamSection</code> y deshabilitar botón "Guardar" cuando la suma sea ≠ 100% para algún grupo en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.tsx</code></li>
+<li><input type="checkbox" disabled /> T034 [P] [US2] Crear use-case <code>update-member-percentage</code> en <code>asesores/pgi-app-pgi-web/src/features/client-teams/application/use-cases/update-member-percentage.use-case.ts</code></li>
+</ul>
+<p><strong>Checkpoint</strong>: Editar % con suma incorrecta bloquea el guardado. Guardar con suma correcta persiste correctamente.</p>
+<hr/>
+<h2>Phase 5: User Story 3 — Histórico de cambios de asignación (Priority: P3)</h2>
+<p><strong>Goal</strong>: Vista de solo lectura con todos los cambios de asignación (altas, bajas, cambios de %) — accesible para todos los perfiles con acceso a la ficha.</p>
+<p><strong>Independent Test</strong>: Crear equipo → cambiar % de un asesor → acceder al histórico → verificar dos entradas: original (con dateTo) y nueva (sin dateTo).</p>
+<h3>Backend</h3>
+<ul>
+<li><input type="checkbox" disabled /> T035 [US3] Añadir método <code>getAssignmentHistory(clientId, department, filters?)</code> a <code>ClientAssignmentsService</code> (retorna todas las filas incluyendo las con dateTo, ordenadas por dateFrom DESC; <code>disableIdentityMap: true</code>) en <code>asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts</code></li>
+<li><input type="checkbox" disabled /> T036 [US3] Añadir endpoint <code>GET /v1/client-assignments/:clientId/department/:department/history</code> (query params: role?, employeeId?) a <code>ClientAssignmentsController</code> — auth: <code>CLIENT_ASSIGNMENT_VIEW</code> en <code>asesores/pgi-service-pgi-api/src/application/rest/client-assignments/client-assignments.controller.ts</code></li>
+<li><input type="checkbox" disabled /> T037 [P] [US3] Escribir test de integración: crear equipo → cambiar % → verificar history devuelve 2 entradas con dateFrom/dateTo correctos en <code>asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.spec.ts</code></li>
+</ul>
+<h3>Frontend</h3>
+<ul>
+<li><input type="checkbox" disabled /> T038 [P] [US3] Crear use-case <code>get-assignment-history</code> y añadir a composition-root en <code>asesores/pgi-app-pgi-web/src/features/client-teams/application/use-cases/</code></li>
+<li><input type="checkbox" disabled /> T039 [P] [US3] Crear componente <code>TeamHistoryAccordion</code> (tabla con columnas: Empleado, Rol, %, Período "Jun 2026 – Ago 2026", colapsable) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-history/team-history-accordion.tsx</code></li>
+<li><input type="checkbox" disabled /> T040 [US3] Integrar <code>TeamHistoryAccordion</code> en <code>TeamSection</code> debajo de los miembros activos (todos los perfiles pueden verlo — sin guard de edición) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.tsx</code></li>
+</ul>
+<p><strong>Checkpoint</strong>: El histórico muestra todos los períodos con fechas y porcentajes correctos para cualquier usuario con acceso a la ficha.</p>
+<hr/>
+<h2>Phase 6: User Story 4 — Cierre de equipo y reasignación de tareas (Priority: P4)</h2>
+<p><strong>Goal</strong>: El responsable puede cerrar un equipo fijando una fecha de fin que se propaga a todos sus miembros. Puede reasignar tareas manualmente entre miembros en cualquier momento.</p>
+<p><strong>Independent Test</strong>: Equipo activo sin tareas pendientes → responsable fija fecha de cierre → todos los miembros reciben dateTo → equipo pasa a inactivo en el histórico.</p>
+<h3>Backend — pgi-service-pgi-api</h3>
+<ul>
+<li><input type="checkbox" disabled /> T041 [US4] Añadir método <code>closeTeam(teamId, endDate, user)</code> a <code>ClientTeamsService</code>: valida endDate = last-of-month, valida equipo activo, <code>em.fork()</code> + <code>em.transactional()</code> para fijar <code>endDate</code> en <code>ClientTeam</code> y <code>dateTo = endDate</code> en todos los miembros activos; publica <code>client_assignment_updated</code> por cada miembro en <code>asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.ts</code></li>
+<li><input type="checkbox" disabled /> T042 [US4] Crear <code>CloseTeamParamsDto</code> (endDate: Date) y añadir endpoint <code>PUT /:clientId/:teamId/close</code> a <code>ClientTeamsController</code> — guard: <code>CLIENT_ASSIGNMENT_EDIT</code> en <code>asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.ts</code></li>
+<li><input type="checkbox" disabled /> T043 [US4] Añadir método <code>publishTaskReassignment(clientId, dept, fromEmployeeId, toEmployeeId, taskIds, requestedBy)</code> a <code>ClientAssignmentsService</code> (publica evento <code>backoffice-api.v1.task-reassignment.requested</code> vía rabbitMQService) en <code>asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts</code></li>
+<li><input type="checkbox" disabled /> T044 [US4] Crear <code>ReassignTasksParamsDto</code> (fromEmployeeId, toEmployeeId, taskIds?: string[]) y añadir endpoint <code>POST /:clientId/:teamId/reassign-tasks</code> → devuelve 202 Accepted en <code>asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.ts</code></li>
+<li><input type="checkbox" disabled /> T045 [P] [US4] Escribir test de integración: closeTeam → verificar team.endDate set, todos los miembros con dateTo, evento published; intentar editar equipo cerrado → verificar 409 en <code>asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.spec.ts</code></li>
+</ul>
+<h3>Backend — pd-service-obligations-api</h3>
+<ul>
+<li><input type="checkbox" disabled /> T046 [P] [US4] Añadir método <code>reassignTasksBetweenAdvisors(clientId, dept, fromEmployeeId, toEmployeeId, taskIds?)</code> a <code>TasksService</code>: actualiza <code>task.advisor</code> para tareas PENDING del <code>fromEmployeeId</code> (filtrando por <code>taskIds</code> si se proporcionan); <code>em.fork()</code>; idempotente (reasignar tarea ya reasignada es no-op) en <code>plataforma-del-dato/pd-service-obligations-api/src/domain/services/tasks/tasks.service.ts</code></li>
+<li><input type="checkbox" disabled /> T047 [US4] Crear <code>TaskReassignmentSubscriber</code> (AMQP consumer de <code>obligations-api:task-reassignment:process</code>, llama a <code>tasksService.reassignTasksBetweenAdvisors()</code>; <code>em.fork()</code> en el handler) en <code>plataforma-del-dato/pd-service-obligations-api/src/application/amqp/task-reassignment-subscriber/task-reassignment.subscriber.ts</code></li>
+<li><input type="checkbox" disabled /> T048 [US4] Registrar <code>TaskReassignmentSubscriber</code> en AppModule y añadir queue <code>obligations-api:task-reassignment:process</code> a las definiciones de RabbitMQ en <code>plataforma-del-dato/pd-service-obligations-api/src/app.module.ts</code> y <code>infra/rabbitmq/definitions.json</code></li>
+</ul>
+<h3>Frontend</h3>
+<ul>
+<li><input type="checkbox" disabled /> T049 [P] [US4] Crear <code>CloseTeamDialog</code> (date picker para endDate con validación last-of-month, mensaje de confirmación con lista de miembros afectados, botón confirmar) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/close-team-dialog/close-team-dialog.tsx</code></li>
+<li><input type="checkbox" disabled /> T050 [P] [US4] Crear <code>TaskReassignmentDialog</code> (fromEmployee select, toEmployee select filtrado a miembros activos del equipo, lista de tareas opcional, confirmar → llama reassign-tasks use-case → 202) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/task-reassignment-dialog/task-reassignment-dialog.tsx</code></li>
+<li><input type="checkbox" disabled /> T051 [US4] Crear use-cases <code>close-team</code> y <code>reassign-tasks</code> en <code>asesores/pgi-app-pgi-web/src/features/client-teams/application/use-cases/</code></li>
+<li><input type="checkbox" disabled /> T052 [US4] Integrar <code>CloseTeamDialog</code> y <code>TaskReassignmentDialog</code> en <code>TeamSection</code> (solo visibles con permiso <code>CLIENT_ASSIGNMENT_EDIT</code>; botón "Cerrar equipo" en el header, botón "Reasignar tareas" en cada miembro) en <code>asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.tsx</code></li>
+</ul>
+<p><strong>Checkpoint</strong>: Cierre de equipo funcional end-to-end; reasignación manual de tareas llega a obligations-api vía RabbitMQ.</p>
+<hr/>
+<h2>Phase 7: Polish &amp; Cross-Cutting Concerns</h2>
+<ul>
+<li><input type="checkbox" disabled /> T053 [P] Ejecutar <code>npm run lint:fix &amp;amp;&amp;amp; npm run build</code> en <code>asesores/pgi-service-pgi-api/</code> y corregir errores</li>
+<li><input type="checkbox" disabled /> T054 [P] Ejecutar <code>npm run build</code> en <code>asesores/pgi-app-pgi-web/</code> (TypeScript check + Vite build) y corregir errores</li>
+<li><input type="checkbox" disabled /> T055 [P] Ejecutar <code>npm run lint:fix &amp;amp;&amp;amp; npm run build</code> en <code>plataforma-del-dato/pd-service-obligations-api/</code> y corregir errores</li>
+<li><input type="checkbox" disabled /> T056 Ejecutar smoke tests del <code>quickstart.md</code> end-to-end: crear equipo → añadir miembros → validar % → cerrar equipo → verificar histórico</li>
+</ul>
+<hr/>
+<h2>Dependencies &amp; Execution Order</h2>
+<h3>Dependencias entre fases</h3>
+<div class="mermaid">graph TD
+    P1[Phase 1 · Setup] --> P2[Phase 2 · Fundacional]
+    P2 --> P3[Phase 3 · US1 🎯 MVP]
+    P3 --> P4[Phase 4 · US2]
+    P4 --> P5[Phase 5 · US3]
+    P5 --> P6[Phase 6 · US4]
+    P2 -.-> P7[Phase 7 · Polish]
+    P6 --> P7
+
+    style P2 fill:#fef3c7,stroke:#f59e0b
+    style P3 fill:#dcfce7,stroke:#16a34a
+    style P7 fill:#f1f5f9,stroke:#94a3b8</div>
+<h3>Dependencias dentro de cada historia</h3>
+<div class="mermaid">graph LR
+    subgraph US1 Backend
+        T011[T011 ClientTeamsService] --> T013[T013 Controller]
+        T014[T014 addMember] --> T015[T015 Endpoints]
+    end
+    subgraph US1 Frontend
+        T018[T018 Domain] --> T020[T020 Use-cases]
+        T019[T019 Infra] --> T020
+        T021[T021 TeamHeader] --> T023[T023 TeamSection]
+        T022[T022 MemberRow] --> T023
+        T020 --> T023
+        T023 --> T025[T025 Ficha]
+    end
+    subgraph US2
+        T026[T026 validatePercentageSum] --> T027[T027 addMember integration]
+        T031[T031 PercentageSumIndicator] --> T033[T033 TeamSection]
+    end
+    subgraph US4
+        T041[T041 closeTeam service] --> T042[T042 close endpoint]
+        T046[T046 reassignTasks service] --> T047[T047 AMQP subscriber]
+        T049[T049 CloseTeamDialog] --> T052[T052 TeamSection]
+        T050[T050 ReassignDialog] --> T052
+    end</div>
+<h3>Oportunidades de paralelismo entre historias</h3>
+<p>Con dos desarrolladores desde Phase 3:</p>
+<ul>
+<li><strong>Dev A</strong> — backend: T011 → T013 → T014 → T015 → T016</li>
+<li><strong>Dev B</strong> — frontend: T018 → T019 → T020 → T021 → T022 → T023</li>
+</ul>
+<hr/>
+<h2>Parallel Example: User Story 1</h2>
+<pre><code class="language-bash"># Lanzar en paralelo (ficheros distintos, sin dependencias):
+Task T012 — DTOs CreateTeamParamsDto + ClientTeamDto
+Task T018 — ClientTeam domain model + repository interface (frontend)
+Task T019 — ClientTeamDto + RepositoryImpl (frontend)
+Task T021 — TeamHeader component
+Task T022 — TeamMemberRow component
+Task T017 — Test de integración createTeam + addMember
+
+# Luego (requieren los anteriores):
+Task T011 — ClientTeamsService (requiere entidad de Phase 2)
+Task T013 — ClientTeamsController (requiere T011 + T012)
+Task T020 — use-cases (requiere T018 + T019)
+Task T023 — TeamSection (requiere T020 + T021 + T022)
+Task T025 — integración en ficha (requiere T023)</code></pre>
+<hr/>
+<h2>Implementation Strategy</h2>
+<h3>MVP (solo US1 — Phase 1 + 2 + 3)</h3>
+<ol>
+<li>Completar <strong>Phase 1</strong>: Verificar snapshots</li>
+<li>Completar <strong>Phase 2</strong>: Entidades + migración (bloquea todo) — ~1 día</li>
+<li>Completar <strong>Phase 3</strong>: Backend + frontend US1 — ~2–3 días</li>
+<li><strong>STOP y VALIDAR</strong>: Crear equipo, añadir miembros, ver en ficha → funcional</li>
+<li>Deploy/demo si está listo</li>
+</ol>
+<h3>Entrega incremental</h3>
+<ol>
+<li>Setup + Fundacional → Base lista</li>
+<li>US1 → Crear y gestionar equipo → <strong>Demo MVP</strong></li>
+<li>US2 → Validación de % → <strong>Demo con validación</strong></li>
+<li>US3 → Histórico → <strong>Demo completo sin cierre</strong></li>
+<li>US4 → Cierre + reasignación → <strong>Feature completa</strong></li>
+</ol>
+<hr/>
+<h2>Notes</h2>
+<ul>
+<li>Siempre leer el CLAUDE.md de cada servicio antes de editar su código</li>
+<li>Nunca usar <code>@EnsureRequestContext()</code> en los nuevos subscribers AMQP de obligations-api</li>
+<li><code>em.fork()</code> antes de cualquier write; <code>disableIdentityMap: true</code> en reads</li>
+<li>Commit por cada tarea o grupo lógico: <code>feat(client-teams): T011 create ClientTeamsService</code></li>
+<li>Ejecutar <code>npx mikro-orm migration:create --dump</code> después de T005 para confirmar que no hay drift</li>
+<li>Los tests de integración arrancan testcontainers automáticamente (~10s primer arranque)</li>
+</ul>
+</div>
+<div class="section" id="quickstart">
+  <div class="section-label"><span class="icon">⚡</span> Quickstart</div>
+  <h1>Quickstart: Asignaciones Múltiples en Ficha de Cliente</h1>
+<p><strong>Feature</strong>: 001-client-team-assignments | <strong>Date</strong>: 2026-05-25</p>
+<hr/>
+<h2>Prerequisites</h2>
+<ul>
+<li>Docker running (PostgreSQL + RabbitMQ via <code>npm run infra:up</code>)</li>
+<li>Node.js ≥ 20</li>
+<li>Access to <code>asesores/pgi-service-pgi-api/</code> and <code>asesores/pgi-app-pgi-web/</code></li>
+</ul>
+<hr/>
+<h2>1. Backend setup</h2>
+<pre><code class="language-bash">cd asesores/pgi-service-pgi-api
+
+# Check migration snapshot is clean before touching entities
+npx mikro-orm migration:check
+
+# Apply new migration (ClientTeam table + percentage column)
+npm run migrations:up
+
+# Verify: no pending changes after migration
+npx mikro-orm migration:create --dump
+# Expected: "No changes required"
+
+npm run start:dev
+# Runs on http://localhost:3000</code></pre>
+<hr/>
+<h2>2. Frontend setup</h2>
+<pre><code class="language-bash">cd asesores/pgi-app-pgi-web
+
+npm install
+npm run dev
+# Runs on http://localhost:5173</code></pre>
+<hr/>
+<h2>3. Smoke test — create a team via API</h2>
+<pre><code class="language-bash"># Replace :clientId with a real client UUID from your dev DB
+CLIENT_ID="&lt;uuid&gt;"
+DEPT="FISCAL"
+
+# 1. Create a team
+curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/department/$DEPT \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"startDate": "2026-06-01"}'
+# → 201 Created, returns team with id
+
+TEAM_ID="&lt;team-id-from-response&gt;"
+EMPLOYEE_A="&lt;employee-uuid-A&gt;"
+EMPLOYEE_B="&lt;employee-uuid-B&gt;"
+
+# 2. Add first asesor at 60%
+curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/members \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -H "Content-Type: application/json" \
+  -d "{\"employeeId\": \"$EMPLOYEE_A\", \"role\": \"asesor\", \"percentage\": 60, \"dateFrom\": \"2026-06-01\"}"
+# → 201 Created
+
+# 3. Add second asesor at 40%
+curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/members \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -H "Content-Type: application/json" \
+  -d "{\"employeeId\": \"$EMPLOYEE_B\", \"role\": \"asesor\", \"percentage\": 40, \"dateFrom\": \"2026-06-01\"}"
+# → 201 Created
+
+# 4. Validate team (sum should be 100%)
+curl http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/validate \
+  -H "Authorization: Bearer &lt;token&gt;"
+# → { "valid": true, "violations": [] }
+
+# 5. Try invalid: bump first asesor to 80% → should fail 400
+curl -X PATCH http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/members/&lt;assignment-a-id&gt; \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"percentage": 80, "effectiveFrom": "2026-07-01"}'
+# → 400 PERCENTAGE_VALIDATION_FAILED (asesores would sum to 120%)
+
+# 6. View history
+curl http://localhost:3000/v1/client-assignments/$CLIENT_ID/department/$DEPT/history \
+  -H "Authorization: Bearer &lt;token&gt;"
+# → Shows all assignment periods
+
+# 7. Close the team
+curl -X PUT http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/close \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"endDate": "2026-06-30"}'
+# → 200 OK, team is now closed; all members get dateTo = 2026-06-30</code></pre>
+<hr/>
+<h2>4. Smoke test — try to create duplicate active team</h2>
+<pre><code class="language-bash"># Attempt to create a second active team for the same client+dept (should fail)
+curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/department/$DEPT \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"startDate": "2026-07-01"}'
+# → 409 ACTIVE_TEAM_EXISTS  (if first team not yet closed)
+# → 201 Created             (if first team was closed in step 7)</code></pre>
+<hr/>
+<h2>5. Frontend verification</h2>
+<ol>
+<li>Navigate to <code>/general/ficha-cliente/:clientId</code></li>
+<li>Open the <strong>Asignaciones</strong> tab</li>
+<li>Verify the new <strong>Team</strong> section shows:</li>
+<li>Active team header with start date and createdBy</li>
+<li>Per-member percentage fields (editable for responsable/coordinador)</li>
+<li>Live % sum indicator (green = 100%, red = other)</li>
+<li><strong>Histórico</strong> accordion showing all past periods</li>
+<li>Try editing a percentage so the sum goes above 100% → Save button is disabled and indicator turns red</li>
+<li>Click <strong>Cerrar equipo</strong> → confirm → team shows as inactive</li>
+</ol>
+<hr/>
+<h2>6. Run tests</h2>
+<pre><code class="language-bash"># Backend — integration tests (starts testcontainers automatically)
+cd asesores/pgi-service-pgi-api
+npm test -- --testPathPattern=client-team
+
+# Frontend — component tests
+cd asesores/pgi-app-pgi-web
+npx vitest run src/features/client-teams</code></pre>
+<hr/>
+<h2>7. RabbitMQ — manual task reassignment</h2>
+<pre><code class="language-bash"># Via API (triggers event)
+curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/reassign-tasks \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -H "Content-Type: application/json" \
+  -d "{\"fromEmployeeId\": \"$EMPLOYEE_A\", \"toEmployeeId\": \"$EMPLOYEE_B\", \"taskIds\": null}"
+# → 202 Accepted
+
+# Verify in RabbitMQ management UI (localhost:15672):
+# Exchange: internal, routing key: backoffice-api.v1.task-reassignment.requested
+# Check obligations-api queue: obligations-api:task-reassignment:process consumed the message</code></pre>
+</div>
+<div class="section" id="checklists-business-rules">
+  <div class="section-label"><span class="icon">☑️</span> Checklists · Business Rules</div>
+  <h1>Business Rules Checklist: Asignaciones Múltiples en Ficha de Cliente</h1>
+<p><strong>Purpose</strong>: Validar que los requisitos de reglas de negocio son completos, inequívocos y testeables — antes de abrir PR y antes de release. <strong>Created</strong>: 2026-05-25 <strong>Feature</strong>: <a href="../spec.md">spec.md</a> · <a href="../data-model.md">data-model.md</a> · <a href="../contracts/client-teams.md">contracts/client-teams.md</a> <strong>Audience</strong>: Autor (pre-PR) · QA (pre-release) <strong>Focus</strong>: Reglas de negocio — validación %, fechas, unicidad, roles, cierre, tareas</p>
+<hr/>
+<h2>1. Validación de porcentaje (FR-003)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK001 — ¿Está especificado en qué momento exacto se ejecuta la validación del 100% — en cada cambio de campo, al añadir un miembro o solo al intentar guardar? ¿O en todos? [Claridad, Spec §FR-003]</li>
+<li><input type="checkbox" disabled /> CHK002 — ¿El requisito define qué se considera un miembro "activo" a efectos del cálculo del 100%: solo los que tienen <code>dateTo = null</code>, o también los que tienen <code>dateTo &amp;gt;= hoy</code>? [Claridad, Spec §FR-003]</li>
+<li><input type="checkbox" disabled /> CHK003 — ¿Está especificado cómo se comporta el sistema durante la construcción incremental del equipo (p. ej., un equipo con un solo asesor al 60% antes de añadir el segundo)? ¿Se bloquea o solo se advierte? [Cobertura, Spec §US2]</li>
+<li><input type="checkbox" disabled /> CHK004 — ¿El spec define si la validación del 100% aplica también al grupo de técnicos cuando hay exactamente un técnico al 80%? ¿El rechazo es explícito? [Completitud, Spec §FR-003]</li>
+<li><input type="checkbox" disabled /> CHK005 — ¿Los mensajes de error para <code>PERCENTAGE_VALIDATION_FAILED</code> están especificados con el texto exacto que verá el usuario, o solo se nombra el código de error? [Claridad, Gap]</li>
+<li><input type="checkbox" disabled /> CHK006 — ¿La regla de validación del 100% aplica cuando se elimina un miembro, o solo cuando se añade o modifica? ¿El spec cubre el escenario de eliminación que deja una suma inválida? [Cobertura, Spec §FR-003, Edge Cases]</li>
+</ul>
+<hr/>
+<h2>2. Convención de fechas first-of-month (FR-012)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK007 — ¿El spec especifica el comportamiento del sistema cuando un usuario intenta introducir una fecha que no es el primer día del mes — rechazo silencioso, error visible o corrección automática? [Claridad, Spec §FR-012]</li>
+<li><input type="checkbox" disabled /> CHK008 — ¿Está documentado qué ocurre con los registros históricos existentes (con fechas no alineadas a mes) cuando se aplica la nueva convención — se migran, se muestran tal cual, o se normalizan en lectura? [Completitud, Spec §FR-012]</li>
+<li><input type="checkbox" disabled /> CHK009 — ¿El req define si <code>dateTo = null</code> representa "activo indefinidamente" o "pendiente de cierre"? ¿Son semánticamente equivalentes en el spec? [Ambigüedad, Spec §FR-002]</li>
+<li><input type="checkbox" disabled /> CHK010 — ¿El spec cubre qué ocurre si <code>effectiveFrom</code> de un cambio de porcentaje (PATCH) es el mismo mes que el inicio del equipo — se solapan y cuál prevalece? [Edge Case, contracts §PATCH]</li>
+</ul>
+<hr/>
+<h2>3. Unicidad del equipo activo por cliente+departamento (FR-005)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK011 — ¿El spec especifica el mensaje de error (<code>ACTIVE_TEAM_EXISTS</code>) que verá el usuario al intentar crear un segundo equipo activo, y no solo el código de error interno? [Claridad, Spec §FR-005]</li>
+<li><input type="checkbox" disabled /> CHK012 — ¿El req define si se puede crear un nuevo equipo el mismo día en que se cierra el anterior (es decir, ¿<code>endDate</code> de un equipo = <code>startDate</code> del siguiente es válido)? [Edge Case, Gap]</li>
+<li><input type="checkbox" disabled /> CHK013 — ¿El spec cubre qué ocurre si dos operaciones concurrentes intentan crear equipos simultáneamente para el mismo cliente+departamento — el índice parcial lo evita, pero ¿está el comportamiento de error documentado como req? [Cobertura, Concurrencia]</li>
+</ul>
+<hr/>
+<h2>4. Reglas de exclusividad de roles (FR-001, FR-004, Edge Cases)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK014 — ¿El spec especifica el comportamiento exacto cuando se intenta añadir un empleado como ASESOR que ya figura como COORDINADOR del mismo equipo — error, advertencia, o rechazo silencioso? [Claridad, Spec §Edge Cases]</li>
+<li><input type="checkbox" disabled /> CHK015 — ¿Está documentado si el RESPONSABLE puede también ser ASESOR o TÉCNICO en el mismo equipo, o si los cuatro roles son mutuamente excluyentes entre sí? [Completitud, Spec §Edge Cases]</li>
+<li><input type="checkbox" disabled /> CHK016 — ¿El req define qué sucede si se elimina el único COORDINADOR del equipo — el equipo sigue siendo válido sin coordinador? ¿El spec confirma que coordinador es opcional? [Claridad, Spec §FR-001]</li>
+<li><input type="checkbox" disabled /> CHK017 — ¿La restricción de "máximo 1 RESPONSABLE y 1 COORDINADOR por equipo" tiene un mensaje de error especificado (<code>ROLE_ALREADY_FILLED</code>)? ¿O solo se menciona como regla sin definir el comportamiento de fallo? [Claridad, Gap]</li>
+</ul>
+<hr/>
+<h2>5. Mínimo 1 asesor activo sin gaps (FR-011)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK018 — ¿El spec define si la regla de mínimo 1 asesor aplica también durante el cierre del equipo — puede el responsable cerrar un equipo dejando 0 asesores activos si todos reciben <code>dateTo</code>? [Ambigüedad, Spec §FR-011]</li>
+<li><input type="checkbox" disabled /> CHK019 — ¿El req especifica qué ocurre si el único asesor activo intenta reducir su porcentaje a 0% — es un escenario de "sin cobertura" o la validación del 100% lo rechaza antes? [Cobertura, Edge Case]</li>
+<li><input type="checkbox" disabled /> CHK020 — ¿El mensaje de error <code>MIN_ASESOR_REQUIRED</code> está especificado con texto orientado al usuario, o solo como código interno? [Claridad, Gap]</li>
+</ul>
+<hr/>
+<h2>6. Cierre de equipo y propagación de fechas (FR-009, US4)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK021 — ¿El spec define el comportamiento cuando se intenta cerrar un equipo que ya tiene miembros con <code>dateTo</code> anterior a la <code>endDate</code> propuesta — ¿se sobreescribe, se ignoran, o el sistema lo rechaza? [Completitud, Spec §FR-009]</li>
+<li><input type="checkbox" disabled /> CHK022 — ¿El req especifica qué pasa si el responsable intenta cerrar un equipo cuya <code>endDate</code> es anterior a la <code>dateFrom</code> de algún miembro activo — ¿es posible ese escenario y cómo se trata? [Edge Case, Gap]</li>
+<li><input type="checkbox" disabled /> CHK023 — ¿Está definido si un equipo cerrado puede reabrirse (cambiar <code>endDate</code> a null) o si el cierre es irreversible salvo creando un nuevo equipo? [Completitud, Ambigüedad, Spec §US4]</li>
+</ul>
+<hr/>
+<h2>7. Reglas de reasignación de tareas (FR-010)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK024 — ¿El spec define operacionalmente qué significa "asesor que causa baja en la empresa" — quién lo registra, qué campo del sistema lo refleja y cómo lo detecta el flujo automático? [Claridad, Spec §FR-010]</li>
+<li><input type="checkbox" disabled /> CHK025 — ¿El req especifica qué ocurre si se activa la reasignación automática pero no hay sucesor definido para ese cliente+departamento — se bloquea el alta de baja, se notifica, o las tareas quedan sin asignar? [Cobertura, Gap, Spec §FR-010]</li>
+<li><input type="checkbox" disabled /> CHK026 — ¿El spec aclara si la reasignación manual (POST /reassign-tasks) es instantánea o asíncrona desde la perspectiva del usuario, y si debe existir confirmación visual del resultado? [Claridad, Spec §FR-010, contracts §reassign-tasks]</li>
+</ul>
+<hr/>
+<h2>8. Testabilidad de los criterios de aceptación</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK027 — ¿Cada acceptance scenario de US1–US4 tiene exactamente un resultado esperado ("Then") que pueda verificarse sin interpretación? ¿Hay algún "Then" con lenguaje vago como "queda registrado" sin especificar dónde y cómo? [Testabilidad, Spec §US1–US4]</li>
+<li><input type="checkbox" disabled /> CHK028 — ¿Los Success Criteria SC-002 ("rechaza el 100% de los intentos") y SC-004 ("ningún cliente puede quedarse sin cobertura") tienen un procedimiento de verificación definible — o son afirmaciones no testeables en su forma actual? [Testabilidad, Spec §SC-002, §SC-004]</li>
+</ul>
+<hr/>
+<h2>9. Designación de asesor/equipo principal (Gap — Epic DEVPT-518)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK029 — ¿El spec captura como FR explícito el requisito de designar un "asesor principal" cuando el cliente tiene un único equipo? ¿Está especificado quién puede designarlo y cuándo? [Completitud, Gap]</li>
+<li><input type="checkbox" disabled /> CHK030 — ¿El spec define cómo se designa el "equipo principal" cuando un cliente tiene dos equipos activos simultáneos (p. ej., Fiscal + Laboral) — quién lo designa, cuándo y qué implica a nivel operativo (NOA, responsabilidad, asignación de tareas)? [Completitud, Gap]</li>
+<li><input type="checkbox" disabled /> CHK031 — ¿El req define qué ocurre con la asignación de tareas en curso cuando el asesor o equipo principal cambia — ¿las tareas abiertas siguen al asesor original o se reasignan al nuevo principal? [Cobertura, Spec §FR-010]</li>
+</ul>
+<hr/>
+<h2>10. Integración con Plataforma del Dato (FR-014)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK032 — ¿El req FR-014 especifica qué ocurre si la sincronización con Plataforma del Dato falla — ¿la operación de guardado falla también (consistencia fuerte) o se reintenta en segundo plano (consistencia eventual)? [Completitud, Gap, Spec §FR-014]</li>
+<li><input type="checkbox" disabled /> CHK033 — ¿El spec define qué campos exactos se sincronizan con Plataforma del Dato (empleado, rol, porcentaje, período) y en qué contrato o formato? ¿Existe un contrato de integración documentado? [Claridad, Gap, Spec §FR-014]</li>
+<li><input type="checkbox" disabled /> CHK034 — ¿El req aclara si la sincronización es push (PGI notifica a PD tras cada cambio) o pull (PD consulta periódicamente a PGI), y cuál es el sistema of record en caso de discrepancia entre ambos? [Claridad, Gap]</li>
+</ul>
+<hr/>
+<h2>11. Migración 1-a-1 → porcentajes (FR-013)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK035 — ¿El req FR-013 define el criterio de validación de idempotencia — qué debe ocurrir exactamente si la migración se ejecuta una segunda vez sobre datos ya migrados? [Testabilidad, Spec §FR-013]</li>
+<li><input type="checkbox" disabled /> CHK036 — ¿El spec especifica qué <code>AssignmentPeriod</code> se genera para las asignaciones migradas — ¿con <code>dateFrom</code> retroactivo (fecha original de la asignación existente) o con la fecha de ejecución de la migración? [Completitud, Spec §FR-013]</li>
+<li><input type="checkbox" disabled /> CHK037 — ¿El req define si la migración se ejecuta en ventana de mantenimiento (downtime) o en caliente (zero-downtime), y qué garantías de consistencia existen para las lecturas durante la transición? [Completitud, Gap]</li>
+</ul>
+<hr/>
+<hr/>
+<h2>12. Modelo de propiedad del equipo — Modelo A vs Modelo B (⚠️ Pendiente de decisión)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK038 — ¿El spec declara explícitamente si los equipos son entidades propiedad del cliente (<code>Team.client_id</code>, Modelo A) o entidades independientes asignables a clientes (<code>ClientTeamAssignment</code>, Modelo B)? Esta decisión determina el data model completo y el flujo de creación de UI. [Completitud, Gap, Spec §Key Entities]</li>
+<li><input type="checkbox" disabled /> CHK039 — Si se adopta Modelo B (equipos independientes), ¿el spec define el ciclo de vida autónomo del equipo — cuándo se crea, quién lo gestiona, y qué ocurre con el equipo cuando ya no está asignado a ningún cliente? [Completitud, Gap]</li>
+<li><input type="checkbox" disabled /> CHK040 — ¿El spec especifica si un mismo equipo (Modelo B) puede estar asignado a múltiples clientes simultáneamente, y cómo se interpreta entonces la regla del 100% por cliente+departamento? [Claridad, Gap]</li>
+</ul>
+<hr/>
+<h2>13. Alcance de pantallas en MVP (FR-015)</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK041 — ¿El spec declara explícitamente qué pantallas quedan <strong>fuera del alcance del MVP</strong> (Mis Clientes, buscador PGI, informes internos) para evitar que el equipo de desarrollo los implemente por defecto? [Completitud, Spec §FR-015]</li>
+<li><input type="checkbox" disabled /> CHK042 — ¿El spec define qué campo o columna se muestra en los listados actuales (Mis Clientes, buscador) cuando un cliente tiene múltiples asesores, mientras no se actualicen esas pantallas en el MVP? ¿Se muestra el primero, el principal, o se mantiene el valor anterior? [Claridad, Gap]</li>
+</ul>
+<hr/>
+<h2>14. Edición concurrente</h2>
+<ul>
+<li><input type="checkbox" disabled /> CHK043 — ¿El spec define el comportamiento cuando dos responsables modifican el equipo del mismo cliente simultáneamente — last-write-wins, error de conflicto, o bloqueo optimista? [Cobertura, Gap]</li>
+<li><input type="checkbox" disabled /> CHK044 — ¿El spec especifica qué respuesta recibe el usuario cuya operación llega "tarde" en un conflicto de concurrencia (p. ej., mensaje de error, refresco automático del formulario, o indicación del conflicto)? [Claridad, Gap]</li>
+</ul>
+<hr/>
+<h2>Notes</h2>
+<p><strong>Actualizado</strong>: 2026-05-26 — añadidos CHK038–CHK044 tras sesión de clarify (gaps modelo A/B, alcance MVP FR-015, concurrencia).</p>
+<ul>
+<li>Marcar con <code>[x]</code> cuando el requisito pasa la validación de calidad</li>
+<li>Anotar inline si se detecta ambigüedad o gap: p. ej. <code>[x] CHK001 — ✓ OK</code> o <code>[ ] CHK001 — ⚠️ El spec no especifica el momento de validación → abrir issue</code></li>
+<li>Los ítems con <code>[Gap]</code> no tienen respuesta en el spec actual — requieren decisión del PO antes de implementar</li>
+<li><strong>CHK038–CHK040</strong> son bloqueantes para planning si el equipo no ha decidido Modelo A vs Modelo B</li>
+<li>Referencia rápida: FR = Functional Requirement, SC = Success Criteria, US = User Story (en spec.md)</li>
+</ul>
+</div>
+<div class="section" id="checklists-requirements">
+  <div class="section-label"><span class="icon">☑️</span> Checklists · Requirements</div>
+  <h1>Specification Quality Checklist: Asignaciones Múltiples en Ficha de Cliente</h1>
+<p><strong>Purpose</strong>: Validate specification completeness and quality before proceeding to planning <strong>Created</strong>: 2026-05-25 <strong>Updated</strong>: 2026-05-26 (revisión contra Epic DEVPT-518) <strong>Feature</strong>: <a href="../spec.md">spec.md</a></p>
+<h2>Content Quality</h2>
+<ul>
+<li><input type="checkbox" disabled checked/> No implementation details (languages, frameworks, APIs)</li>
+<li><input type="checkbox" disabled checked/> Focused on user value and business needs</li>
+<li><input type="checkbox" disabled checked/> Written for non-technical stakeholders</li>
+<li><input type="checkbox" disabled checked/> All mandatory sections completed</li>
+</ul>
+<h2>Requirement Completeness</h2>
+<ul>
+<li><input type="checkbox" disabled checked/> No [NEEDS CLARIFICATION] markers remain  ← <strong>FR-012 granularidad resuelta: híbrida (fecha exacta + convención mensual)</strong></li>
+<li><input type="checkbox" disabled checked/> Requirements are testable and unambiguous</li>
+<li><input type="checkbox" disabled checked/> Success criteria are measurable</li>
+<li><input type="checkbox" disabled checked/> Success criteria are technology-agnostic (no implementation details)</li>
+<li><input type="checkbox" disabled checked/> All acceptance scenarios are defined</li>
+<li><input type="checkbox" disabled checked/> Edge cases are identified</li>
+<li><input type="checkbox" disabled checked/> Scope is clearly bounded</li>
+<li><input type="checkbox" disabled checked/> Dependencies and assumptions identified</li>
+</ul>
+<h2>Feature Readiness</h2>
+<ul>
+<li><input type="checkbox" disabled checked/> All functional requirements have clear acceptance criteria</li>
+<li><input type="checkbox" disabled checked/> User scenarios cover primary flows</li>
+<li><input type="checkbox" disabled checked/> Feature meets measurable outcomes defined in Success Criteria</li>
+<li><input type="checkbox" disabled checked/> No implementation details leak into specification</li>
+</ul>
+<h2>Notes</h2>
+<ul>
+<li><strong>2026-05-26</strong>: Revisión contra Epic DEVPT-518. Añadidos FR-013 (migración 1-a-1 → 100%), FR-014 (sync Plataforma del Dato) y FR-015 (listados/buscadores/seguimiento) que faltaban en la spec inicial y estaban en los criterios de aceptación de la Epic.</li>
+<li><strong>Resuelto</strong>: NC#2 (FR-010 + US4) — lógica de reasignación de tareas definida.</li>
+<li><strong>Resuelto</strong>: FR-012 — granularidad de fechas → híbrida (fecha exacta en BD, convención primer/último día de mes en servicio, cálculo mensual).</li>
+<li>✅ <strong>Todos los ítems pasan. La spec está lista para <code>/speckit-plan</code>.</strong></li>
+</ul>
+</div>
+<div class="section" id="contracts-client-assignments-history">
+  <div class="section-label"><span class="icon">📑</span> Contracts · Client Assignments History</div>
+  <h1>API Contract: Assignment History</h1>
+<p><strong>Service</strong>: <code>pgi-service-pgi-api</code> | <strong>Base path</strong>: <code>/v1/client-assignments</code> | <strong>Date</strong>: 2026-05-25</p>
+<hr/>
+<h2>GET /v1/client-assignments/:clientId/department/:department</h2>
+<p>Existing endpoint — extended to include <code>percentage</code> and <code>teamId</code> in response.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_VIEW</code></p>
+<p><strong>Response 200</strong> (extended):</p>
+<pre><code class="language-json">[
+  {
+    "id": "uuid",
+    "client": "uuid",
+    "employee": { "id": "uuid", "name": "Ana", "surname": "García" },
+    "department": "FISCAL",
+    "role": "asesor",
+    "dateFrom": "2026-01-01",
+    "dateTo": null,
+    "percentage": 60,
+    "teamId": "uuid",
+    "updatedAt": "2026-01-01T10:00:00Z",
+    "updatedBy": "responsable@email.com"
+  }
+]</code></pre>
+<blockquote><p><code>percentage</code> defaults to 100 for legacy rows. <code>teamId</code> is null for legacy rows.</p></blockquote>
+<hr/>
+<h2>GET /v1/client-assignments/:clientId/department/:department/history</h2>
+<p>Full assignment history — all periods (active + closed) ordered by dateFrom desc.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_VIEW</code></p>
+<p><strong>Query params</strong>:</p>
+<ul>
+<li><code>role</code> (optional) — filter by <code>asesor | tecnico | coordinador | responsable</code></li>
+<li><code>employeeId</code> (optional) — filter by specific employee</li>
+</ul>
+<p><strong>Response 200</strong>: Same shape as the existing endpoint, all rows including those with <code>dateTo</code> set. Ordered: <code>dateFrom DESC, role ASC</code>.</p>
+<hr/>
+<h2>RabbitMQ Events</h2>
+<h3>Published: <code>backoffice-api.v1.client-assignment.updated</code> (extended)</h3>
+<p>Existing event — <code>percentage</code> field added (backward-compatible; downstream consumers that don't use it will ignore it).</p>
+<pre><code class="language-typescript">{
+  id: string;
+  employeeId: string;
+  clientId: string;
+  department: 'FISCAL' | 'LABORAL';
+  role: 'responsable' | 'coordinador' | 'asesor' | 'tecnico';
+  dateFrom: string;      // ISO date
+  dateTo: string | null;
+  percentage: number;   // NEW — always present (100 for legacy rows)
+  updatedAt: string;
+  updatedBy: string;
+}</code></pre>
+<h3>Published: <code>backoffice-api.v1.task-reassignment.requested</code> (new)</h3>
+<pre><code class="language-typescript">{
+  clientId: string;
+  department: 'FISCAL' | 'LABORAL';
+  fromEmployeeId: string;
+  toEmployeeId: string;
+  taskIds: string[] | null;   // null = all PENDING tasks
+  requestedBy: string;
+  requestedAt: string;        // ISO datetime
+}</code></pre>
+<p><strong>Consumer</strong> (obligations-api):</p>
+<ul>
+<li>Queue: <code>obligations-api:task-reassignment:process</code></li>
+<li>Handler: <code>TaskReassignmentSubscriber.handleReassignmentRequested()</code></li>
+<li>Action: reassign tasks (PENDING only unless taskIds specified) from <code>fromEmployeeId</code> to <code>toEmployeeId</code></li>
+<li>Idempotent: reassigning an already-reassigned task is a no-op</li>
+</ul>
+</div>
+<div class="section" id="contracts-client-teams">
+  <div class="section-label"><span class="icon">📑</span> Contracts · Client Teams</div>
+  <h1>API Contract: Client Teams</h1>
+<p><strong>Service</strong>: <code>pgi-service-pgi-api</code> | <strong>Base path</strong>: <code>/v1/client-teams</code> | <strong>Date</strong>: 2026-05-25</p>
+<p>All endpoints require JWT auth (Azure AD). Permission guards use <code>BackofficePermissions</code>.</p>
+<hr/>
+<h2>GET /v1/client-teams/:clientId/department/:department</h2>
+<p>List all teams (active + historical) for a client+department.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_VIEW</code></p>
+<p><strong>Path params</strong>:</p>
+<ul>
+<li><code>clientId</code> — uuid</li>
+<li><code>department</code> — <code>FISCAL | LABORAL</code></li>
+</ul>
+<p><strong>Response 200</strong>:</p>
+<pre><code class="language-json">[
+  {
+    "id": "uuid",
+    "clientId": "uuid",
+    "department": "FISCAL",
+    "startDate": "2026-01-01",
+    "endDate": null,
+    "isActive": true,
+    "createdBy": "user@email.com",
+    "createdAt": "2026-01-01T10:00:00Z"
+  }
+]</code></pre>
+<hr/>
+<h2>POST /v1/client-teams/:clientId/department/:department</h2>
+<p>Create a new team for a client+department. Fails if an active team already exists.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_EDIT</code> + <code>CLIENT_ASSIGNMENTS_{DEPARTMENT}_EDIT</code></p>
+<p><strong>Path params</strong>: <code>clientId</code>, <code>department</code></p>
+<p><strong>Body</strong>:</p>
+<pre><code class="language-json">{
+  "startDate": "2026-06-01"   // must be first-of-month
+}</code></pre>
+<p><strong>Response 201</strong>: Created team object (same shape as GET item)</p>
+<p><strong>Errors</strong>:</p>
+<ul>
+<li><code>409 ACTIVE_TEAM_EXISTS</code> — an active team already exists for this client+department</li>
+<li><code>400 DATE_NOT_MONTH_BOUNDARY</code> — startDate is not the first of a month</li>
+</ul>
+<hr/>
+<h2>PUT /v1/client-teams/:clientId/:teamId/close</h2>
+<p>Close an active team. Sets <code>endDate</code> to the last day of the specified month. Also sets <code>dateTo</code> on all active members of that team.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_EDIT</code> + <code>CLIENT_ASSIGNMENTS_{DEPARTMENT}_EDIT</code></p>
+<p><strong>Body</strong>:</p>
+<pre><code class="language-json">{
+  "endDate": "2026-06-30"    // must be last-of-month
+}</code></pre>
+<p><strong>Response 200</strong>: Updated team object with <code>endDate</code> set and <code>isActive: false</code></p>
+<p><strong>Errors</strong>:</p>
+<ul>
+<li><code>400 DATE_NOT_MONTH_BOUNDARY</code> — endDate is not the last day of a month</li>
+<li><code>400 DATE_BEFORE_START</code> — endDate is before the team's startDate</li>
+<li><code>404</code> — team not found</li>
+<li><code>409 TEAM_ALREADY_CLOSED</code> — team is already closed</li>
+</ul>
+<hr/>
+<h2>GET /v1/client-teams/:clientId/:teamId/members</h2>
+<p>Get all members (active + historical) of a team.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_VIEW</code></p>
+<p><strong>Response 200</strong>:</p>
+<pre><code class="language-json">[
+  {
+    "id": "uuid",
+    "employee": { "id": "uuid", "name": "Ana", "surname": "García" },
+    "role": "asesor",
+    "percentage": 60,
+    "dateFrom": "2026-01-01",
+    "dateTo": null,
+    "isActive": true
+  }
+]</code></pre>
+<hr/>
+<h2>POST /v1/client-teams/:clientId/:teamId/members</h2>
+<p>Add a member to an active team.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_EDIT</code> + <code>CLIENT_ASSIGNMENTS_{DEPARTMENT}_EDIT</code></p>
+<p><strong>Body</strong>:</p>
+<pre><code class="language-json">{
+  "employeeId": "uuid",
+  "role": "asesor",
+  "percentage": 60,
+  "dateFrom": "2026-06-01"
+}</code></pre>
+<p><strong>Response 201</strong>: Created assignment object</p>
+<p><strong>Errors</strong>:</p>
+<ul>
+<li><code>409 TEAM_CLOSED</code> — team is already closed</li>
+<li><code>409 ROLE_ALREADY_FILLED</code> — RESPONSABLE or COORDINADOR slot is already taken</li>
+<li><code>409 ROLE_CONFLICT</code> — employee already has a different role in this team</li>
+<li><code>400 DATE_NOT_MONTH_BOUNDARY</code></li>
+<li><code>400 PERCENTAGE_OUT_OF_RANGE</code> — percentage not in 1–100</li>
+</ul>
+<blockquote><p>Note: Adding a member does NOT validate 100% sum — the sum is validated only on explicit "save team" or on <code>PATCH /percentage</code>. This allows building a team incrementally.</p></blockquote>
+<hr/>
+<h2>PATCH /v1/client-teams/:clientId/:teamId/members/:assignmentId</h2>
+<p>Update the percentage of a member (closes current assignment and opens a new one with updated % from <code>effectiveFrom</code>).</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_EDIT</code> + <code>CLIENT_ASSIGNMENTS_{DEPARTMENT}_EDIT</code></p>
+<p><strong>Body</strong>:</p>
+<pre><code class="language-json">{
+  "percentage": 40,
+  "effectiveFrom": "2026-07-01"   // must be first-of-month; defaults to next month
+}</code></pre>
+<p><strong>Response 200</strong>: New assignment object (old assignment receives <code>dateTo = effectiveFrom - 1 day</code>)</p>
+<p><strong>Errors</strong>:</p>
+<ul>
+<li><code>400 PERCENTAGE_VALIDATION_FAILED</code> — after update, asesor or técnico group no longer sums to 100%</li>
+<li><code>400 DATE_NOT_MONTH_BOUNDARY</code></li>
+<li><code>404</code> — assignment not found</li>
+<li><code>409 TEAM_CLOSED</code></li>
+</ul>
+<hr/>
+<h2>DELETE /v1/client-teams/:clientId/:teamId/members/:assignmentId</h2>
+<p>Remove a member from the team (sets <code>dateTo</code> = today's last-of-month).</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_EDIT</code> + <code>CLIENT_ASSIGNMENTS_{DEPARTMENT}_EDIT</code></p>
+<p><strong>Query params</strong>:</p>
+<ul>
+<li><code>effectiveTo</code> (optional) — last-of-month date; defaults to current month's last day</li>
+</ul>
+<p><strong>Response 204</strong></p>
+<p><strong>Errors</strong>:</p>
+<ul>
+<li><code>400 MIN_ASESOR_REQUIRED</code> — removing this member would leave 0 asesores</li>
+<li><code>400 PERCENTAGE_VALIDATION_FAILED</code> — remaining asesores/técnicos no longer sum to 100%</li>
+<li><code>404</code> — assignment not found</li>
+<li><code>409 TEAM_CLOSED</code></li>
+</ul>
+<hr/>
+<h2>POST /v1/client-teams/:clientId/:teamId/validate</h2>
+<p>Validate a team's current state (100% sums, minimum members). Use before saving.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_VIEW</code></p>
+<p><strong>Response 200</strong>:</p>
+<pre><code class="language-json">{
+  "valid": false,
+  "violations": [
+    { "role": "ASESOR", "sum": 140, "required": 100, "error": "PERCENTAGE_VALIDATION_FAILED" }
+  ]
+}</code></pre>
+<hr/>
+<h2>POST /v1/client-teams/:clientId/:teamId/reassign-tasks</h2>
+<p>Manually reassign PENDING tasks from one employee to another within a team.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_EDIT</code> + <code>CLIENT_ASSIGNMENTS_{DEPARTMENT}_EDIT</code></p>
+<p><strong>Body</strong>:</p>
+<pre><code class="language-json">{
+  "fromEmployeeId": "uuid",
+  "toEmployeeId": "uuid",
+  "taskIds": ["uuid", "uuid"]   // optional; null = all PENDING tasks for fromEmployee in this client+dept
+}</code></pre>
+<p><strong>Response 202</strong> (async — triggers RabbitMQ event):</p>
+<pre><code class="language-json">{ "status": "accepted", "message": "Task reassignment queued" }</code></pre>
+<hr/>
+<h2>GET /v1/client-teams/:clientId/department/:department/active-summary</h2>
+<p>Quick summary of the active team for a client+department. Used by the client ficha header.</p>
+<p><strong>Auth</strong>: <code>CLIENT_ASSIGNMENT_VIEW</code></p>
+<p><strong>Response 200</strong>:</p>
+<pre><code class="language-json">{
+  "teamId": "uuid",
+  "startDate": "2026-01-01",
+  "memberCount": 4,
+  "percentageSummary": {
+    "ASESOR": { "sum": 100, "valid": true },
+    "TECNICO": { "sum": 100, "valid": true }
+  }
+}</code></pre>
+<p><strong>Response 204</strong>: No active team exists for this client+department.</p>
+</div>
+<div class="footer">Generated by Spec Kit &middot; Afianza &middot; 2026-05-26</div>
+</div>
+</body></html>

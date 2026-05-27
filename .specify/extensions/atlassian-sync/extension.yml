@@ -1,0 +1,37 @@
+schema_version: "1.0"
+
+extension:
+  id: atlassian-sync
+  name: "Atlassian Sync"
+  version: "1.4.0"
+  description: "Bi-directional Jira sync: fetch Epics as spec input (fetch) and push Stories to Jira (push) without modifying the existing Epic. Open Questions posted as Epic comment. Driven by Claude + Atlassian MCP."
+  author: afianza-local
+  license: MIT
+
+requires:
+  speckit_version: ">=0.8.0"
+  tools:
+    - name: mcp:atlassian
+      required: true
+
+provides:
+  commands:
+    - name: speckit.atlassian-sync.fetch
+      file: commands/speckit.atlassian-sync.fetch.md
+      description: "Fetch a Jira Epic and format its content as spec input for /speckit-specify"
+    - name: speckit.atlassian-sync.push
+      file: commands/speckit.atlassian-sync.push.md
+      description: "Push User Stories from spec.md to Jira under an Epic (creates it if no epic-key provided)"
+
+hooks:
+  after_tasks:
+    command: speckit.atlassian-sync.push
+    optional: true
+    prompt: "Push stories to Jira?"
+    description: "Create Jira Epic + Stories from spec.md after task generation"
+
+tags:
+  - jira
+  - atlassian
+  - sync
+  - issues
