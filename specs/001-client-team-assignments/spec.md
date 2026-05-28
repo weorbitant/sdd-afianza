@@ -322,6 +322,156 @@ Frames exportados desde Figma — Portal Asesor / Ficha de cliente:
 | OQ-004 | Informes no disponibles | Si en el momento de guardar un cambio de equipo el sistema de informes no está disponible, ¿qué prefiere negocio? ¿Que el cambio se guarde en el portal y los informes se actualicen en cuanto el sistema vuelva (puede haber minutos de desfase), o que no se permita guardar hasta que los informes también puedan actualizarse? | Medio — afecta la experiencia al guardar y la fiabilidad de los informes en tiempo real |
 | ~~OQ-005~~ | ~~Modelo de equipo~~ | ~~Cuando se configura un equipo para un cliente, ¿ese equipo es siempre exclusivo de ese cliente (se crea desde cero para cada cliente), o puede el mismo equipo atender a varios clientes a la vez?~~ | ✅ **RESUELTO 2026-05-28** — Ver Clarifications. |
 
+### Nuevas — Challenge funcional 2026-05-28
+
+> Detectadas por `/speckit-challenge functional`. Ver `challenge-report.md` para evidencia y categorización.
+
+#### business-B1 — real-world-event
+
+**Origen**: `challenge-report.md` (2026-05-28)
+
+**Contexto**: Un asesor causa baja en Azure AD (vía `pd-service-azuread-adapter`) sin que el responsable haya cerrado previamente el equipo. El spec solo cubre la baja como parte de un cierre voluntario con `causesBaja: true`. Distinto escenario que OQ-001 (baja planificada sin sucesor).
+
+Cuando llega un evento de baja de empleado desde Azure AD y ese empleado está activo en uno o más equipos como asesor/técnico/coordinador/responsable, ¿qué debe hacer el sistema?
+
+(a) Marcar automáticamente todas sus asignaciones como cerradas con la fecha de baja y dejar los equipos en estado inconsistente (sin asesor / sin 100%) hasta que un responsable intervenga, generando alerta.
+(b) Bloquear la propagación de la baja hasta que un responsable confirme sucesores para cada equipo afectado.
+(c) Cerrar sus asignaciones y reasignar automáticamente sus tareas abiertas a un asesor por defecto del departamento (configurable), con notificación al responsable.
+(d) Mantener su asignación abierta pero marcarla como 'pendiente reasignación' y bloquear nuevas tareas hasta resolver.
+
+Recomendación técnica: (a) con bandeja de alertas — la baja en Azure AD es source of truth y no debe bloquearse; el equipo en estado inconsistente fuerza acción inmediata del responsable.
+
+_Estado_: pending
+
+---
+
+#### business-B2 — real-world-event
+
+**Origen**: `challenge-report.md` (2026-05-28)
+
+**Contexto**: Cuando un empleado cambia de departamento internamente (FISCAL → LABORAL) o de rol, no se especifica qué ocurre con sus asignaciones activas en el departamento de origen ni con equipos donde figura como responsable/coordinador. FR-006 documenta la restricción pero no la transición.
+
+Cuando un empleado cambia de departamento internamente (evento desde Azure AD o RR.HH.), ¿qué debe hacer el sistema con sus asignaciones activas en el departamento del que sale?
+
+(a) Cerrar automáticamente todas sus asignaciones en el departamento origen con fecha del cambio y exigir designación de sucesor por cada cliente afectado antes de aplicar el cambio.
+(b) Permitir el cambio y dejar sus asignaciones del departamento origen abiertas hasta que un responsable las cierre manualmente (período de transición).
+(c) Bloquear el cambio de departamento si tiene asignaciones activas como asesor/técnico/coordinador/responsable.
+
+Recomendación técnica: (b) con alerta y límite temporal (p.ej. fin de mes en curso). Bloquear cambios de RR.HH. desde un sistema downstream es frágil; cerrar automáticamente puede dejar clientes sin cobertura.
+
+_Estado_: pending
+
+---
+
+#### business-B3 — real-world-event
+
+**Origen**: `challenge-report.md` (2026-05-28)
+
+**Contexto**: Si un cliente cancela contrato o se baja, sus equipos activos en FISCAL y/o LABORAL siguen abiertos. El spec no aborda este escenario y deja equipos huérfanos que distorsionan métricas en `pd-service-data-factory`.
+
+Cuando un cliente cambia de estado a cancelado/baja en el sistema, ¿qué debe ocurrir con sus equipos activos en FISCAL y LABORAL?
+
+(a) Cerrar automáticamente los equipos con fecha = fecha de baja del cliente, sin requerir `causesBaja` (no hay sucesores, el cliente desaparece).
+(b) Mantener los equipos abiertos y exigir al responsable que los cierre manualmente; no permitir crear nuevos.
+(c) Marcar equipos como 'inactivos por baja de cliente' (estado nuevo) sin requerir flujo de cierre estándar.
+
+Recomendación técnica: (a) — el cierre automático evita equipos huérfanos. La baja del cliente es un evento de negocio, no requiere sucesor.
+
+_Estado_: pending
+
+---
+
+#### business-B4 — work-reassignment
+
+**Origen**: `challenge-report.md` (2026-05-28)
+
+**Contexto**: FR-010 asume un único 'asesor sucesor' al que reasignar tareas, pero el nuevo modelo permite varios asesores con porcentajes. No queda definido a cuál de los nuevos asesores se reasignan las tareas del que causa baja. Conecta con OQ-002.
+
+Cuando un asesor causa baja y el equipo sucesor tiene varios asesores con distintos porcentajes (p.ej. asesor A 60% y asesor B 40%), ¿a quién se reasignan las tareas abiertas del que se va?
+
+(a) Al asesor con mayor porcentaje en el nuevo equipo. En caso de empate, al primero añadido.
+(b) Repartir las tareas proporcionalmente entre los nuevos asesores según su porcentaje.
+(c) Al 'asesor de referencia' del nuevo equipo (relacionado con OQ-002).
+(d) Responsable/coordinador debe seleccionar manualmente el destinatario por cada tarea o por bloque.
+
+Recomendación técnica: (c) ligado a la resolución de OQ-002 — un único asesor de referencia simplifica la lógica de `obligations-api` y mantiene continuidad para el cliente.
+
+_Estado_: pending
+
+---
+
+#### business-B6 — implied-rule
+
+**Origen**: `challenge-report.md` (2026-05-28)
+
+**Contexto**: FR-009 declara el cierre permanente e irreversible. Si se cierra un equipo por error humano (responsable equivocado, `causesBaja` marcado por error), no existe mecanismo de corrección y la reasignación automática de tareas ya se ejecutó.
+
+Si se cierra un equipo por error humano (fecha mal puesta, `causesBaja` marcado por error, miembro equivocado), ¿qué mecanismo de corrección debe existir?
+
+(a) Ninguno — el cierre es irreversible por diseño; cualquier corrección se hace creando un nuevo equipo. El error queda en histórico como evidencia.
+(b) Un rol admin (no responsable) puede revertir un cierre en una ventana corta (p.ej. 24h) si no se han generado eventos downstream.
+(c) Permitir 'anular cierre' solo si no hay tareas reasignadas ni eventos publicados aún.
+
+Recomendación técnica: (a) — mantener la inmutabilidad simplifica el modelo y obliga a procesos de QA en la UI (confirmación doble).
+
+_Estado_: pending
+
+---
+
+#### business-B7 — forgotten-actor
+
+**Origen**: `challenge-report.md` (2026-05-28)
+
+**Contexto**: El spec no menciona ningún tipo de notificación a los empleados implicados cuando entran o salen de un equipo. Asesores y técnicos solo se enteran si abren la ficha del cliente — ruido operativo y riesgo de tareas no atendidas.
+
+Cuando un asesor o técnico es añadido a un equipo o sale de un equipo, ¿debe notificársele?
+
+(a) Sí, notificación in-app y/o email inmediata a cada miembro afectado al ejecutar commit.
+(b) Sí, pero diferida: resumen diario de cambios en sus asignaciones.
+(c) No notificar individualmente — el empleado se entera al consultar 'Mis Clientes' (cuando esté actualizado tras esta entrega).
+(d) Solo notificar a responsable/coordinador del equipo, no a los miembros entrantes/salientes.
+
+Recomendación técnica: (c) para esta entrega (FR-015 ya excluye 'Mis Clientes'); la notificación al empleado encaja mejor cuando 'Mis Clientes' refleje el nuevo modelo.
+
+_Estado_: pending
+
+---
+
+#### business-B8 — visibility
+
+**Origen**: `challenge-report.md` (2026-05-28)
+
+**Contexto**: El portal del cliente (`pc-app-portalcliente-web`) hoy no muestra composición de equipo. Con porcentajes y múltiples asesores no queda claro qué ve el cliente. Conecta con OQ-002 (asesor de referencia).
+
+Durante esta entrega, ¿qué ve el cliente final en su portal (`pc-app-portalcliente-web`) respecto a su equipo?
+
+(a) Nada cambia — el portal sigue mostrando el asesor 'principal' (de referencia, ligado a OQ-002) como hasta ahora.
+(b) Lista completa de miembros del equipo con sus nombres (sin porcentajes).
+(c) Lista completa con porcentajes (transparencia total).
+(d) Solo se muestra el responsable/coordinador como contacto único.
+
+Recomendación técnica: (a) — mantener el portal del cliente intacto evita ampliar el alcance. La transparencia interna (porcentajes) es para uso interno de gestión, no para el cliente.
+
+_Estado_: pending
+
+---
+
+#### business-B10 — quantitative-edge
+
+**Origen**: `challenge-report.md` (2026-05-28)
+
+**Contexto**: Cuando un equipo se cierra el último día del mes M y otro arranca el primer día del mes M+1 (edge case ya aceptado), no está definido a qué equipo se atribuye la rentabilidad del mes en los informes mensuales de `pd-service-data-factory`.
+
+Cuando un equipo se cierra con `endDate` = último día del mes M y otro equipo nuevo arranca el día 1 del mes M+1 (períodos contiguos válidos), ¿a qué equipo se atribuye la rentabilidad mensual?
+
+(a) Cada mes pertenece íntegramente al equipo activo el día 1 (regla simple, alineada con `pd-service-data-factory`).
+(b) Reparto proporcional por días activos en cada mes (más preciso, más complejo).
+(c) El usuario decide manualmente al cerrar el equipo.
+
+Recomendación técnica: (a) — el día 1 manda. Regla simple, predecible y alineada con la práctica habitual en informes mensuales.
+
+_Estado_: pending
+
 ---
 
 ## Clarifications

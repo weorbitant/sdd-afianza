@@ -158,7 +158,9 @@ Update the percentage of a member (closes current assignment and opens a new one
 
 ## DELETE /v1/client-teams/:clientId/:teamId/members/:assignmentId
 
-Remove a member from the team (sets `dateTo` = today's last-of-month).
+Remove a member from the team (sets `dateTo` = `effectiveTo`).
+
+> Operates on a draft team. Does **not** validate the 100% sum nor the ≥1-asesor rule — those are checked only on `POST /commit` (see [ADR-0007](../decisions/0007-draft-commit-team-model.md)). A removeMember call can legitimately leave the team in an invalid state during construction; the commit endpoint will reject it later.
 
 **Auth**: `CLIENT_ASSIGNMENT_EDIT` + `CLIENT_ASSIGNMENTS_{DEPARTMENT}_EDIT`
 
@@ -168,8 +170,7 @@ Remove a member from the team (sets `dateTo` = today's last-of-month).
 **Response 204**
 
 **Errors**:
-- `400 MIN_ASESOR_REQUIRED` — removing this member would leave 0 asesores
-- `400 PERCENTAGE_VALIDATION_FAILED` — remaining asesores/técnicos no longer sum to 100%
+- `400 DATE_NOT_MONTH_BOUNDARY` — `effectiveTo` is not the last day of the month
 - `404` — assignment not found
 - `409 TEAM_CLOSED`
 
