@@ -2,9 +2,9 @@ schema_version: "1.0"
 workflow:
   id: "refinement"
   name: "Feature Refinement"
-  version: "1.1.0"
+  version: "1.2.0"
   author: "afianza-local"
-  description: "Fetch epic from Jira → spec → clarify → checklist → HTML preview → push stories to Jira."
+  description: "Fetch Jira Epic → spec → clarify → checklist → HTML preview → push Stories to Jira → bootstrap decisions.md."
 
 requires:
   speckit_version: ">=0.7.2"
@@ -19,11 +19,17 @@ inputs:
   figma_url:
     type: string
     required: false
-    prompt: "Figma file URL (leave empty to skip)"
+    prompt: "Figma file URL (deja vacío para omitir)"
   integration:
     type: string
-    default: "copilot"
-    prompt: "Integration to use (e.g. claude, copilot, gemini)"
+    default: "claude"
+    prompt: "Integration a usar (e.g. claude, copilot, gemini)"
+
+outputs:
+  feature_dir: "{{ steps.specify.output.feature_dir }}"
+  epic_key: "{{ inputs.epic_key }}"
+  story_keys: "{{ steps.jira-push.output.story_keys }}"
+  decisions_file: "{{ steps.bootstrap-decisions.output.path }}"
 
 steps:
   - id: fetch-epic
@@ -94,3 +100,14 @@ steps:
     integration: "{{ inputs.integration }}"
     input:
       args: "{{ inputs.epic_key }}"
+
+  - id: bootstrap-decisions
+    command: shell.exec
+    integration: "{{ inputs.integration }}"
+    input:
+      args: |
+        if [ ! -f "{{ steps.specify.output.feature_dir }}/decisions.md" ]; then
+          cp .specify/templates/refinement/decisions.template.md "{{ steps.specify.output.feature_dir }}/decisions.md"
+          sed -i.bak "s/\[EPIC-KEY\]/{{ inputs.epic_key }}/g" "{{ steps.specify.output.feature_dir }}/decisions.md"
+          rm "{{ steps.specify.output.feature_dir }}/decisions.md.bak"
+        fi

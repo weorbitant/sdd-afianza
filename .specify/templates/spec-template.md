@@ -25,6 +25,8 @@
 
 ### User Story 1 - [Brief Title] (Priority: P1)
 
+**Tracker**: [TICKET-KEY](https://[your-tracker]/[ticket-path]) *(populated by your sync extension — e.g. atlassian-sync, linear-sync, github-issues-sync — leave as placeholder if not using one)*
+
 [Describe this user journey in plain language]
 
 **Why this priority**: [Explain the value and why it has this priority level]
@@ -40,6 +42,8 @@
 
 ### User Story 2 - [Brief Title] (Priority: P2)
 
+**Tracker**: [TICKET-KEY](https://[your-tracker]/[ticket-path]) *(populated by your sync extension — e.g. atlassian-sync, linear-sync, github-issues-sync — leave as placeholder if not using one)*
+
 [Describe this user journey in plain language]
 
 **Why this priority**: [Explain the value and why it has this priority level]
@@ -53,6 +57,8 @@
 ---
 
 ### User Story 3 - [Brief Title] (Priority: P3)
+
+**Tracker**: [TICKET-KEY](https://[your-tracker]/[ticket-path]) *(populated by your sync extension — e.g. atlassian-sync, linear-sync, github-issues-sync — leave as placeholder if not using one)*
 
 [Describe this user journey in plain language]
 

@@ -2,11 +2,12 @@ schema_version: "1.0"
 workflow:
   id: "debugging"
   name: "Error Debugging"
-  version: "1.0.0"
+  version: "1.1.0"
   author: "afianza-local"
   description: >
     Fetch ticket (optional) → analyze error → classify + hypotheses → propose fixes
-    → gate → fix branch (optional). Accepts free-text, stack trace, logs, or Jira ticket key.
+    → gate → fix branch (optional) → comment on Jira (optional).
+    Accepts free-text, stack trace, logs, or Jira ticket key.
 
 requires:
   speckit_version: ">=0.7.2"
@@ -25,11 +26,15 @@ inputs:
   integration:
     type: string
     default: "claude"
-    prompt: "Integration to use (e.g. claude, copilot, gemini)"
+    prompt: "Integration a usar (e.g. claude, copilot, gemini)"
   base_branch:
     type: string
     required: false
     prompt: "Rama base para el PR del fix (e.g. main). Deja vacío para omitir la creación del PR."
+
+outputs:
+  debug_report: "{{ steps.analyze.output.report_path }}"
+  pr_url: "{{ steps.create-fix-branch.output.pr_url }}"
 
 steps:
   - id: fetch-ticket
@@ -67,3 +72,16 @@ steps:
         integration: "{{ inputs.integration }}"
         input:
           args: "{{ inputs.base_branch }}"
+
+  - id: comment-on-ticket
+    type: if
+    condition: "{{ inputs.ticket_key != '' }}"
+    then:
+      - id: jira-comment
+        command: speckit.atlassian-sync.comment
+        integration: "{{ inputs.integration }}"
+        input:
+          args: |
+            {{ inputs.ticket_key }}
+            Debug Report: {{ steps.analyze.output.report_path }}
+            Fix PR: {{ steps.create-fix-branch.output.pr_url | default('(no PR created)') }}

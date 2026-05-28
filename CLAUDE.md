@@ -129,15 +129,17 @@ MikroORM uses **Unit of Work + Identity Map**. Long-lived processes (AMQP consum
 
 **Nueva feature (spec-driven)**:
 ```
-/speckit-specify              # 1. Redactar spec desde descripción natural
-/speckit-clarify              # 2. Resolver dudas abiertas (NEEDS CLARIFICATION)
-/speckit-plan                 # 3. Generar plan técnico + data model + contratos API
-/speckit-tasks                # 4. Desglosar en tareas de implementación
-/speckit-atlassian-sync-push  # 5. Subir stories + tareas a Jira (opcional)
-/speckit-implement            # 6. Implementar tarea a tarea (genera código)
+/speckit-specify                # 1. Redactar spec desde descripción natural
+/speckit-clarify                # 2. Resolver dudas abiertas
+/speckit-atlassian-sync-push    # 3. Subir Stories a Jira (NO sube subtasks)
+/speckit-plan                   # 4. Plan técnico + data model + contratos API
+/speckit-tasks                  # 5. Desglosar en tareas (viven en repo, NO en Jira)
+/speckit-implement              # 6. Implementar tarea a tarea
 ```
 
 > Los comandos `/speckit-*` usan el plan activo referenciado en la sección SPECKIT al final de este fichero.
+> Modelo completo de refinement: ver `.specify/REFINEMENT.md`.
+> Custom layer = `decisions.md` (1 por feature). Nada más.
 
 ### Active plugins in this project
 | Command | Purpose |
@@ -146,7 +148,7 @@ MikroORM uses **Unit of Work + Identity Map**. Long-lived processes (AMQP consum
 | `/speckit-clarify` | Resolver dudas abiertas en la spec |
 | `/speckit-plan` | Generar plan técnico, data model y contratos API |
 | `/speckit-tasks` | Desglosar el plan en tareas de implementación |
-| `/speckit-atlassian-sync-push [epic-key]` | Subir User Stories + tareas a Jira como Stories y Sub-tasks |
+| `/speckit-atlassian-sync-push [epic-key]` | Subir User Stories a Jira (NO subtasks — las tareas viven en `tasks.md`) |
 | `/speckit-implement` | Implementar tarea a tarea con generación de código |
 | `/ce-plan` | Investigación técnica paralela antes de planificar |
 | `/ce-brainstorm` | Brainstorming técnico para una feature |

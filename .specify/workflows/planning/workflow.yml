@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "planning"
   name: "Feature Planning"
-  version: "1.0.1"
+  version: "1.1.0"
   author: "afianza-local"
   description: "Plan → HTML preview → tasks → analyze → HTML preview. Produces implementation-ready artifacts."
 
@@ -14,12 +14,18 @@ requires:
 inputs:
   integration:
     type: string
-    default: "copilot"
-    prompt: "Integration to use (e.g. claude, copilot, gemini)"
+    default: "claude"
+    prompt: "Integration a usar (e.g. claude, copilot, gemini)"
   scope:
     type: string
     default: "full"
     enum: ["full", "backend-only", "frontend-only"]
+
+outputs:
+  feature_dir: "{{ steps.plan.output.feature_dir }}"
+  plan_file: "{{ steps.plan.output.plan_file }}"
+  tasks_file: "{{ steps.tasks.output.tasks_file }}"
+  analyze_report: "{{ steps.analyze.output.report }}"
 
 steps:
   - id: plan

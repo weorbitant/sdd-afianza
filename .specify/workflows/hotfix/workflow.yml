@@ -1,0 +1,80 @@
+schema_version: "1.0"
+workflow:
+  id: "hotfix"
+  name: "Production Hotfix"
+  version: "1.0.0"
+  author: "afianza-local"
+  description: >
+    Express path for production incidents: branch from release tag → fix gate
+    → PR to main → comment on Jira ticket. Skips spec/plan/tasks — this is
+    surgical, not feature work.
+
+requires:
+  speckit_version: ">=0.7.2"
+  integrations:
+    any: ["copilot", "claude", "gemini"]
+
+inputs:
+  ticket_key:
+    type: string
+    required: true
+    prompt: "Jira ticket key del incident (e.g. INC-123 o DEVPT-999)"
+  base_tag:
+    type: string
+    required: true
+    prompt: "Tag de release desde el que ramificar (e.g. v1.4.2)"
+  fix_summary:
+    type: string
+    required: true
+    prompt: "Resumen del fix en una línea (irá al nombre de rama y al commit)"
+  integration:
+    type: string
+    default: "claude"
+    prompt: "Integration a usar (e.g. claude, copilot, gemini)"
+
+outputs:
+  branch: "{{ steps.branch-from-tag.output.branch }}"
+  pr_url: "{{ steps.create-pr.output.pr_url }}"
+
+steps:
+  - id: fetch-ticket
+    command: speckit.atlassian-sync.fetch
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.ticket_key }}"
+
+  - id: branch-from-tag
+    command: shell.exec
+    integration: "{{ inputs.integration }}"
+    input:
+      args: |
+        SLUG=$(echo "{{ inputs.fix_summary }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//' | cut -c1-40)
+        BRANCH="fix/{{ inputs.ticket_key }}-${SLUG}"
+        git fetch --tags
+        git checkout -b "${BRANCH}" "{{ inputs.base_tag }}"
+        echo "branch=${BRANCH}"
+
+  - id: fix-gate
+    type: gate
+    message: |
+      Rama de hotfix creada desde {{ inputs.base_tag }}.
+      Aplica el fix mínimo y vuelve cuando esté commiteado y testeado.
+      - 'approve' → abrir PR a main
+      - 'reject'  → abortar (descarta la rama manualmente con `git branch -D`)
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: create-pr
+    command: speckit.git-pr.create
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "main"
+
+  - id: comment-on-ticket
+    command: speckit.atlassian-sync.comment
+    integration: "{{ inputs.integration }}"
+    input:
+      args: |
+        {{ inputs.ticket_key }}
+        Hotfix branched from {{ inputs.base_tag }}: {{ inputs.fix_summary }}
+        PR: {{ steps.create-pr.output.pr_url }}
