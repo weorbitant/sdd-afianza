@@ -1,6 +1,7 @@
+
 # Implementation Plan: Asignaciones Múltiples en Ficha de Cliente
 
-**Branch**: `001-client-team-assignments` | **Date**: 2026-05-25 | **Spec**: [spec.md](spec.md)
+**Branch**: `feat/001-client-team-assignments` | **Date**: 2026-05-28 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `specs/001-client-team-assignments/spec.md`
 
@@ -8,54 +9,62 @@
 
 ## Summary
 
-Extend the existing flat `ClientAssignment` model with team grouping (`ClientTeam`), percentage-based load tracking, 100% sum validation per role group per department, historical period tracking, team lifecycle (create → close), and manual task reassignment via RabbitMQ. Changes span `pgi-service-pgi-api` (new entity + domain service), `pgi-app-pgi-web` (new team management UI in client ficha), and `pd-service-obligations-api` (new AMQP subscriber for manual reassignment).
+Add multi-member teams with percentage-based load distribution to client profiles. Each client gets a `ClientTeam` header per department; `ClientAssignment` is extended with a `percentage` column. The feature covers team creation, percentage validation (asesor/técnico groups each sum to 100%), full assignment history, team closure, and task reassignment via RabbitMQ — all surfaced in a new **Asignaciones** tab in the PGI client ficha.
 
-**Date granularity decision (FR-012)**: Hybrid — store exact dates (PostgreSQL `date`), enforce first-of-month for `dateFrom` and last-of-month for `dateTo` via service validation. No schema change vs today.
+**Services affected**:
+- `asesores/pgi-service-pgi-api` — backend (new entities, endpoints, AMQP events)
+- `asesores/pgi-app-pgi-web` — frontend (new Asignaciones tab + team management UI)
+- `pd-service-obligations-api` — new AMQP subscriber for task reassignment
 
 ---
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.7.3
+**Language/Version**: TypeScript 5.x (all services)
 
 **Primary Dependencies**:
-- Backend: NestJS 10, MikroORM 6.4.3 (PostgreSQL), `@afianza-ac/lib-core-definitions@0.0.124`, `@afianza-ac/nest-module-rabbitmq@1.3.5`
-- Frontend: React 19, TanStack React Query v5, TanStack React Form v1.1, Zod v4.1, shadcn/ui (Radix UI), React Router v7.2
+- Backend: NestJS 10, MikroORM 6, `@afianza-ac/nest-module-rabbitmq`, `@afianza-ac/nest-module-auth`
+- Frontend: React 19, Vite, TanStack Form, Zod, `@afianza-ac/ui`
 
-**Storage**: PostgreSQL (MikroORM, `postgres:17-alpine` in dev/test)
+**Storage**: PostgreSQL 17 (MikroORM). New table `client_team` + two new columns on `client_assignment`.
 
-**Testing**: Jest + `@testcontainers/postgresql` (backend); Vitest + `@testing-library/react` (frontend)
+**Testing**:
+- Backend: Jest + `@testcontainers/postgresql` (real DB — no EntityManager mocking)
+- Frontend: Vitest + Testing Library
 
-**Target Platform**: Linux server (NestJS API) + Web SPA (React + Vite)
+**Target Platform**: Linux server (NestJS services on AKS); browser SPA (React + Vite)
 
-**Project Type**: Web service + Web application (polyrepo — changes across 3 services)
+**Project Type**: Web service (backend API) + Web application (React SPA)
 
-**Performance Goals**: < 200ms p95 on team read/write endpoints (consistent with existing assignment endpoints)
+**Performance Goals**: Save team operation < 500 ms p95. History query < 200 ms p95.
 
-**Constraints**:
-- Strict 3-layer architecture (application → domain → infrastructure) — no exceptions
-- No NestJS feature modules — all providers in AppModule
-- `em.fork()` before all writes; `disableIdentityMap: true` for reads
-- Cross-service communication via RabbitMQ only (one exception justified below)
-- `lib-core-definitions` changes require publishing a new npm version — avoid unless necessary
+**Constraints**: No gap in asesor coverage (FR-011). Percentage sums validated at flush time. Assignment history immutable once closed.
 
-**Scale/Scope**: 2 departments × ~hundreds of clients × up to 10 members per team. No high-throughput requirement; assignment operations are infrequent (HR-cadence).
+**Scale/Scope**: ~200 clients in production; teams of 2–8 members; low write frequency (assignment changes happen monthly).
 
 ---
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-checked post-design.*
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 | Principle | Status | Notes |
-|---|---|---|
-| I. Strict 3-Layer Architecture | ✅ PASS | `ClientTeam` entity in domain; `ClientTeamsService` in domain/services; `ClientTeamsController` in application/rest; no layer skipping |
-| II. Real-Container Testing | ✅ PASS | New service tests use `@testcontainers/postgresql` with real postgres:17-alpine |
-| III. MikroORM Unit of Work | ✅ PASS | All writes use `em.fork()`; reads use `disableIdentityMap: true`; partial unique index added via migration |
-| IV. Event-Driven Cross-Service | ✅ PASS | Manual task reassignment uses new RabbitMQ event `backoffice-api.v1.task-reassignment.requested`; no new HTTP calls |
-| V. Simplicity / YAGNI | ✅ PASS | Extends existing `ClientAssignment` entity (2 new columns); new `ClientTeam` entity is minimal; no new abstractions |
+|-----------|--------|-------|
+| I. Strict 3-layer architecture | ✅ PASS | All business logic in `ClientTeamsService` / `ClientAssignmentsService` (domain layer). Controllers only handle DTO mapping. No infrastructure calls from application. |
+| II. Real-container testing | ✅ PASS | All integration tests use `@testcontainers/postgresql`. No EntityManager mocking anywhere. |
+| III. MikroORM Unit of Work discipline | ✅ PASS | Writes use `em.fork()`. Reads use `{ disableIdentityMap: true }`. No `@EnsureRequestContext()` in AMQP consumers. |
+| IV. Event-driven cross-service communication | ✅ PASS | Manual task reassignment publishes a RabbitMQ event (`backoffice-api.v1.task-reassignment.requested`). No direct HTTP calls between services. |
+| V. Simplicity — no unnecessary abstractions | ✅ PASS | No new abstract repositories. Direct MikroORM EntityManager usage. `AssignmentPeriod` is a logical concept, not a new entity. |
 
-**No constitution violations.**
+**Post-design re-check**: All constitution principles satisfied. The only tracked complexity is the pre-existing `ObligationsApi` HTTP adapter (legacy technical debt, not modified here).
+
+---
+
+## Complexity Tracking
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| Pre-existing `ObligationsApi` HTTP mutations in `pgi-service-pgi-api` | Legacy pattern predating constitution ratification (2026-05-25) | Not touched in this feature — new task reassignment uses RabbitMQ event (constitution-compliant) |
 
 ---
 
@@ -65,110 +74,168 @@ Extend the existing flat `ClientAssignment` model with team grouping (`ClientTea
 
 ```text
 specs/001-client-team-assignments/
-├── spec.md              # Feature specification
-├── plan.md              # This file
-├── research.md          # Phase 0 output — FR-012 resolved, task reassignment approach decided
-├── data-model.md        # Phase 1 output — entity definitions, validation rules, migration SQL
-├── quickstart.md        # Phase 1 output — smoke tests, run instructions
-└── contracts/
-    ├── client-teams.md              # New team management REST endpoints
-    └── client-assignments-history.md # Extended assignment endpoints + RabbitMQ events
+├── plan.md              ← this file
+├── spec.md
+├── research.md          ← completed
+├── data-model.md        ← completed
+├── quickstart.md        ← completed
+├── contracts/
+│   ├── client-teams.md           ← completed
+│   └── client-assignments-history.md  ← completed
+└── tasks.md             ← generated by /speckit-tasks
 ```
 
 ### Source Code
 
 ```text
-# pgi-service-pgi-api (backend)
+# Backend — pgi-service-pgi-api
 asesores/pgi-service-pgi-api/src/
-├── domain/
-│   ├── models/
-│   │   ├── client-team.ts              [NEW] ClientTeam entity
-│   │   └── client-assignment.ts        [EDIT] + percentage, + team FK
-│   └── services/
-│       ├── client-teams/
-│       │   └── client-teams.service.ts [NEW] createTeam, closeTeam, getTeams, validateTeam
-│       └── client-assignments/
-│           └── client-assignments.service.ts [EDIT] + validatePercentageSum, + addMember, + removeMember, + reassignTasks event
 ├── application/
-│   └── rest/
-│       ├── client-teams/               [NEW]
-│       │   ├── client-teams.controller.ts
-│       │   └── dto/
-│       │       ├── create-team-params.dto.ts
-│       │       ├── close-team-params.dto.ts
-│       │       ├── add-member-params.dto.ts
-│       │       ├── patch-percentage-params.dto.ts
-│       │       ├── reassign-tasks-params.dto.ts
-│       │       └── client-team.dto.ts
-│       └── client-assignments/         [EDIT] extend response DTO with percentage + teamId
-│           └── dto/
-│               └── client-assignment-dto.ts [EDIT]
-└── migrations/
-    └── MigrationXXXX.ts                [NEW] ClientTeam table + percentage column
+│   ├── controllers/
+│   │   ├── client-teams.controller.ts       (NEW)
+│   │   └── client-assignments.controller.ts (EXTENDED)
+│   └── amqp/
+│       └── [no new publishers here — publishing done in domain]
+├── domain/
+│   ├── entities/
+│   │   ├── client-team.entity.ts            (NEW)
+│   │   └── client-assignment.entity.ts      (EXTENDED: + percentage, + team FK)
+│   └── services/
+│       ├── client-teams.service.ts          (NEW)
+│       └── client-assignments.service.ts    (EXTENDED)
+└── infrastructure/
+    └── [no new infrastructure for this feature]
 
-# pgi-app-pgi-web (frontend)
+asesores/pgi-service-pgi-api/src/migrations/
+└── Migration<timestamp>_add_client_team.ts  (NEW)
+
+# Backend — pd-service-obligations-api
+plataforma-del-dato/pd-service-obligations-api/src/
+└── application/
+    └── amqp/
+        └── task-reassignment.subscriber.ts  (NEW)
+
+# Frontend — pgi-app-pgi-web
 asesores/pgi-app-pgi-web/src/
 └── features/
-    ├── client-teams/                   [NEW feature module]
-    │   ├── domain/
-    │   │   ├── models/client-team.model.ts
-    │   │   └── repositories/client-teams.repository.ts
-    │   ├── application/use-cases/
-    │   │   ├── get-client-teams.use-case.ts
-    │   │   ├── create-team.use-case.ts
-    │   │   ├── close-team.use-case.ts
-    │   │   ├── add-member.use-case.ts
-    │   │   ├── update-member-percentage.use-case.ts
-    │   │   ├── remove-member.use-case.ts
-    │   │   ├── reassign-tasks.use-case.ts
-    │   │   └── composition-root.ts
-    │   ├── infrastructure/
-    │   │   ├── client-teams.repository-impl.ts
-    │   │   └── dto/client-team.dto.ts
-    │   └── presentation/
-    │       └── components/
-    │           ├── team-section/            # Main team UI for client ficha tab
-    │           │   ├── team-section.tsx
-    │           │   ├── team-header.tsx
-    │           │   ├── team-member-row.tsx
-    │           │   └── percentage-sum-indicator.tsx
-    │           ├── team-form/               # Add/edit member form
-    │           │   └── team-member-form.tsx
-    │           ├── close-team-dialog/
-    │           │   └── close-team-dialog.tsx
-    │           ├── team-history/
-    │           │   └── team-history-accordion.tsx
-    │           └── task-reassignment-dialog/
-    │               └── task-reassignment-dialog.tsx
-    └── client-assignments/                 [EDIT]
-        ├── domain/models/client-assignment.model.ts  [EDIT] + percentage, + teamId
-        └── infrastructure/dto/client-assignment-dto.ts [EDIT] + percentage, + teamId
-
-# pd-service-obligations-api (backend)
-plataforma-del-dato/pd-service-obligations-api/src/
-├── application/
-│   └── amqp/
-│       └── task-reassignment-subscriber/   [NEW]
-│           └── task-reassignment.subscriber.ts
-└── domain/
-    └── services/
-        └── tasks/
-            └── tasks.service.ts            [EDIT] + reassignTasksBetweenAdvisors()
+    └── client-teams/
+        ├── api/
+        │   └── client-teams.api.ts         (NEW — TanStack Query hooks)
+        ├── components/
+        │   ├── TeamSection.tsx             (NEW — Asignaciones tab container)
+        │   ├── TeamMemberForm.tsx          (NEW — add/edit member form)
+        │   ├── TeamMemberList.tsx          (NEW — active members table)
+        │   ├── PercentageSumIndicator.tsx  (NEW — live sum feedback)
+        │   ├── TeamHistory.tsx             (NEW — historical accordion)
+        │   └── CloseTeamModal.tsx          (NEW — close team confirmation)
+        └── types/
+            └── client-team.types.ts        (NEW)
 ```
 
 ---
 
-## Complexity Tracking
+## Phase 0: Research — Resolved Decisions
 
-> No constitution violations requiring justification.
+All research completed. See [research.md](./research.md) for full rationale.
+
+| ID | Topic | Decision |
+|----|-------|----------|
+| R-001 | Date granularity (FR-012) | **Hybrid**: exact `date` column, service enforces first/last-of-month convention |
+| R-002 | Manual task reassignment | **RabbitMQ event** `backoffice-api.v1.task-reassignment.requested` (constitution-compliant) |
+| R-003 | One active team per client+department | Service-layer guard + partial unique index `WHERE end_date IS NULL` |
+| R-004 | Percentage validation logic | Single-bucket: sum of all team members (ASESOR + TECNICO; responsable/coordinador excluded) = 100% at commit time |
+| R-005 | Frontend live % validation | TanStack Form field array + derived sum + Zod cross-field validation |
 
 ---
 
-## Post-Design Constitution Re-check
+## Phase 1: Design & Contracts — Completed
 
-All 5 principles pass. The design:
-- Keeps domain logic in domain services (% validation, date boundary checks, one-active-team guard)
-- Uses real containers for all integration tests
-- Follows MikroORM UoW patterns throughout
-- Uses RabbitMQ for the new cross-service task reassignment operation
-- Adds minimal new code — 1 new entity, 2 new columns, 1 new feature module in frontend
+### Data Model
+
+See [data-model.md](./data-model.md) for entity definitions, ERD, state diagrams, and migration SQL.
+
+**Summary of schema changes** (single migration in `pgi-service-pgi-api`):
+
+```sql
+-- New table
+CREATE TABLE client_team (
+  id uuid PRIMARY KEY,
+  client_id uuid NOT NULL REFERENCES client(id),
+  department varchar NOT NULL,
+  start_date date NOT NULL,
+  end_date date,
+  created_by varchar NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX idx_client_team_active
+  ON client_team (client_id, department) WHERE end_date IS NULL;
+
+-- Extend existing table
+ALTER TABLE client_assignment
+  ADD COLUMN percentage smallint NOT NULL DEFAULT 100
+    CHECK (percentage >= 1 AND percentage <= 100),
+  ADD COLUMN team_id uuid REFERENCES client_team(id);
+```
+
+### API Contracts
+
+See [contracts/client-teams.md](./contracts/client-teams.md) — new endpoints:
+- `GET /v1/client-teams/:clientId/department/:department`
+- `POST /v1/client-teams/:clientId/department/:department`
+- `PUT /v1/client-teams/:clientId/:teamId/close`
+- `GET /v1/client-teams/:clientId/:teamId/members`
+- `POST /v1/client-teams/:clientId/:teamId/members`
+- `PATCH /v1/client-teams/:clientId/:teamId/members/:assignmentId`
+- `DELETE /v1/client-teams/:clientId/:teamId/members/:assignmentId`
+- `POST /v1/client-teams/:clientId/:teamId/validate`
+- `POST /v1/client-teams/:clientId/:teamId/reassign-tasks`
+- `GET /v1/client-teams/:clientId/department/:department/active-summary`
+
+See [contracts/client-assignments-history.md](./contracts/client-assignments-history.md) — extended endpoint:
+- `GET /v1/client-assignments/:clientId/department/:department` (adds `percentage`, `teamId`)
+- `GET /v1/client-assignments/:clientId/department/:department/history`
+
+### RabbitMQ Events
+
+| Event | Direction | Schema |
+|-------|-----------|--------|
+| `backoffice-api.v1.client-assignment.updated` | Published (extended) | Adds `percentage` field — backward-compatible |
+| `backoffice-api.v1.task-reassignment.requested` | Published (new) | `clientId, department, fromEmployeeId, toEmployeeId, taskIds, requestedBy, requestedAt` |
+| `obligations-api:task-reassignment:process` | Consumed by obligations-api (new subscriber) | Reassigns PENDING tasks between employees |
+
+---
+
+## Open Questions — Still Pending PO
+
+These were open at spec-freeze. They do **not** block implementation of US1–US3; they only affect US4 edge cases.
+
+| # | Question | Impact on Implementation |
+|---|----------|--------------------------|
+| OQ-001 | Baja de asesor sin sucesor: ¿bloquear cierre o bandeja sin asignar? | US4 / `causesBaja: true` path — task provisionally blocks close until successor designated |
+| OQ-002 | Asesor de referencia cuando hay múltiples asesores | Task distribution logic — implement explicit `isReference` flag on `ClientAssignment` for when this is resolved |
+| OQ-003 | Edición simultánea por dos responsables | Optimistic lock via `updatedAt` check — implement defensively (409 with hint to reload) |
+| OQ-004 | Informes no disponibles al guardar | Currently: save succeeds; RabbitMQ event guarantees eventual consistency (FR-014) |
+| OQ-005 | Modelo A vs B (equipo exclusivo de cliente vs compartido) | **Resolved as Modelo A** (client-scoped) — current data model already implements this |
+
+---
+
+## Implementation Order
+
+Based on dependency analysis and US priorities:
+
+1. **Migration** — `client_team` table + `percentage` column (blocks all else)
+2. **US1 Backend** — `ClientTeam` entity + `ClientTeamsService` + controllers + tests
+3. **US2 Backend** — percentage validation in `ClientAssignmentsService` + PATCH endpoint
+4. **US3 Backend** — history endpoint extension
+5. **US4 Backend** — close team + `causesBaja` + RabbitMQ task reassignment event
+6. **obligations-api** — `TaskReassignmentSubscriber`
+7. **Frontend** — Asignaciones tab (TeamSection, TeamMemberForm, live % validation)
+8. **Frontend** — History accordion + close modal
+9. **Migration for existing data** — FR-013 idempotent migration to set `percentage = 100` on legacy rows
+
+---
+
+## Quickstart
+
+See [quickstart.md](./quickstart.md) for local dev setup and smoke test commands.

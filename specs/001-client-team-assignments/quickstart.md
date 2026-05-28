@@ -77,10 +77,19 @@ curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/members \
   -d "{\"employeeId\": \"$EMPLOYEE_B\", \"role\": \"asesor\", \"percentage\": 40, \"dateFrom\": \"2026-06-01\"}"
 # → 201 Created
 
-# 4. Validate team (sum should be 100%)
+# 4. Validate team (informational only — sum should be 100%)
 curl http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/validate \
   -H "Authorization: Bearer <token>"
 # → { "valid": true, "violations": [] }
+
+# 4b. Commit the team — runs full validation, marks team as confirmed,
+# and publishes one `backoffice-api.v1.client-assignment.updated` event
+# per active member (with the new `percentage` field).
+curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/commit \
+  -H "Authorization: Bearer <token>"
+# → 200 { "teamId": "...", "committedAt": "...", "membersPublished": 2 }
+# If validation fails:
+# → 400 PERCENTAGE_VALIDATION_FAILED or MIN_ASESOR_REQUIRED
 
 # 5. Try invalid: bump first asesor to 80% → should fail 400
 curl -X PATCH http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/members/<assignment-a-id> \

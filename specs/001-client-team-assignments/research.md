@@ -107,28 +107,28 @@ The service-layer guard gives a clean error message; the DB constraint prevents 
 
 ---
 
-## R-004 — Percentage Validation: ASESOR vs TECNICO grouping
+## R-004 — Percentage Validation: single-bucket team total
 
 ### Context
 
-FR-003: Asesores must sum to 100%; Técnicos must sum to 100% (if any técnico exists). RESPONSABLE and COORDINADOR have no percentage constraint (always 1 max, implicit 100%).
+FR-003 (revised 2026-05-28): All team members (ASESOR + TECNICO combined) must sum to exactly 100% per (client, department). RESPONSABLE and COORDINADOR are management roles and do not enter the sum (implicit 100% each, max 1 per team).
 
-### Decision: **Validate at flush time in domain service**
+### Decision: **Validate at commit time in domain service**
 
-`ClientAssignmentsService` validates before any flush:
-1. Fetch all **active** assignments for (client, department, team) where role IN (ASESOR) → sum % must equal 100
-2. Fetch all **active** assignments for (client, department, team) where role IN (TECNICO) → if any exist, sum % must equal 100
-3. Guard: at least 1 active ASESOR must remain after any removal (FR-011)
+Validation runs only on `POST /commit` (not on add/edit/remove — those operate on the draft):
+
+1. Fetch all **active** assignments for (client, department, team) where role IN (ASESOR, TECNICO) → sum of `percentage` must equal 100.
+2. Guard: at least 1 active ASESOR must exist (FR-011) → else `MIN_ASESOR_REQUIRED`.
 
 "Active" = no `dateTo`, or `dateTo >= today`.
 
-Validation runs synchronously before `em.persistAndFlush()`. Returns structured error:
+Returns structured error:
 ```json
 {
   "error": "PERCENTAGE_VALIDATION_FAILED",
-  "role": "ASESOR",
-  "current": 140,
-  "required": 100
+  "sum": 90,
+  "required": 100,
+  "membersIncluded": ["ASESOR", "TECNICO"]
 }
 ```
 
@@ -136,11 +136,11 @@ Validation runs synchronously before `em.persistAndFlush()`. Returns structured 
 
 ## R-005 — Frontend: Live % Sum Validation with TanStack Form
 
-### Decision: **Field array with derived sum computation**
+### Decision: **Field array with single derived sum**
 
-The team management form uses `useForm` from `@tanstack/react-form` with a field array for members. A derived selector computes the sum per role group on every render. A `<PercentageSumIndicator>` component shows the live sum with color feedback (green = 100%, red = other).
+The team management form uses `useForm` from `@tanstack/react-form` with a field array for members. A derived selector computes the **total sum of ASESOR + TECNICO percentages** (RESPONSABLE and COORDINADOR excluded). A `<PercentageSumIndicator>` component shows one live sum with color feedback (green = 100%, red = other).
 
-Validation: Zod schema validates each `percentage` (1–100 integer) + form-level cross-field validation for the sum. Submit is disabled if sum ≠ 100 for any required group.
+Validation: Zod schema validates each `percentage` (1–100 integer) + form-level cross-field validation that the team total is 100. Submit ("Confirmar equipo") is disabled if sum ≠ 100.
 
 ---
 
@@ -151,5 +151,5 @@ Validation: Zod schema validates each `percentage` (1–100 integer) + form-leve
 | R-001 | Date granularity (FR-012) | **Hybrid**: store exact date, enforce first-of-month convention in service |
 | R-002 | Manual task reassignment | **RabbitMQ event** `pgi-api.v1.task-reassignment.requested` |
 | R-003 | One active team enforcement | Service guard + partial unique index in migration |
-| R-004 | % validation logic | Validate at flush time in domain service, by role group |
+| R-004 | % validation logic | Single-bucket: validate at commit time, sum of all members (ASESOR + TECNICO) = 100% |
 | R-005 | Frontend live validation | TanStack Form field array + derived sum + Zod cross-field |

@@ -128,7 +128,7 @@ Add a member to an active team.
 - `400 DATE_NOT_MONTH_BOUNDARY`
 - `400 PERCENTAGE_OUT_OF_RANGE` — percentage not in 1–100
 
-> Note: Adding a member does NOT validate 100% sum — the sum is validated only on explicit "save team" or on `PATCH /percentage`. This allows building a team incrementally.
+> Note: Adding a member does NOT validate the 100% sum. The sum is only validated by `POST /commit` (see below). This allows building a team incrementally as a draft.
 
 ---
 
@@ -186,10 +186,37 @@ Validate a team's current state (100% sums, minimum members). Use before saving.
 {
   "valid": false,
   "violations": [
-    { "role": "ASESOR", "sum": 140, "required": 100, "error": "PERCENTAGE_VALIDATION_FAILED" }
+    { "code": "PERCENTAGE_VALIDATION_FAILED", "sum": 90, "required": 100, "membersIncluded": ["ASESOR", "TECNICO"] }
   ]
 }
 ```
+
+---
+
+## POST /v1/client-teams/:clientId/:teamId/commit
+
+Confirm a draft team. Validates the 100% sum per role and the minimum-asesor rule, marks the team as committed, and publishes one `backoffice-api.v1.client-assignment.updated` event per active member (carrying the new `percentage`). This is the **only endpoint** that runs the full validation and publishes events; `POST /members`, `PATCH /members/:id` and `DELETE /members/:id` operate on the draft.
+
+**Auth**: `CLIENT_ASSIGNMENT_EDIT` + `CLIENT_ASSIGNMENTS_{DEPARTMENT}_EDIT`
+
+**Body**: empty
+
+**Response 200**:
+```json
+{
+  "teamId": "uuid",
+  "committedAt": "2026-06-01T10:00:00Z",
+  "membersPublished": 3
+}
+```
+
+**Errors**:
+- `400 PERCENTAGE_VALIDATION_FAILED` — sum of team members (ASESOR + TECNICO; RESPONSABLE and COORDINADOR excluded) ≠ 100%. Body includes `{ "sum": 90, "required": 100 }`.
+- `400 MIN_ASESOR_REQUIRED` — team has zero active asesores.
+- `404` — team not found
+- `409 TEAM_CLOSED` — team is already closed (re-commit not allowed)
+
+> Side effect: each active `ClientAssignment` in the team is published to RabbitMQ on routing key `backoffice-api.v1.client-assignment.updated`, including `percentage`. Consumers (Plataforma del Dato, etc.) receive the canonical post-commit state.
 
 ---
 

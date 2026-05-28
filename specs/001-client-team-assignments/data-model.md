@@ -136,9 +136,8 @@ enum Department {
 | `dateTo` is last day of month (when set) | ClientTeam + ClientAssignment | create/update | `DATE_NOT_MONTH_BOUNDARY` |
 | `dateTo >= dateFrom` | ClientAssignment | create/update | `DATE_RANGE_INVALID` |
 | At most 1 active team per client+department | ClientTeam | createTeam | `ACTIVE_TEAM_EXISTS` |
-| ASESOR percentages sum to 100% | Team's active asesores | save/add/edit/remove | `PERCENTAGE_VALIDATION_FAILED` |
-| TECNICO percentages sum to 100% (if any) | Team's active técnicos | save/add/edit/remove | `PERCENTAGE_VALIDATION_FAILED` |
-| Team must have ≥ 1 active ASESOR | Team | remove/close | `MIN_ASESOR_REQUIRED` |
+| All-member percentages sum to 100% | Team's active members (ASESOR + TECNICO; RESPONSABLE & COORDINADOR excluded) | commit | `PERCENTAGE_VALIDATION_FAILED` |
+| Team must have ≥ 1 active ASESOR | Team | commit | `MIN_ASESOR_REQUIRED` |
 | RESPONSABLE max 1 per team | Team | addMember | `ROLE_ALREADY_FILLED` |
 | COORDINADOR max 1 per team | Team | addMember | `ROLE_ALREADY_FILLED` |
 | COORDINADOR ≠ RESPONSABLE (same person) | Team | addMember | `ROLE_CONFLICT` |
@@ -150,9 +149,23 @@ enum Department {
 
 ## AssignmentPeriod (logical concept — no new entity)
 
+> **Scope note**: `AssignmentPeriod` is a conceptual view, not a stored entity. It is exposed fully by **US3 (history accordion)**. For US1, it is implicit: every `ClientAssignment` row is an open period (`dateTo IS NULL`) within the active team. The history query below already returns the right shape; US1 just doesn't surface a UI for it.
+
 The spec's "AssignmentPeriod" is represented by `ClientAssignment` rows with a non-null `dateTo`. The period becomes immutable once closed (service rejects edits to assignments where `dateTo < today` AND `team.endDate IS NOT NULL`).
 
 **History query**: `SELECT * FROM client_assignment WHERE client_id = ? AND department = ? ORDER BY dateFrom DESC` — returns both active (dateTo = null) and historical (dateTo set) records.
+
+---
+
+## Future evolution (Modelo B — reusable teams)
+
+OQ-005 was resolved as **Modelo A** (teams scoped to a single client, created from the client ficha). A possible future Modelo B would let a single team serve multiple clients via a dedicated team-management screen.
+
+The current schema does not block this evolution:
+
+- `ClientTeam` is already a first-class entity with FK `client_id` (1:1 with a client today).
+- To enable N:M (one team ↔ many clients), introduce an additive pivot table `team_assignment (team_id, client_id, started_at, ended_at)` and gradually drop the `client_id` on `ClientTeam` if/when all teams have migrated to the pivot. No destructive change to existing columns or constraints is required.
+- The current APIs (`/v1/client-teams/:clientId/...`) survive as a convenience shortcut "create team + assign to this client in one call"; Modelo B would add new endpoints under a different base path without breaking these.
 
 ---
 
