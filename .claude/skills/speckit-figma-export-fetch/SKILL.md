@@ -31,16 +31,21 @@ The script:
 3. If no node IDs given, lists all top-level frames in the file and downloads all of them
 4. Calls `GET /v1/images/{file_key}?ids={node_ids}&format=png&scale=2`
 5. Downloads the PNGs to `specs/<feature>/designs/`
-6. Names files after the frame name (slugified), e.g. `vista-equipo-activo.png`
-7. Appends an `## Designs` section to `spec.md` referencing the downloaded images (if not already present)
+6. **Preserves user-journey hierarchy** — frames inside a Figma `SECTION` land in a subfolder named after the section (slugified). Loose page-level frames go to the `designs/` root. Example: a `SECTION` named `User Journey: Crear equipo` containing a frame `Estado inicial` produces `designs/user-journey-crear-equipo/estado-inicial.png`.
+7. Names files after the frame name (slugified). Collisions inside the same section get `-01`, `-02`, … suffixes.
+8. Writes `designs/INDEX.md` — auto-generated table (`journey | frame name | file | node id | Figma deep-link`). Overwritten on every run.
+9. Appends or replaces `## Designs` in `spec.md`, grouped by `### <Section name>` per journey.
 
 ## Output
 
 ```
-✅ Downloaded 3 frame(s) to specs/001-client-team-assignments/designs/
-  - designs/equipo-activo.png  (Frame: "Equipo Activo")
-  - designs/historico.png      (Frame: "Histórico")
-  - designs/cierre-equipo.png  (Frame: "Cierre de Equipo")
+✅ Downloaded 5 frame(s) to specs/001-client-team-assignments/designs/
+  - designs/crear-equipo/estado-inicial.png            [Crear equipo]
+  - designs/crear-equipo/modal-anadir-asignacion.png   [Crear equipo]
+  - designs/anadir-miembro/seleccion-rol.png           [Añadir miembro]
+  - designs/anadir-miembro/seleccion-empleado.png      [Añadir miembro]
+  - designs/equipo-completo.png                        [loose — no section]
+Wrote specs/001-client-team-assignments/designs/INDEX.md
 ```
 
 ## Error Handling

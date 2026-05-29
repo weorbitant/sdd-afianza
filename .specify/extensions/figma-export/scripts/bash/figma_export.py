@@ -59,14 +59,36 @@ def parse_figma_url(url: str) -> tuple[str, list[str]]:
 
 
 def get_top_level_frames(file_key: str, token: str) -> list[dict]:
-    """Returns list of {id, name} for top-level frames."""
-    data = figma_get(f"/files/{file_key}?depth=2", token)
+    """Returns list of {id, name, section_id, section_name} for FRAME / COMPONENT nodes.
+
+    Walks one extra level to detect SECTION parents (Figma user-journey groups).
+    Loose frames at page level get section_id=None.
+    A SECTION is NOT itself exported — only its leaf FRAME / COMPONENT children are.
+    """
+    data = figma_get(f"/files/{file_key}?depth=3", token)
     frames = []
     pages = data.get('document', {}).get('children', [])
     for page in pages:
         for child in page.get('children', []):
-            if child.get('type') in ('FRAME', 'COMPONENT', 'SECTION'):
-                frames.append({'id': child['id'], 'name': child['name']})
+            ctype = child.get('type')
+            if ctype == 'SECTION':
+                section_id = child['id']
+                section_name = child['name']
+                for grandchild in child.get('children', []):
+                    if grandchild.get('type') in ('FRAME', 'COMPONENT'):
+                        frames.append({
+                            'id': grandchild['id'],
+                            'name': grandchild['name'],
+                            'section_id': section_id,
+                            'section_name': section_name,
+                        })
+            elif ctype in ('FRAME', 'COMPONENT'):
+                frames.append({
+                    'id': child['id'],
+                    'name': child['name'],
+                    'section_id': None,
+                    'section_name': None,
+                })
     return frames
 
 
@@ -94,19 +116,55 @@ def export_frames(file_key: str, node_ids: list[str], token: str, scale: int = 2
 
 
 def update_spec_designs(spec_path: Path, image_refs: list[dict]):
-    """Append or update ## Designs section in spec.md"""
+    """Append or update ## Designs section in spec.md, grouped by section_name."""
     if not spec_path.exists():
         return
     content = spec_path.read_text(encoding='utf-8')
     section = "\n## Designs\n\n"
+    # Group by section_name preserving original order
+    groups: dict[str, list[dict]] = {}
+    order: list[str] = []
     for ref in image_refs:
-        section += f"![{ref['name']}]({ref['rel_path']})\n\n"
+        key = ref.get('section_name') or '_loose'
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(ref)
+    for key in order:
+        if key == '_loose':
+            section += "### Sin user journey asociado\n\n"
+        else:
+            section += f"### {key}\n\n"
+        for ref in groups[key]:
+            section += f"![{ref['name']}]({ref['rel_path']})\n\n"
     if '## Designs' in content:
-        # Replace existing section
         content = re.sub(r'\n## Designs\n.*?(?=\n## |\Z)', section, content, flags=re.DOTALL)
     else:
         content = content.rstrip() + '\n' + section
     spec_path.write_text(content, encoding='utf-8')
+
+
+def write_designs_index(designs_dir: Path, image_refs: list[dict], file_key: str):
+    """Write designs/INDEX.md — auto-generated table of section → frame → file → Figma link."""
+    if not image_refs:
+        return
+    lines = [
+        "# Designs Index",
+        "",
+        "Auto-generado por `figma_export.py`. **No editar a mano** — se regenera en cada ejecución.",
+        "",
+        "| User journey | Frame (Figma) | Archivo | Node ID | Figma |",
+        "|---|---|---|---|---|",
+    ]
+    for ref in image_refs:
+        journey = ref.get('section_name') or '_sin journey_'
+        frame_name = ref['name']
+        rel = ref['rel_path'].removeprefix('designs/')
+        nid = ref['node_id']
+        node_url_part = nid.replace(':', '-')
+        deep_link = f"https://www.figma.com/design/{file_key}?node-id={node_url_part}"
+        lines.append(f"| {journey} | {frame_name} | `{rel}` | `{nid}` | [abrir]({deep_link}) |")
+    (designs_dir / 'INDEX.md').write_text("\n".join(lines) + "\n", encoding='utf-8')
 
 
 def main():
@@ -146,6 +204,9 @@ def main():
 
     print(f"File key: {file_key}")
 
+    # node_meta: {node_id: {name, section_name}}
+    node_meta: dict[str, dict] = {}
+
     if not node_ids:
         print("No node IDs provided — fetching all top-level frames...")
         try:
@@ -158,15 +219,17 @@ def main():
             sys.exit(0)
         print(f"Found {len(frames)} frame(s):")
         for f in frames:
-            print(f"  - [{f['id']}] {f['name']}")
+            journey = f"  [journey: {f['section_name']}]" if f.get('section_name') else ""
+            print(f"  - [{f['id']}] {f['name']}{journey}")
         node_ids = [f['id'] for f in frames]
-        names = {f['id']: f['name'] for f in frames}
+        node_meta = {f['id']: {'name': f['name'], 'section_name': f.get('section_name')} for f in frames}
     else:
         try:
             names = get_node_names(file_key, node_ids, token)
         except RuntimeError as e:
             print(f"Error fetching node names: {e}")
             names = {nid: nid for nid in node_ids}
+        node_meta = {nid: {'name': names.get(nid, nid), 'section_name': None} for nid in node_ids}
 
     # Export
     print(f"\nExporting {len(node_ids)} frame(s) at 2x...")
@@ -177,19 +240,38 @@ def main():
         sys.exit(1)
 
     downloaded = []
+    # Track collisions per (section, slug)
+    seen: dict[tuple, int] = {}
     for nid in node_ids:
         img_url = image_urls.get(nid)
         if not img_url:
             print(f"  SKIP [{nid}] — no image URL returned")
             continue
-        name = names.get(nid, nid)
-        filename = f"{slugify(name)}.png"
-        dest = designs_dir / filename
+        meta = node_meta.get(nid, {'name': nid, 'section_name': None})
+        name = meta['name']
+        section_name = meta.get('section_name')
+        section_slug = slugify(section_name) if section_name else None
+        frame_slug = slugify(name)
+        key = (section_slug, frame_slug)
+        seen[key] = seen.get(key, 0) + 1
+        suffix = f"-{seen[key]:02d}" if seen[key] > 1 else ""
+        filename = f"{frame_slug}{suffix}.png"
+        subdir = designs_dir / section_slug if section_slug else designs_dir
+        subdir.mkdir(parents=True, exist_ok=True)
+        dest = subdir / filename
         try:
             download_file(img_url, dest)
             rel = str(dest.relative_to(feature_dir))
-            print(f"  OK  designs/{filename}  (\"{name}\")")
-            downloaded.append({'name': name, 'rel_path': rel, 'path': str(dest)})
+            label_path = f"{section_slug}/{filename}" if section_slug else filename
+            journey_log = f"  [{section_name}]" if section_name else ""
+            print(f"  OK  designs/{label_path}{journey_log}  (\"{name}\")")
+            downloaded.append({
+                'name': name,
+                'section_name': section_name,
+                'rel_path': rel,
+                'path': str(dest),
+                'node_id': nid,
+            })
         except Exception as e:
             print(f"  FAIL [{nid}] {name}: {e}")
 
@@ -198,6 +280,8 @@ def main():
         if spec_path.exists():
             update_spec_designs(spec_path, downloaded)
             print(f"\nUpdated {spec_path} with {len(downloaded)} design reference(s)")
+        write_designs_index(designs_dir, downloaded, file_key)
+        print(f"Wrote {designs_dir / 'INDEX.md'}")
 
     print(f"\nDone: {len(downloaded)}/{len(node_ids)} frame(s) downloaded to {designs_dir}")
 

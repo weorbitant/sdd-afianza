@@ -1,6 +1,6 @@
 ---
 name: speckit-challenge
-description: "Adversarial review with two phases and PO-first reporting. Functional (after clarify, before plan): business-logic-reviewer surfaces missing use cases and PO questions that should land in spec.md Open Questions and reach the PO via Jira before the plan is locked. Technical (after plan, before tasks): feasibility-reviewer plus business-logic-reviewer restricted to delivery-sequence. Modes: functional | technical | all (auto-detected from artifact presence). V2 (0.5.0): PO-first report layout (D1..Dn decisions, G1..Gn gaps, technical findings moved to anexo) and Jira-comment-ready Open Question blocks. V2.1 (0.6.0): feasibility constraint — options must use only capabilities present in <project-context> / plan.md; new-infra costs (notifications service, cron, workflow engine…) must be flagged with 'Requiere construir X' in tradeoff or dropped, and surface in the report with a 🏗 icon."
+description: "Adversarial review with two phases and PO-first reporting. Functional (after clarify, before plan): business-logic-reviewer surfaces missing use cases, PO questions, and design-conformance gaps. Technical (after plan, before tasks): feasibility-reviewer plus business-logic-reviewer restricted to delivery-sequence. Modes: functional | technical | all (auto-detected from artifact presence). V2 (0.5.0): PO-first report layout (D1..Dn decisions, G1..Gn gaps, technical findings moved to anexo) and Jira-comment-ready Open Question blocks. V2.1 (0.6.0): feasibility constraint — options must use only capabilities present in <project-context> / plan.md; new-infra costs flagged with 'Requiere construir X' or dropped. V2.2 (0.7.0): design-conformance bucket — business-logic-reviewer reads PNG/JPG frames in designs/ and flags UI badges, validations, or workflows the spec contradicts or omits."
 argument-hint: "[functional|technical|all]"
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
@@ -55,6 +55,7 @@ Run `{SCRIPT}` from repo root. Parse JSON for `FEATURE_DIR` and `AVAILABLE_DOCS`
 - `PLAN = FEATURE_DIR/plan.md`
 - `DATA_MODEL = FEATURE_DIR/data-model.md`
 - `CONTRACTS_DIR = FEATURE_DIR/contracts/` (if listed in AVAILABLE_DOCS)
+- `DESIGNS_DIR = FEATURE_DIR/designs/` (if present — list every `*.png` / `*.jpg` recursively, sorted by relative path so the parent journey folder groups its frames). If `DESIGNS_DIR/INDEX.md` exists, capture its full content separately to pass as a legend.
 - `RESEARCH = FEATURE_DIR/research.md` (if present — passed to agents for context, not reviewed)
 - `DECISIONS = FEATURE_DIR/decisions.md` (if present — passed to agents for context)
 - `PROJECT_CLAUDE = <repo root>/CLAUDE.md` (always passed to agents as project context)
@@ -73,9 +74,9 @@ Select reviewers based on resolved MODE:
 
 | MODE | Reviewers dispatched | business-logic focus instruction |
 |------|---------------------|----------------------------------|
-| `functional` | `business-logic-reviewer` only | "Focus on buckets 1–8. SKIP bucket 9 (delivery sequence) — there is no plan to review yet." |
-| `technical`  | `feasibility-reviewer` + `business-logic-reviewer` | "Focus EXCLUSIVELY on bucket 9 (delivery sequence and dependencies). Skip buckets 1–8 — they were covered in the functional phase." |
-| `all`        | `feasibility-reviewer` + `business-logic-reviewer` | No restriction — all 9 buckets active. |
+| `functional` | `business-logic-reviewer` only | "Focus on buckets 1–8 and 10. SKIP bucket 9 (delivery sequence) — there is no plan to review yet. Read every PNG/JPG listed in `<designs>` with the `Read` tool before flagging design-conformance findings." |
+| `technical`  | `feasibility-reviewer` + `business-logic-reviewer` | "Focus EXCLUSIVELY on bucket 9 (delivery sequence and dependencies). Skip buckets 1–8 and 10 — they were covered in the functional phase." |
+| `all`        | `feasibility-reviewer` + `business-logic-reviewer` | "All 10 buckets active. Read every PNG/JPG listed in `<designs>` with the `Read` tool before flagging design-conformance findings." |
 
 Announce to the user using this exact shape (substituting the actual MODE and reviewer list):
 
@@ -124,6 +125,12 @@ You are operating as the reviewer defined below. Follow its instructions exactly
 <contracts>
 {for each file in CONTRACTS_DIR: <file path="..."> ... </file>, or "NONE"}
 </contracts>
+
+<designs>
+{if DESIGNS_DIR/INDEX.md exists, emit it inside <designs-index>...</designs-index> first — the reviewer treats this as the legend mapping each file to its user journey.}
+
+{then, for each PNG/JPG in DESIGNS_DIR recursively, sorted by relative path: <frame path="{absolute path}" journey="{parent folder slug if any, else 'none'}" /> on its own line. The reviewer is expected to invoke Read on each path it deems relevant to the buckets being audited. If DESIGNS_DIR is absent or empty, write "NONE".}
+</designs>
 
 <context-only-research path="{RESEARCH}">
 {full content of research.md if present, else "NOT PRESENT"}
