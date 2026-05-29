@@ -16,14 +16,15 @@
       "installed_at": "2026-05-25T11:17:53.545769+00:00"
     },
     "figma-export": {
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "local",
-      "manifest_hash": "sha256:b5a0259f7d33e885a0b77cb0f7f13396e822c9c77eecd20a9ec80b2e86883edc",
+      "manifest_hash": "sha256:d92b5fb7c537f375e39b9c85b4127a164877c47338c616a62510cd98cd9f1772",
       "enabled": true,
       "priority": 10,
       "registered_commands": {
         "claude": [
-          "speckit.figma-export.fetch"
+          "speckit.figma-export.fetch",
+          "speckit.figma-export.browser"
         ]
       },
       "registered_skills": [],

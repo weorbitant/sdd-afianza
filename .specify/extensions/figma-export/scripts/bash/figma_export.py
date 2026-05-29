@@ -58,17 +58,94 @@ def parse_figma_url(url: str) -> tuple[str, list[str]]:
     return file_key, node_ids
 
 
+def _is_bold_text(node: dict) -> bool:
+    """Returns True if node is a TEXT with bold weight (Figma uses fontWeight or fontPostScriptName)."""
+    if node.get('type') != 'TEXT':
+        return False
+    style = node.get('style') or {}
+    weight = style.get('fontWeight')
+    if isinstance(weight, (int, float)) and weight >= 600:
+        return True
+    psname = style.get('fontPostScriptName') or ''
+    if isinstance(psname, str) and ('Bold' in psname or 'Black' in psname or 'Heavy' in psname):
+        return True
+    return False
+
+
+def _infer_journey(frame_bbox: dict, text_labels: list[dict]) -> str | None:
+    """Find the bold TEXT label that best describes the journey of the frame.
+
+    Two-pass heuristic:
+      (1) closest TEXT directly above (vertical bottom <= frame.y) AND horizontally
+          overlapping the frame's column. Strongest signal.
+      (2) if no overlap match, fall back to the TEXT whose top y is closest above
+          the frame's top y *regardless of horizontal alignment* — captures the case
+          where the label is anchored to the leftmost frame of a row but the frame
+          sits to its right.
+
+    The vertical-gap budget for the fallback is capped at 1200px to avoid attributing
+    a frame on row N to a label many rows above.
+    """
+    if not frame_bbox:
+        return None
+    fx, fy, fw = frame_bbox['x'], frame_bbox['y'], frame_bbox['width']
+
+    # Pass 1 — strict horizontal overlap
+    best = None
+    best_gap = float('inf')
+    for label in text_labels:
+        lb = label['bbox']
+        lbottom = lb['y'] + lb['height']
+        if lbottom > fy:
+            continue
+        if (lb['x'] + lb['width']) < fx or lb['x'] > (fx + fw):
+            continue
+        gap = fy - lbottom
+        if gap < best_gap:
+            best_gap = gap
+            best = label
+    if best:
+        return best['characters']
+
+    # Pass 2 — closest above ignoring x, capped vertical distance
+    best = None
+    best_gap = float('inf')
+    for label in text_labels:
+        lb = label['bbox']
+        lbottom = lb['y'] + lb['height']
+        gap = fy - lbottom
+        if gap < 0 or gap > 1200:
+            continue
+        if gap < best_gap:
+            best_gap = gap
+            best = label
+    return best['characters'] if best else None
+
+
 def get_top_level_frames(file_key: str, token: str) -> list[dict]:
     """Returns list of {id, name, section_id, section_name} for FRAME / COMPONENT nodes.
 
-    Walks one extra level to detect SECTION parents (Figma user-journey groups).
-    Loose frames at page level get section_id=None.
-    A SECTION is NOT itself exported — only its leaf FRAME / COMPONENT children are.
+    Three-tier detection of the "user journey" each frame belongs to:
+      1. SECTION parent (Figma native grouping) — strongest signal.
+      2. Bold TEXT label positioned above the frame on the canvas — heuristic for files
+         that use floating headers instead of SECTIONs.
+      3. None — frame stays loose.
     """
     data = figma_get(f"/files/{file_key}?depth=3", token)
     frames = []
     pages = data.get('document', {}).get('children', [])
     for page in pages:
+        # Collect bold TEXT labels at page level (heuristic source)
+        text_labels = []
+        for child in page.get('children', []):
+            if _is_bold_text(child):
+                bbox = child.get('absoluteBoundingBox')
+                if bbox:
+                    text_labels.append({
+                        'characters': (child.get('characters') or '').strip(),
+                        'bbox': bbox,
+                    })
+
         for child in page.get('children', []):
             ctype = child.get('type')
             if ctype == 'SECTION':
@@ -83,11 +160,13 @@ def get_top_level_frames(file_key: str, token: str) -> list[dict]:
                             'section_name': section_name,
                         })
             elif ctype in ('FRAME', 'COMPONENT'):
+                bbox = child.get('absoluteBoundingBox')
+                inferred = _infer_journey(bbox, text_labels) if bbox else None
                 frames.append({
                     'id': child['id'],
                     'name': child['name'],
                     'section_id': None,
-                    'section_name': None,
+                    'section_name': inferred,
                 })
     return frames
 
