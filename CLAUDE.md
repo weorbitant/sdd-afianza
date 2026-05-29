@@ -39,20 +39,17 @@ Each service has its own `CLAUDE.md` — always read it before working in that s
 
 ## Rules
 
-Detailed guidance lives in `.claude/rules/`. Files without `paths:` frontmatter load every session; path-scoped files load only when Claude touches matching files.
+Workspace-wide guidance lives in `.claude/rules/`. Files without `paths:` frontmatter load every session; path-scoped files load only when Claude touches matching files.
+
+**Service-specific patterns (architecture, MikroORM, migrations, testing, RabbitMQ) live in each service's own `CLAUDE.md`** — the workspace does not duplicate them. Always read the service-level `CLAUDE.md` before working in a service.
 
 | File | Scope | Topic |
 |------|-------|-------|
-| `commands.md`           | always         | Common npm commands (backend + frontend) |
+| `commands.md`           | always         | Common npm commands cheat-sheet (services define their own) |
 | `git.md`                | always         | Conventional commits, branching, gh CLI |
 | `atlassian.md`          | always         | Jira cloudId + hostname trap |
 | `po-communication.md`   | always         | How to draft PO questions in Jira |
 | `mcps.md`               | always         | Active MCPs and RTK token optimization |
-| `architecture.md`       | backend `src/` | 3-layer pattern + shared libraries |
-| `mikroorm.md`           | backend `src/` | EM fork patterns, identity map |
-| `rabbitmq.md`           | backend AMQP   | vhost, exchange, routing key pattern |
-| `migrations.md`         | migrations + entities | check, never modify applied |
-| `testing.md`            | test/spec files | testcontainers, never mock EM |
 | `speckit-workflow.md`   | `specs/**`, `.specify/**` | Recommended `/speckit-*` flow + active commands |
 | `speckit-extensions.md` | `.specify/extensions/**` | Crear/editar extensiones, bug del CLI |
 
