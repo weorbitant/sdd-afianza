@@ -1,6 +1,6 @@
 ---
 name: speckit-figma-export-browser
-description: "Browser-driven bulk export of all Figma frames + semantic rename & organize by user journey. Use when Figma API rate-limits or when frames lack SECTION grouping. Requires Claude-in-Chrome connected to a browser logged into Figma."
+description: "Browser-driven bulk export of all Figma frames + semantic rename & organize by user journey. Replaces the REST API path (Figma rate-limits make it unusable). Requires Claude-in-Chrome connected to a browser logged into Figma."
 argument-hint: "<figma_file_url>"
 compatibility: Requires spec-kit project structure with .specify/ directory AND Claude-in-Chrome browser extension connected
 metadata:
@@ -12,10 +12,12 @@ user-invocable: true
 
 # Figma Frame Export — Browser-driven
 
-Alternative to `/speckit-figma-export-fetch` that uses Claude-in-Chrome to drive Figma's own export UI. Designed for two scenarios where the REST API path doesn't work:
+Uses Claude-in-Chrome to drive Figma's own export UI. The Figma REST API path was removed (v2.0.0): rate-limits made it unusable for full file exports, and many real-world Figma files don't use `SECTION` parents to group frames — leaving the API path unable to infer user-journey hierarchy.
 
-1. **Figma API rate-limit (429)** — the public API throttles aggressively; the browser path uses the user's authenticated session and a different throttle bucket.
-2. **No `SECTION` grouping in Figma** — when user journeys are floating bold TEXT labels (not native sections), the REST API can't infer hierarchy. The browser path inspects frames visually after export.
+This browser-driven path:
+- Uses the user's authenticated Figma session (no rate limit).
+- Triggers Figma's native bulk export (`Cmd+A` → "Exportar N capas" → ZIP) — gives PNGs at full frame resolution, not viewport screenshots.
+- Inspects frames multimodally to recover user-journey hierarchy when Figma doesn't encode it structurally.
 
 ## Pre-conditions
 
@@ -143,8 +145,10 @@ Next: invoke /speckit-challenge functional to surface the findings as Open Quest
 - **All frames are off-topic**: the URL pointed to a wrong page. Re-navigate with the right `?node-id=` and retry.
 - **Multimodal Read on PNG fails**: the file may be 0 bytes — re-extract the ZIP.
 
-## When NOT to use this command
+## Pre-conditions that must hold
 
-- The Figma file already uses `SECTION` parents to group frames → `/speckit-figma-export-fetch` exports them already organized.
-- You only need a single specific frame → use `/speckit-figma-export-fetch <url-with-node-id>` for that one frame via the API.
-- You don't have an authenticated browser session for that Figma file → use the API path with your `FIGMA_TOKEN`.
+- Claude-in-Chrome MCP connected to a Chromium-based browser (Chrome / Brave / Edge).
+- That browser has the user logged into Figma with access to the file.
+- The browser is configured to not prompt on every download (Settings → Downloads → "Ask where to save each file" disabled for figma.com), or the user is willing to confirm each save manually.
+
+If these don't hold, ask the user to set them up before invoking the command — there is no API fallback.

@@ -16,14 +16,13 @@
       "installed_at": "2026-05-25T11:17:53.545769+00:00"
     },
     "figma-export": {
-      "version": "1.1.0",
+      "version": "2.0.0",
       "source": "local",
-      "manifest_hash": "sha256:d92b5fb7c537f375e39b9c85b4127a164877c47338c616a62510cd98cd9f1772",
+      "manifest_hash": "sha256:391eae220178f00173574a10ed00b3b12d4019b1ded6b2fca3e066958701f0fc",
       "enabled": true,
       "priority": 10,
       "registered_commands": {
         "claude": [
-          "speckit.figma-export.fetch",
           "speckit.figma-export.browser"
         ]
       },

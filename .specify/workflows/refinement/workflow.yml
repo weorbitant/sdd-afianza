@@ -42,8 +42,8 @@ steps:
     type: if
     condition: "{{ inputs.figma_url != '' }}"
     then:
-      - id: figma-fetch
-        command: speckit.figma-export.fetch
+      - id: figma-export-browser
+        command: speckit.figma-export.browser
         integration: "{{ inputs.integration }}"
         input:
           args: "{{ inputs.figma_url }}"

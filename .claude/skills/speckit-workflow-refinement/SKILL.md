@@ -62,7 +62,7 @@ Guarda el contenido formateado como `EPIC_CONTENT`.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-**Si `figma_url` está presente**: invoca `/speckit-figma-export-fetch <figma_url>`.
+**Si `figma_url` está presente**: invoca `/speckit-figma-export-browser <figma_url>`.
 **Si no**: muestra "↷ Sin Figma URL — paso omitido." y continúa.
 
 ### [3/7] specify
@@ -161,4 +161,4 @@ Muestra resumen:
 - Nunca saltes un gate sin confirmación explícita del usuario.
 - Si el usuario escribe "stop" o "abort", detén el workflow inmediatamente.
 - Si el Atlassian MCP no está conectado, aborta en el paso [1/7] con instrucciones de reconexión.
-- Si `/speckit-figma-export-fetch` no está disponible y se proporcionó figma_url, avisa y omite el paso.
+- Si `/speckit-figma-export-browser` no está disponible (Claude-in-Chrome no conectado) y se proporcionó figma_url, avisa y omite el paso.
