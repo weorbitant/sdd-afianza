@@ -71,6 +71,20 @@
       },
       "registered_skills": [],
       "installed_at": "2026-05-28T14:30:00.000000+00:00"
+    },
+    "ready": {
+      "version": "0.1.0",
+      "source": "local",
+      "manifest_hash": "sha256:f4ca77236d970a4fcb4c5f79bfc8668bf3f3cbf5547336c3eae3f8cb2c89b74c",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.ready"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-05-29T00:00:00.000000+00:00"
     }
   }
 }

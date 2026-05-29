@@ -1,0 +1,24 @@
+schema_version: "1.0"
+
+extension:
+  id: ready
+  name: "Spec Readiness Gate"
+  version: "0.1.0"
+  description: "Evaluates the active feature's spec.md against the project quality rubric (.specify/quality-rubric.md) and produces readiness-report.md with a global verdict (READY / READY-WITH-RISKS / NOT-READY) plus per-criterion findings, evidence and a prioritized action plan pointing at the right remediation command (/speckit-discover, /speckit-clarify, /speckit-challenge functional, /speckit-atlassian-sync-push). Read-only: only writes readiness-report.md, never touches spec.md. Advisory — does not block /speckit-plan, but flags low-quality specs before technical planning."
+  author: afianza-local
+  license: MIT
+
+requires:
+  speckit_version: ">=0.8.0"
+
+provides:
+  commands:
+    - name: speckit.ready
+      file: commands/speckit.ready.md
+      description: "Score the active feature's spec.md against the 8-criterion quality rubric and emit readiness-report.md. Read-only — only writes the report."
+
+tags:
+  - quality
+  - refinement
+  - gate
+  - rubric
