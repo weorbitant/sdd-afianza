@@ -554,7 +554,13 @@ _Estado_: pending
 
 ---
 
-### D2 — Dos puntos de entrada distintos para crear el equipo
+### ✅ D2 — RESUELTA · Dos puntos de entrada distintos para crear el equipo
+
+> **Decisión PO 2026-06-01**: solo desde ficha de cliente. El CTA de *Mis tareas* era resto de diseño y se elimina.
+
+[bloque original abajo conservado para trazabilidad]
+
+### D2 (original) — Dos puntos de entrada distintos para crear el equipo
 
 **Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1  ·  **Bloquea empezar**: US1
 
@@ -574,7 +580,13 @@ _Estado_: pending
 
 ---
 
-### D3 — Qué hace la papelera junto a cada miembro del equipo
+### ✅ D3 — RESUELTA · Qué hace la papelera junto a cada miembro del equipo
+
+> **Decisión PO 2026-06-01**: NO borra — pone `dateTo` para preservar histórico. Diálogo inline para `causesBaja` y sucesor según FR-010.
+
+[bloque original abajo conservado para trazabilidad]
+
+### D3 (original) — Qué hace la papelera junto a cada miembro del equipo
 
 **Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1  ·  **Relacionada con**: OQ-007
 
@@ -747,7 +759,13 @@ _Estado_: pending
 
 ---
 
-### D9 — Cambio de rol del empleado (técnico pasa a asesor)
+### ✅ D9 — RESUELTA · Cambio de rol del empleado (técnico pasa a asesor)
+
+> **Decisión PO 2026-06-01**: Cerrar el rol anterior con `dateTo` + abrir uno nuevo con `dateFrom`. Sin coexistencia inválida en el mismo periodo.
+
+[bloque original abajo conservado para trazabilidad]
+
+### D9 (original) — Cambio de rol del empleado (técnico pasa a asesor)
 
 **Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1, US4
 
@@ -768,6 +786,34 @@ _Estado_: pending
 ---
 
 ## Clarifications
+
+### Session 2026-06-01 (tarde — sesión con PO, resultados)
+
+> Decisiones tomadas en la sesión de refinamiento con PO el 2026-06-01.
+> Pendientes 4 conflictos a confirmar — ver `po-followup-conflicts.md`.
+
+- Q: ¿Crear equipo desde *Mis tareas* o solo desde *ficha de cliente*? → A: **Solo desde ficha de cliente**. El CTA *"Crear equipo"* de *Mis tareas* era resto de diseño y se elimina. Cierra D2.
+- Q: ¿Qué hace la papelera junto a cada miembro? → A: **NO borra**. Pone `dateTo` para preservar histórico siempre. El detalle de UX (diálogo inline para `causesBaja` y sucesor) se aplica como FR-010 ya describía. Cierra D3 y OQ-007.
+- Q: ¿Nombres de equipo (Libros, Cuota, Larsa…)? → A: **Ignorar** — no representan regla de negocio para esta feature. Pendiente confirmación: ¿campo `name` existe o no? Ver `po-followup-conflicts.md` punto 3. Cierra parcialmente D6 y OQ-006.
+- Q: ¿Cambio de rol de un empleado (técnico → asesor)? → A: **Cerrar el rol anterior con `dateTo`** + **abrir uno nuevo con `dateFrom`**. Sin coexistencia inválida en el mismo periodo. Cierra D9.
+- Q: ¿Onboarding desde Jira crea equipos automáticamente? → A: **Sí, mantener comportamiento actual** del onboarding. **Pendiente**: confirmar si las asignaciones del onboarding ahora deben crear un *Equipo inicial* con `team_id` o seguir creando con `team_id = NULL`. Ver `po-followup-conflicts.md`. Cierra parcialmente D10.
+- Q: ¿Composición mínima del equipo? → A: **1 responsable obligatorio + 1+ asesores + 0-1 coordinador + 0-N técnicos**. Confirma FR-003 (ya estaba). UI muestra asterisco + validación visible + **botón guardar bloqueado** mientras no se cumpla la composición mínima.
+- Q: ¿Se pueden crear equipos con fecha inicio futura? → A: **Sí**. Sin restricción de rango temporal.
+- Q: ¿Una tarea puede quedar sin asignar si no hay miembro válido? → A: **No**. La tarea SIEMPRE se genera. Si no se puede asignar automáticamente, se escala. Documentar como nuevo AC en US4 / FR-010.
+- Q: ¿Los porcentajes de dedicación se usan para repartir tareas? → A: **No**. Son solo para informes de rentabilidad / atribución de ingresos. Las tareas las recibe el asesor principal independientemente del %. Esto refuerza FR-029 (ya estaba alineado).
+- Q: ¿La validación en la UI del PGI debe ser idéntica a la de Jira? → A: **Sí**. Una sola lógica de validación, aplicada en ambos lados.
+- Q: ¿Asignaciones múltiples = mover carteras entre asesores masivamente? → A: Aclarada como funcionalidad de **reasignación masiva** (varios clientes a la vez, manteniendo porcentajes y con fecha efectiva). **Confirmar si está en scope de DEVPT-518 o es feature separada**.
+- Q: ¿Persona en más de un rol/equipo simultáneo? → A: **No permitido**. ⚠️ Ambigüedad: ¿se refiere a no más de un rol por equipo (= FR-016) o a no en más de un equipo punto? Ver `po-followup-conflicts.md` punto 1.
+
+**Pendientes después de la sesión** (no bloquean diseño técnico del MVP si asumimos defaults):
+- D5 (qué rol del equipo hace cada tarea) — Producto no lo tiene definido. Assumption MVP: todo va al asesor principal.
+- TaxDown / subcontratados — más adelante.
+- Vista de anomalías clientes con servicio sin equipo — backlog futuro.
+- Visibilidad de % en histórico por perfil (D7) — pendiente para próxima sesión PO.
+- Edición simultánea (D13 / FR-022) — confirmar con PO la propuesta dev.
+- Plataforma del Dato no disponible al guardar — pendiente sesión técnica con Paula.
+
+---
 
 ### Session 2026-06-01 (cross-service discovery + nuevas restricciones)
 
