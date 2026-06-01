@@ -231,10 +231,7 @@ comprobar que el equipo queda inactivo y registrado en el histórico.
   global del PGI y los informes internos quedan fuera del alcance de esta iteración y se abordarán
   en una fase posterior. El seguimiento por asesor/técnico en Plataforma del Dato (informes externos)
   queda cubierto por FR-014 vía sincronización.
-- **FR-016**: Un empleado MUST ocupar como máximo **un único rol** dentro de un mismo `ClientTeam`. No
-  se permite que el mismo empleado figure simultáneamente como Coordinador y Asesor del mismo equipo.
-  Si una persona ejerce funciones de coordinación y de asesoría en la práctica, el responsable elige
-  el rol formal del equipo (típicamente Coordinador).
+- **FR-016**: Un empleado MUST pertenecer como máximo a **un único equipo activo por cliente** (decisión PO 2026-06-01: opción B). Esto significa: (a) no más de un rol dentro del mismo equipo, y (b) **tampoco en dos equipos distintos del mismo cliente, ni siquiera en departamentos distintos**. Ej: Pedro no puede ser Asesor del equipo Fiscal y Asesor del equipo Laboral del mismo cliente X simultáneamente. Si una persona necesita cambiar de equipo o rol → cerrar la asignación actual con `dateTo` y abrir una nueva con `dateFrom`, sin solape activo. Esta regla aplica **por cliente**, no en absoluto: un asesor sí puede estar activo en equipos de varios clientes (eso es operativa normal).
 - **FR-017**: El sistema MUST permitir crear o activar un `ClientTeam` para un cliente en un
   departamento **solo si** el cliente tiene al menos un `ProvidedService` activo cuya `family` mapee a
   ese departamento (mapping: `family=fiscal` → Fiscal, `family=laboral` → Laboral). La UI MUST ocultar
@@ -257,10 +254,7 @@ comprobar que el equipo queda inactivo y registrado en el histórico.
   escribiendo solo la asignación del **equipo principal** del cliente y del **asesor principal**
   (`isPrimary=true`). Las asignaciones de otros equipos NO se reflejan en Jira Assets en esta
   iteración. *(Decisión de scope para no romper contrato existente; ampliable en futura épica.)*
-- **FR-021**: El unique constraint actual de `pgi-service-pgi-api/client_assignment`
-  `(client, employee, role, department, dateFrom)` MUST modificarse para incluir `team_id` — sin
-  este cambio, el caso multi-equipo (mismo empleado como Asesor del Equipo 1 y del Equipo 2 del mismo
-  cliente/departamento/fecha) queda bloqueado por BD.
+- **FR-021**: El unique constraint actual de `pgi-service-pgi-api/client_assignment` `(client, employee, role, department, dateFrom)` se MANTIENE, pero **se añade adicionalmente** un partial unique sobre `(client_id, employee_id) WHERE dateTo IS NULL` para reforzar FR-016 a nivel BD: un mismo empleado no puede tener más de una asignación activa al mismo cliente (decisión PO 2026-06-01: una persona = un equipo por cliente, incluso entre departamentos). Cualquier intento de doble asignación activa por la misma persona en el mismo cliente queda bloqueado por la BD aunque la lógica del servicio falle.
 - **FR-022**: Las operaciones de escritura sobre `ClientTeam` y `ClientAssignment` MUST aplicar control
   de concurrencia optimista basado en `updatedAt`. El cliente envía el `updatedAt` que tenía al cargar
   el equipo; si la BD tiene un `updatedAt` posterior, el backend rechaza con HTTP 409 y la UI muestra
@@ -797,7 +791,7 @@ _Estado_: pending
 - Q: ¿Los porcentajes de dedicación se usan para repartir tareas? → A: **No**. Son solo para informes de rentabilidad / atribución de ingresos. Las tareas las recibe el asesor principal independientemente del %. Esto refuerza FR-029 (ya estaba alineado).
 - Q: ¿La validación en la UI del PGI debe ser idéntica a la de Jira? → A: **Sí**. Una sola lógica de validación, aplicada en ambos lados.
 - Q: ¿Asignaciones múltiples = mover carteras entre asesores masivamente? → A: Aclarada como funcionalidad de **reasignación masiva** (varios clientes a la vez, manteniendo porcentajes y con fecha efectiva). **Confirmar si está en scope de DEVPT-518 o es feature separada**.
-- Q: ¿Persona en más de un rol/equipo simultáneo? → A: **No permitido**. ⚠️ Ambigüedad: ¿se refiere a no más de un rol por equipo (= FR-016) o a no en más de un equipo punto? Ver `po-followup-conflicts.md` punto 1.
+- Q: ¿Persona en más de un rol/equipo simultáneo? → A: **No permitido** (confirmación PO 2026-06-01 post-meeting): opción B — una persona puede pertenecer como máximo a UN equipo de UN cliente en un momento dado, **incluso si los equipos son de departamentos distintos**. Ej: Pedro no puede ser Asesor de Fiscal del cliente X y a la vez Técnico de Laboral del mismo cliente X. Para cambiar de equipo/rol → cerrar el actual con `dateTo` y abrir uno nuevo con `dateFrom`. Esto refuerza FR-016 y **cambia FR-021** (el unique constraint que íbamos a relajar para multi-equipo ya no aplica — al contrario, hay que añadir una restricción nueva por `(client_id, employee_id) WHERE dateTo IS NULL`).
 - Q (post-sesión) · Modelo de suma 100% → A: **Dos buckets independientes (asesores 100% + técnicos 100%) y suma POR DEPARTAMENTO del cliente, NO por equipo individual**. Confirmado por la PO con el frame `08-multi-equipo/01-multi-equipo-fiscal-larsa-costa.png`: 2 equipos Fiscal con 3 asesores totales distribuidos entre ambos, todos sumando 100% en conjunto. Si hay 4 asesores en 2 equipos Fiscal, cada uno al 25% → 100%. Lo mismo con técnicos por separado. **Esto invalida ADR-0008 (single bucket por equipo)** — la decisión debe registrarse como nuevo ADR que supersede al anterior. **Cambia FR-003** (aplicado en esta misma iteración).
 - Q (post-sesión) · Bajas largas → A: **Se gestionan como cualquier baja**: fecha fin a la asignación. Si el equipo está al 100%, hay que SUSTITUIR (cerrar la asignación del que se va + abrir nueva para el sustituto, manteniendo la suma 100% por departamento). No hay flujo especial de "suplencia temporal" en esta iteración. Cierra D5.
 - Q (post-sesión) · Nombre del equipo → A: **Descartado de scope**. La PO confirmó que los nombres `Libros`/`Cuota`/`Larsa`/`Costa` de los frames no representan regla de negocio. **Acción**: documentar como assumption que el equipo NO tiene campo `name` obligatorio en MVP. Si en algún momento se necesita identificar visualmente equipos del mismo departamento, se hará por orden de creación (`Equipo 1`, `Equipo 2`) sin persistirlo en BD. Cierra D6 y OQ-006.

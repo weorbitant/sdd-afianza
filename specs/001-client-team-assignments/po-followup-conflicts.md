@@ -1,29 +1,20 @@
-# Mensaje a PO — Seguimiento sesión 2026-06-01
+# Seguimiento sesión PO 2026-06-01 — TODOS los conflictos cerrados ✅
 
-> Tras tu feedback post-meeting, las preguntas 2 (validación bloqueante), 3 (nombre de equipo) y 4 (bajas largas) ya quedaron respondidas verbalmente o reformuladas. Queda **1 punto** que aún necesita confirmación explícita del PO antes de codificar el constraint de BD.
+Todos los conflictos detectados tras la sesión han sido resueltos. Este archivo se conserva para trazabilidad.
 
----
+| Conflicto | Decisión PO | Aplicado en spec |
+|---|---|---|
+| C1 · Persona en multi-equipo | **B**: una persona, un equipo por cliente, ni siquiera en departamentos distintos | FR-016 reescrito + FR-021 cambia a partial unique `(client_id, employee_id) WHERE dateTo IS NULL` |
+| C2 · Validación bloqueante (composición vs 100%) | Solo composición mínima bloquea Guardar. 100% queda advisory | FR-003 reescrito |
+| C3 · Nombre del equipo | Descartado del MVP — no hay `name` en BD. UI muestra `Equipo 1/2` por orden | FR-005 reescrito |
+| C4 · Bajas largas | Sustitución estándar (fecha fin + alta sucesor) | Documentado en Clarifications 2026-06-01 tarde |
 
-Hola, una última aclaración tras la sesión de ayer:
+## Estado del refinamiento
 
-## Una persona en más de un equipo a la vez
+- Todas las decisiones blocking de PO resueltas.
+- Spec listo para `/speckit-plan`.
+- Pendientes solo gaps de producto (qué rol hace cada tarea — D5) que no bloquean el modelo de datos del MVP. Assumption MVP: "todo va al asesor principal".
 
-Dijiste que *"una persona no puede ocupar simultáneamente más de un equipo/rol en el mismo periodo"*. Lo necesitamos cerrar antes de añadir el constraint a la BD:
+## Próximo paso
 
-- (a) **No más de un ROL dentro del mismo equipo** — ej. Pedro no puede ser coordinador y asesor del mismo equipo Fiscal del cliente X. *(Esto es lo que ya teníamos asumido.)*
-- (b) **No en más de un EQUIPO, punto** — ej. Pedro no puede ser asesor del equipo Fiscal del cliente X **y a la vez** asesor del equipo Laboral del mismo cliente X. *(Más restrictivo: cambia el modelo de datos.)*
-
-**Importante en relación con la regla del 100% por departamento que confirmaste**: si la respuesta es (a), un mismo asesor PODRÍA estar en dos equipos del mismo departamento (ej. Pedro Asesor en Equipo 1 Fiscal al 25% + Pedro Asesor en Equipo 2 Fiscal al 25% → suma 50% suya, dentro del 100% Fiscal). Si la respuesta es (b), eso queda prohibido y cada equipo del departamento tiene asesores disjuntos.
-
-¿(a) o (b)?
-
-Gracias 🙌
-
----
-
-## Resueltas ya (no preguntar más)
-
-- **Suma 100% por departamento, dos buckets**: Asesores Fiscal 100% + Técnicos Fiscal 100%, agregando entre todos los equipos del departamento. Confirmado con frame `08-multi-equipo/01`.
-- **Validación bloqueante**: solo composición mínima (1 responsable + 1+ asesor por equipo) bloquea Guardar. La suma 100% se queda como advisory.
-- **Nombres de equipo**: descartados de scope. No hay campo `name` en BD. UI muestra `Equipo 1`, `Equipo 2` por orden.
-- **Bajas largas**: gestión estándar (fecha fin + sustitución manteniendo el 100% por departamento). No se construye entidad de suplencia temporal.
+Ejecutar `/speckit-workflow-planning` (o directamente `/speckit-plan`) para generar el plan técnico, data model y contratos de API basados en este spec.

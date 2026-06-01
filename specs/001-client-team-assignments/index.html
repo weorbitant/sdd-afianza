@@ -299,10 +299,7 @@
 </ul>
 <p>completa de miembros del equipo activo con sus porcentajes. Las pantallas "Mis Clientes", buscador global del PGI y los informes internos quedan fuera del alcance de esta iteración y se abordarán en una fase posterior. El seguimiento por asesor/técnico en Plataforma del Dato (informes externos) queda cubierto por FR-014 vía sincronización.</p>
 <ul>
-<li><strong>FR-016</strong>: Un empleado MUST ocupar como máximo <strong>un único rol</strong> dentro de un mismo <code>ClientTeam</code>. No</li>
-</ul>
-<p>se permite que el mismo empleado figure simultáneamente como Coordinador y Asesor del mismo equipo. Si una persona ejerce funciones de coordinación y de asesoría en la práctica, el responsable elige el rol formal del equipo (típicamente Coordinador).</p>
-<ul>
+<li><strong>FR-016</strong>: Un empleado MUST pertenecer como máximo a <strong>un único equipo activo por cliente</strong> (decisión PO 2026-06-01: opción B). Esto significa: (a) no más de un rol dentro del mismo equipo, y (b) <strong>tampoco en dos equipos distintos del mismo cliente, ni siquiera en departamentos distintos</strong>. Ej: Pedro no puede ser Asesor del equipo Fiscal y Asesor del equipo Laboral del mismo cliente X simultáneamente. Si una persona necesita cambiar de equipo o rol → cerrar la asignación actual con <code>dateTo</code> y abrir una nueva con <code>dateFrom</code>, sin solape activo. Esta regla aplica <strong>por cliente</strong>, no en absoluto: un asesor sí puede estar activo en equipos de varios clientes (eso es operativa normal).</li>
 <li><strong>FR-017</strong>: El sistema MUST permitir crear o activar un <code>ClientTeam</code> para un cliente en un</li>
 </ul>
 <p>departamento <strong>solo si</strong> el cliente tiene al menos un <code>ProvidedService</code> activo cuya <code>family</code> mapee a ese departamento (mapping: <code>family=fiscal</code> → Fiscal, <code>family=laboral</code> → Laboral). La UI MUST ocultar el CTA <code>+ Añadir equipo</code> en los departamentos sin servicios contratados activos; el backend MUST rechazar la creación con error de validación (defensa en profundidad). Los equipos existentes en un departamento permanecen activos aunque luego se den de baja todos los servicios contratados de ese departamento — la regla bloquea <strong>creación</strong>, no invalida <strong>existentes</strong> (a confirmar con PO — ver OQ-008).</p>
@@ -319,10 +316,7 @@
 </ul>
 <p>MUST mantener su contrato actual de "una asignación por rol y cliente" cuando hay multi-equipo, escribiendo solo la asignación del <strong>equipo principal</strong> del cliente y del <strong>asesor principal</strong> (<code>isPrimary=true</code>). Las asignaciones de otros equipos NO se reflejan en Jira Assets en esta iteración. <em>(Decisión de scope para no romper contrato existente; ampliable en futura épica.)</em></p>
 <ul>
-<li><strong>FR-021</strong>: El unique constraint actual de <code>pgi-service-pgi-api/client_assignment</code></li>
-</ul>
-<p><code>(client, employee, role, department, dateFrom)</code> MUST modificarse para incluir <code>team_id</code> — sin este cambio, el caso multi-equipo (mismo empleado como Asesor del Equipo 1 y del Equipo 2 del mismo cliente/departamento/fecha) queda bloqueado por BD.</p>
-<ul>
+<li><strong>FR-021</strong>: El unique constraint actual de <code>pgi-service-pgi-api/client_assignment</code> <code>(client, employee, role, department, dateFrom)</code> se MANTIENE, pero <strong>se añade adicionalmente</strong> un partial unique sobre <code>(client_id, employee_id) WHERE dateTo IS NULL</code> para reforzar FR-016 a nivel BD: un mismo empleado no puede tener más de una asignación activa al mismo cliente (decisión PO 2026-06-01: una persona = un equipo por cliente, incluso entre departamentos). Cualquier intento de doble asignación activa por la misma persona en el mismo cliente queda bloqueado por la BD aunque la lógica del servicio falle.</li>
 <li><strong>FR-022</strong>: Las operaciones de escritura sobre <code>ClientTeam</code> y <code>ClientAssignment</code> MUST aplicar control</li>
 </ul>
 <p>de concurrencia optimista basado en <code>updatedAt</code>. El cliente envía el <code>updatedAt</code> que tenía al cargar el equipo; si la BD tiene un <code>updatedAt</code> posterior, el backend rechaza con HTTP 409 y la UI muestra un aviso <em>"El equipo ha cambiado, recarga para ver el estado más reciente"</em> sin perder los datos introducidos.</p>
@@ -673,7 +667,7 @@
 <li>Q: ¿Los porcentajes de dedicación se usan para repartir tareas? → A: <strong>No</strong>. Son solo para informes de rentabilidad / atribución de ingresos. Las tareas las recibe el asesor principal independientemente del %. Esto refuerza FR-029 (ya estaba alineado).</li>
 <li>Q: ¿La validación en la UI del PGI debe ser idéntica a la de Jira? → A: <strong>Sí</strong>. Una sola lógica de validación, aplicada en ambos lados.</li>
 <li>Q: ¿Asignaciones múltiples = mover carteras entre asesores masivamente? → A: Aclarada como funcionalidad de <strong>reasignación masiva</strong> (varios clientes a la vez, manteniendo porcentajes y con fecha efectiva). <strong>Confirmar si está en scope de DEVPT-518 o es feature separada</strong>.</li>
-<li>Q: ¿Persona en más de un rol/equipo simultáneo? → A: <strong>No permitido</strong>. ⚠️ Ambigüedad: ¿se refiere a no más de un rol por equipo (= FR-016) o a no en más de un equipo punto? Ver <code>po-followup-conflicts.md</code> punto 1.</li>
+<li>Q: ¿Persona en más de un rol/equipo simultáneo? → A: <strong>No permitido</strong> (confirmación PO 2026-06-01 post-meeting): opción B — una persona puede pertenecer como máximo a UN equipo de UN cliente en un momento dado, <strong>incluso si los equipos son de departamentos distintos</strong>. Ej: Pedro no puede ser Asesor de Fiscal del cliente X y a la vez Técnico de Laboral del mismo cliente X. Para cambiar de equipo/rol → cerrar el actual con <code>dateTo</code> y abrir uno nuevo con <code>dateFrom</code>. Esto refuerza FR-016 y <strong>cambia FR-021</strong> (el unique constraint que íbamos a relajar para multi-equipo ya no aplica — al contrario, hay que añadir una restricción nueva por <code>(client_id, employee_id) WHERE dateTo IS NULL</code>).</li>
 <li>Q (post-sesión) · Modelo de suma 100% → A: <strong>Dos buckets independientes (asesores 100% + técnicos 100%) y suma POR DEPARTAMENTO del cliente, NO por equipo individual</strong>. Confirmado por la PO con el frame <code>08-multi-equipo/01-multi-equipo-fiscal-larsa-costa.png</code>: 2 equipos Fiscal con 3 asesores totales distribuidos entre ambos, todos sumando 100% en conjunto. Si hay 4 asesores en 2 equipos Fiscal, cada uno al 25% → 100%. Lo mismo con técnicos por separado. <strong>Esto invalida ADR-0008 (single bucket por equipo)</strong> — la decisión debe registrarse como nuevo ADR que supersede al anterior. <strong>Cambia FR-003</strong> (aplicado en esta misma iteración).</li>
 <li>Q (post-sesión) · Bajas largas → A: <strong>Se gestionan como cualquier baja</strong>: fecha fin a la asignación. Si el equipo está al 100%, hay que SUSTITUIR (cerrar la asignación del que se va + abrir nueva para el sustituto, manteniendo la suma 100% por departamento). No hay flujo especial de "suplencia temporal" en esta iteración. Cierra D5.</li>
 <li>Q (post-sesión) · Nombre del equipo → A: <strong>Descartado de scope</strong>. La PO confirmó que los nombres <code>Libros</code>/<code>Cuota</code>/<code>Larsa</code>/<code>Costa</code> de los frames no representan regla de negocio. <strong>Acción</strong>: documentar como assumption que el equipo NO tiene campo <code>name</code> obligatorio en MVP. Si en algún momento se necesita identificar visualmente equipos del mismo departamento, se hará por orden de creación (<code>Equipo 1</code>, <code>Equipo 2</code>) sin persistirlo en BD. Cierra D6 y OQ-006.</li>
@@ -1906,27 +1900,23 @@ curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/reassign-
 </div>
 <div class="section" id="po-followup-conflicts">
   <div class="section-label"><span class="icon">📄</span> Po Followup Conflicts</div>
-  <h1>Mensaje a PO — Seguimiento sesión 2026-06-01</h1>
-<blockquote><p>Tras tu feedback post-meeting, las preguntas 2 (validación bloqueante), 3 (nombre de equipo) y 4 (bajas largas) ya quedaron respondidas verbalmente o reformuladas. Queda <strong>1 punto</strong> que aún necesita confirmación explícita del PO antes de codificar el constraint de BD.</p></blockquote>
-<hr/>
-<p>Hola, una última aclaración tras la sesión de ayer:</p>
-<h2>Una persona en más de un equipo a la vez</h2>
-<p>Dijiste que <em>"una persona no puede ocupar simultáneamente más de un equipo/rol en el mismo periodo"</em>. Lo necesitamos cerrar antes de añadir el constraint a la BD:</p>
+  <h1>Seguimiento sesión PO 2026-06-01 — TODOS los conflictos cerrados ✅</h1>
+<p>Todos los conflictos detectados tras la sesión han sido resueltos. Este archivo se conserva para trazabilidad.</p>
+<table>
+<tr><th>Conflicto</th><th>Decisión PO</th><th>Aplicado en spec</th></tr>
+<tr><td>C1 · Persona en multi-equipo</td><td><strong>B</strong>: una persona, un equipo por cliente, ni siquiera en departamentos distintos</td><td>FR-016 reescrito + FR-021 cambia a partial unique <code>(client_id, employee_id) WHERE dateTo IS NULL</code></td></tr>
+<tr><td>C2 · Validación bloqueante (composición vs 100%)</td><td>Solo composición mínima bloquea Guardar. 100% queda advisory</td><td>FR-003 reescrito</td></tr>
+<tr><td>C3 · Nombre del equipo</td><td>Descartado del MVP — no hay <code>name</code> en BD. UI muestra <code>Equipo 1/2</code> por orden</td><td>FR-005 reescrito</td></tr>
+<tr><td>C4 · Bajas largas</td><td>Sustitución estándar (fecha fin + alta sucesor)</td><td>Documentado en Clarifications 2026-06-01 tarde</td></tr>
+</table>
+<h2>Estado del refinamiento</h2>
 <ul>
-<li>(a) <strong>No más de un ROL dentro del mismo equipo</strong> — ej. Pedro no puede ser coordinador y asesor del mismo equipo Fiscal del cliente X. <em>(Esto es lo que ya teníamos asumido.)</em></li>
-<li>(b) <strong>No en más de un EQUIPO, punto</strong> — ej. Pedro no puede ser asesor del equipo Fiscal del cliente X <strong>y a la vez</strong> asesor del equipo Laboral del mismo cliente X. <em>(Más restrictivo: cambia el modelo de datos.)</em></li>
+<li>Todas las decisiones blocking de PO resueltas.</li>
+<li>Spec listo para <code>/speckit-plan</code>.</li>
+<li>Pendientes solo gaps de producto (qué rol hace cada tarea — D5) que no bloquean el modelo de datos del MVP. Assumption MVP: "todo va al asesor principal".</li>
 </ul>
-<p><strong>Importante en relación con la regla del 100% por departamento que confirmaste</strong>: si la respuesta es (a), un mismo asesor PODRÍA estar en dos equipos del mismo departamento (ej. Pedro Asesor en Equipo 1 Fiscal al 25% + Pedro Asesor en Equipo 2 Fiscal al 25% → suma 50% suya, dentro del 100% Fiscal). Si la respuesta es (b), eso queda prohibido y cada equipo del departamento tiene asesores disjuntos.</p>
-<p>¿(a) o (b)?</p>
-<p>Gracias 🙌</p>
-<hr/>
-<h2>Resueltas ya (no preguntar más)</h2>
-<ul>
-<li><strong>Suma 100% por departamento, dos buckets</strong>: Asesores Fiscal 100% + Técnicos Fiscal 100%, agregando entre todos los equipos del departamento. Confirmado con frame <code>08-multi-equipo/01</code>.</li>
-<li><strong>Validación bloqueante</strong>: solo composición mínima (1 responsable + 1+ asesor por equipo) bloquea Guardar. La suma 100% se queda como advisory.</li>
-<li><strong>Nombres de equipo</strong>: descartados de scope. No hay campo <code>name</code> en BD. UI muestra <code>Equipo 1</code>, <code>Equipo 2</code> por orden.</li>
-<li><strong>Bajas largas</strong>: gestión estándar (fecha fin + sustitución manteniendo el 100% por departamento). No se construye entidad de suplencia temporal.</li>
-</ul>
+<h2>Próximo paso</h2>
+<p>Ejecutar <code>/speckit-workflow-planning</code> (o directamente <code>/speckit-plan</code>) para generar el plan técnico, data model y contratos de API basados en este spec.</p>
 </div>
 <div class="section" id="po-meeting-results">
   <div class="section-label"><span class="icon">📄</span> Po Meeting Results</div>
