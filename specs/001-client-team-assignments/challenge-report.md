@@ -4,7 +4,7 @@
 
 ## En una frase
 
-Tenemos **10 decisiones de negocio** que necesitamos resolver contigo antes de construir, más 2 aclaraciones que el equipo cerrará por su cuenta.
+Tenemos **11 decisiones de negocio** que necesitamos resolver contigo antes de construir, más 2 aclaraciones que el equipo cerrará por su cuenta.
 
 ## Riesgo por historia
 
@@ -13,12 +13,12 @@ Tenemos **10 decisiones de negocio** que necesitamos resolver contigo antes de c
 | US1 — Crear y gestionar el equipo de un cliente | D1, D2, D3, D4, D5, D6, D9, D10 | G1, G2 | **No — bloqueada hasta resolver D1, D2, D6, D10** |
 | US2 — Distribución de carga por porcentaje | — | G1 | Sí |
 | US3 — Histórico de cambios de asignación | D7 | — | Sí, con matices |
-| US4 — Cierre de equipo | D3, D4, D5, D8, D9 | — | Sí, con matices |
-| cross-cutting | D10 | — | — |
+| US4 — Cierre de equipo | D3, D4, D5, D8, D9, D11 | — | **No — bloqueada hasta resolver D11** |
+| cross-cutting | D10, D11 | — | — |
 
 ## Qué necesitamos de ti
 
-- **10 decisiones** marcadas como `D1..D10` abajo. Cada una incluye escenario, opciones, trade-offs y nuestra recomendación.
+- **11 decisiones** marcadas como `D1..D11` abajo. Cada una incluye escenario, opciones (cuando aplica), trade-offs y nuestra recomendación.
 - Cada decisión se publicará como un comentario individual en la Epic de Jira al ejecutar `/speckit-atlassian-sync-push`. Puedes responder ahí mismo con la letra elegida.
 - **2 aclaraciones** (`G1, G2`) que cerraremos sin tu intervención salvo que veas algo raro — sección *Aclaraciones* más abajo.
 
@@ -269,6 +269,46 @@ Crear automáticamente un *"Equipo inicial"* por cliente+departamento dentro del
 
 ---
 
+### D11 — Política de asignación de tareas: ¿qué rol del equipo hace cada tipo de tarea?
+
+**Afecta a**: US4, cross-cutting (todas las historias que tocan generación/reparto de tareas)
+**¿Bloquea empezar?**: Sí — US4
+**Tipo**: pregunta abierta — pedimos la regla de negocio antes de proponer opciones técnicas
+
+#### Escenario
+Hoy el modelo `Task` en `pd-service-obligations-api` tiene un único campo de asignación: `advisor: Employee`. Es decir, **todas las tareas que el sistema genera (IVA, IS, libros, cuentas, presentaciones, etc.) van a un asesor — sin distinción de rol**. La `Obligation` tampoco tiene un campo que diga "esta obligación la hace el técnico, no el asesor".
+
+La spec actual responde solo el caso fácil: nuevas tareas auto → asesor principal del equipo. Pero no responde a las preguntas reales que aparecen cuando el equipo tiene varios roles:
+
+- Si una obligación históricamente la hacía el **técnico** (ej. contabilización de libros, cierres mensuales), ¿en el nuevo modelo se sigue asignando al asesor principal o pasa al técnico del equipo?
+- ¿El **coordinador** recibe tareas o sólo gestiona?
+- ¿El **responsable** recibe tareas o sólo supervisa?
+- Si hay **2 asesores y 1 técnico**, ¿qué obligaciones van a cada uno?
+- Si hay **2 técnicos en el equipo**, ¿concepto de "técnico principal" análogo al "asesor principal"? Hoy no existe.
+
+#### Por qué te preguntamos
+Sin esta política definida, el plan técnico no puede saber:
+1. Si la entidad `Task` necesita más de un campo de asignación (uno por rol) o sigue con sólo `advisor`.
+2. Si `Obligation` necesita un campo `roleResponsible` (asesor / técnico / coordinador / responsable) que dispare el routing al miembro adecuado del equipo.
+3. Si necesitamos extender el concepto "asesor principal" a "técnico principal" / "coordinador principal" / "responsable principal" (y por tanto tocar `TeamMember` con más booleans `isPrimary` por rol).
+4. Cómo se reparten obligaciones automáticas cuando hay multi-asesor y multi-técnico simultáneamente.
+
+#### Lo que pedimos
+**No te damos opciones cerradas porque cualquiera que propongamos llevará nuestro sesgo técnico**. Necesitamos primero entender la regla de negocio real:
+
+> *"Para cada tipo de obligación que el sistema genera automáticamente (lista en `Obligation.category` / `Obligation.type`): ¿qué rol del equipo es responsable de ejecutarla por defecto?"*
+
+Si hay categorías donde la respuesta es *"depende"* (a veces el asesor, a veces el técnico, según el cliente), dilo — eso ya nos define que necesitamos override por cliente.
+
+Con tu respuesta el equipo redacta opciones técnicas concretas en una segunda iteración.
+
+#### Datos de contexto (para que respondas con base, no a ciegas)
+- Hoy el sistema genera tareas con campo único `advisor`. El cambio que propongas tiene impacto en data-factory + obligations-api + pgi-api.
+- En el código aparecen los conceptos `ObligationCategory` y `ObligationType` como enums cerrados — si quieres, te paso la lista exacta de valores en cuanto los necesites para responder.
+- El concepto "asesor principal" del equipo ya existe (`TeamMember.isPrimary` cuando `role: asesor`). Análogos para técnico/coordinador/responsable no existen y habría que crearlos si la respuesta los requiere.
+
+---
+
 ## Aclaraciones que cerrará el equipo
 
 Estas son ambigüedades que la spec olvidó formalizar pero que tienen respuesta clara. El equipo las añadirá al spec sin necesitar tu input. **Solo léelas si quieres saber qué decidiremos** — si discrepas con alguna, díselo al tech lead y la elevamos a decisión tuya.
@@ -299,7 +339,7 @@ Esta sección no es para el PO.
 |---------------|---------|
 | BLOCKER       | 0       |
 | ADR           | 0       |
-| QUESTION-PO   | 10      |
+| QUESTION-PO   | 11      |
 | BUSINESS-GAP  | 2       |
 | NIT           | 0       |
 
@@ -321,6 +361,7 @@ Ninguno (mode=functional + sin findings de `feasibility-reviewer`).
 | D8    | business-B8 | QUESTION-PO | spec.md#FR-017 |
 | D9    | business-B11 | QUESTION-PO | spec.md (ABSENCE) |
 | D10   | human-flag-2026-06-01 | QUESTION-PO | spec.md#clarifications-2026-06-01 (ABSENCE — flujo onboarding no documentado) |
+| D11   | human-flag-2026-06-01 | QUESTION-PO | obligations-api/task.ts (campo único `advisor`); spec.md#FR-010 (no cubre por-rol) |
 | G1    | business-B9 | BUSINESS-GAP | spec.md#FR-002 |
 | G2    | business-B10 | BUSINESS-GAP | spec.md#FR-009 |
 

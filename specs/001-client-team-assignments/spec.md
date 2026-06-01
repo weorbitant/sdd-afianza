@@ -694,6 +694,39 @@ _Estado_: pending
 
 ---
 
+### D11 — Política de asignación de tareas: ¿qué rol del equipo hace cada tipo de tarea?
+
+**Origen**: `challenge-report.md` (2026-06-01, detectado tras challenge por inspección de código)  ·  **Afecta a**: US4, cross-cutting (todas las historias que tocan generación/reparto de tareas)  ·  **Bloquea empezar**: US4
+
+**Tipo**: pregunta abierta — pedimos la regla de negocio antes de proponer opciones técnicas.
+
+**Escenario**: Hoy el modelo `Task` en `pd-service-obligations-api` tiene un único campo de asignación: `advisor: Employee`. Es decir, **todas las tareas que el sistema genera (IVA, IS, libros, cuentas, presentaciones, etc.) van a un asesor — sin distinción de rol**. La `Obligation` tampoco tiene un campo que diga *"esta obligación la hace el técnico, no el asesor"*.
+
+La spec actual responde solo el caso fácil: nuevas tareas auto → asesor principal del equipo. Pero no responde a las preguntas reales que aparecen cuando el equipo tiene varios roles:
+
+- Si una obligación históricamente la hacía el **técnico** (ej. contabilización de libros, cierres mensuales), ¿en el nuevo modelo se sigue asignando al asesor principal o pasa al técnico del equipo?
+- ¿El **coordinador** recibe tareas o sólo gestiona?
+- ¿El **responsable** recibe tareas o sólo supervisa?
+- Si hay 2 asesores y 1 técnico, ¿qué obligaciones van a cada uno?
+- Si hay 2 técnicos en el equipo, ¿concepto de *"técnico principal"* análogo al *"asesor principal"*? Hoy no existe.
+
+**Por qué te preguntamos**: Sin esta política definida, el plan técnico no puede saber: (1) si `Task` necesita más de un campo de asignación, (2) si `Obligation` necesita `roleResponsible` para disparar el routing al miembro adecuado, (3) si extendemos *"principal"* a técnico/coordinador/responsable (con más booleans `isPrimary` en `TeamMember`), (4) cómo se reparten obligaciones automáticas cuando hay multi-asesor y multi-técnico simultáneamente.
+
+**Lo que pedimos**: no te damos opciones cerradas porque cualquiera que propongamos llevará nuestro sesgo técnico. Necesitamos primero la regla de negocio:
+
+> *Para cada tipo de obligación que el sistema genera automáticamente (lista en `Obligation.category` / `Obligation.type`): ¿qué rol del equipo es responsable de ejecutarla por defecto?*
+
+Si hay categorías donde la respuesta es *"depende"* (a veces asesor, a veces técnico, según el cliente), dilo — eso ya nos define que necesitamos override por cliente. Con tu respuesta el equipo redacta opciones técnicas concretas en una segunda iteración.
+
+**Datos de contexto**:
+- Hoy el sistema genera tareas con campo único `advisor`. El cambio que propongas tiene impacto en `pd-service-data-factory` + `pd-service-obligations-api` + `pgi-service-pgi-api`.
+- En el código existen los enums cerrados `ObligationCategory` y `ObligationType`. Si los necesitas para responder, te paso la lista exacta.
+- El concepto *"asesor principal"* del equipo ya existe (`TeamMember.isPrimary` cuando `role: asesor`). Análogos para técnico/coordinador/responsable NO existen y habría que crearlos si la respuesta los requiere.
+
+_Estado_: pending
+
+---
+
 ### D10 — Cómo encajan las asignaciones que llegan por onboarding desde Jira en el nuevo modelo multi-equipo
 
 **Origen**: `challenge-report.md` (2026-06-01, detectado tras challenge por flag manual)  ·  **Afecta a**: US1, cross-cutting (todas las historias)  ·  **Bloquea empezar**: US1
