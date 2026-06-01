@@ -91,14 +91,12 @@
   <a href="#index">Index</a>
   <a href="#spec">📋 Specification</a>
   <a href="#plan">🏗️ Technical Plan</a>
-  <a href="#data-model">🗄️ Data Model</a>
-  <a href="#research">🔬 Research</a>
   <a href="#tasks">✅ Tasks</a>
-  <a href="#quickstart">⚡ Quickstart</a>
   <a href="#challenge-report">📄 Challenge Report</a>
+  <a href="#decisions">📄 Decisions</a>
 </nav>
 <div class="page">
-<div class="cover" id="index"><h1>Asignaciones Múltiples en Ficha de Cliente</h1><div class="meta"><span>🔗 <a href="https://afianza.atlassian.net/browse/DEVPT-518" target="_blank">DEVPT-518</a></span><span>📌 Draft</span><span>🗓 Updated 2026-05-26</span></div><div class="index-group-title">Core</div><div class="index-grid"><a class="index-card" href="#spec"><span class="card-icon">📋</span><span class="card-label">Specification</span><span class="card-sub">Requirements &amp; user stories</span></a><a class="index-card" href="#plan"><span class="card-icon">🏗️</span><span class="card-label">Technical Plan</span><span class="card-sub">Architecture &amp; design</span></a><a class="index-card" href="#data-model"><span class="card-icon">🗄️</span><span class="card-label">Data Model</span><span class="card-sub">Entities &amp; relationships</span></a><a class="index-card" href="#research"><span class="card-icon">🔬</span><span class="card-label">Research</span><span class="card-sub">Spikes &amp; findings</span></a><a class="index-card" href="#tasks"><span class="card-icon">✅</span><span class="card-label">Tasks</span><span class="card-sub">Implementation plan</span></a><a class="index-card" href="#quickstart"><span class="card-icon">⚡</span><span class="card-label">Quickstart</span><span class="card-sub">Getting started guide</span></a><a class="index-card" href="#challenge-report"><span class="card-icon">📄</span><span class="card-label">Challenge Report</span><span class="card-sub"></span></a><a class="index-card" href="#decisions-0001-hybrid-date-granularity"><span class="card-icon">📄</span><span class="card-label">Decisions · 0001 Hybrid Date Granularity</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-0002-rabbitmq-for-task-reassignment"><span class="card-icon">📄</span><span class="card-label">Decisions · 0002 Rabbitmq For Task Reassignment</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-0004-percentage-validation-grouped-by-role"><span class="card-icon">📄</span><span class="card-label">Decisions · 0004 Percentage Validation Grouped By Role</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-0005-team-scoped-to-client-modelo-a"><span class="card-icon">📄</span><span class="card-label">Decisions · 0005 Team Scoped To Client Modelo A</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-0006-responsable-as-clientassignment-row"><span class="card-icon">📄</span><span class="card-label">Decisions · 0006 Responsable As Clientassignment Row</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-0009-legacy-data-migration-in-us1"><span class="card-icon">📄</span><span class="card-label">Decisions · 0009 Legacy Data Migration In Us1</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-0010-optimistic-concurrency-version-column"><span class="card-icon">📄</span><span class="card-label">Decisions · 0010 Optimistic Concurrency Version Column</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-0011-cross-service-team-id-logical-fk"><span class="card-icon">📄</span><span class="card-label">Decisions · 0011 Cross Service Team Id Logical Fk</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-readme"><span class="card-icon">📄</span><span class="card-label">Decisions · Readme</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-_archived-0003-one-active-team-partial-index"><span class="card-icon">📄</span><span class="card-label">Decisions ·  Archived · 0003 One Active Team Partial Index</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-_archived-0007-draft-commit-team-model"><span class="card-icon">📄</span><span class="card-label">Decisions ·  Archived · 0007 Draft Commit Team Model</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#decisions-_archived-0008-single-bucket-percentage-validation"><span class="card-icon">📄</span><span class="card-label">Decisions ·  Archived · 0008 Single Bucket Percentage Validation</span><span class="card-sub">Decisions</span></a><a class="index-card" href="#designs-index"><span class="card-icon">🎨</span><span class="card-label">Designs · Index</span><span class="card-sub">Designs</span></a></div><div class="index-group-title">Contracts</div><div class="index-grid"><a class="index-card" href="#contracts-client-assignment-event"><span class="card-icon">📑</span><span class="card-label">Contracts · Client Assignment Event</span><span class="card-sub">Contracts</span></a><a class="index-card" href="#contracts-client-assignments-api"><span class="card-icon">📑</span><span class="card-label">Contracts · Client Assignments Api</span><span class="card-sub">Contracts</span></a><a class="index-card" href="#contracts-client-teams-api"><span class="card-icon">📑</span><span class="card-label">Contracts · Client Teams Api</span><span class="card-sub">Contracts</span></a></div></div>
+<div class="cover" id="index"><h1>Asignaciones Múltiples en Ficha de Cliente</h1><div class="meta"><span>🔗 <a href="https://afianza.atlassian.net/browse/DEVPT-518" target="_blank">DEVPT-518</a></span><span>📌 Draft</span><span>🗓 Updated 2026-05-26</span></div><div class="index-group-title">Core</div><div class="index-grid"><a class="index-card" href="#spec"><span class="card-icon">📋</span><span class="card-label">Specification</span><span class="card-sub">Requirements &amp; user stories</span></a><a class="index-card" href="#plan"><span class="card-icon">🏗️</span><span class="card-label">Technical Plan</span><span class="card-sub">Architecture &amp; design</span></a><a class="index-card" href="#tasks"><span class="card-icon">✅</span><span class="card-label">Tasks</span><span class="card-sub">Implementation plan</span></a><a class="index-card" href="#challenge-report"><span class="card-icon">📄</span><span class="card-label">Challenge Report</span><span class="card-sub"></span></a><a class="index-card" href="#decisions"><span class="card-icon">📄</span><span class="card-label">Decisions</span><span class="card-sub"></span></a><a class="index-card" href="#designs-index"><span class="card-icon">🎨</span><span class="card-label">Designs · Index</span><span class="card-sub">Designs</span></a></div></div>
 <div class="section" id="spec">
   <div class="section-label"><span class="icon">📋</span> Specification</div>
   <h1>Feature Specification: Asignaciones Múltiples en Ficha de Cliente</h1>
@@ -711,12 +709,142 @@
 <li>Recordatorio explícito de test de regresión <code>apply-from-client-onboarding</code> en <code>data-model.md</code>.</li>
 <li>Coordinación de <code>@afianza-ac/lib-core-definitions</code> bump pendiente — se aborda en <code>tasks.md</code> cuando se genere.</li>
 </ul>
-</div>
-<div class="section" id="data-model">
-  <div class="section-label"><span class="icon">🗄️</span> Data Model</div>
-  <h1>Data Model — Asignaciones múltiples (DEVPT-518)</h1>
+<hr/>
+<h1>Anexo A · Research (Phase 0)</h1>
+<p><strong>Fase</strong>: 0 (Outline &amp; Research) — todas las <code>NEEDS CLARIFICATION</code> del plan resueltas aquí.</p>
+<h3>R1 · Estrategia de migración legacy 1:1 → multi-equipo</h3>
+<p><strong>Decisión</strong>: una sola migración SQL aditiva ejecutada en <code>pgi-service-pgi-api</code> que (a) añade columnas <code>is_primary_advisor</code>, <code>causes_baja</code> a <code>client_assignment</code>, (b) añade columnas <code>is_primary</code> a <code>client_team</code>, (c) añade el partial unique <code>(client_id, employee_id) WHERE date_to IS NULL</code>. <strong>Sin backfill destructivo</strong>: las filas existentes ya tienen <code>team_id</code> (la columna se creó en una iteración previa) y <code>percentage</code> (con default 100). El bool <code>is_primary_advisor</code> se calcula post-deploy con un script idempotente que marca el primer asesor de cada (cliente, departamento) si no hay ninguno marcado.</p>
+<p><strong>Rationale</strong>: la migración aditiva no rompe filas existentes ni el flujo <code>applyFromClientOnboarding</code>. El backfill por separado permite rollback sin perder datos. La cláusula <code>WHERE date_to IS NULL</code> del partial unique solo cubre filas activas, así que filas históricas no chocan.</p>
+<p><strong>Alternativas consideradas</strong>: migración con backfill atómico (rechazada — riesgo si falla a mitad), reescritura del modelo (rechazada — destructive y rompe el onboarding subscriber existente).</p>
+<h3>R2 · Estructura del payload AMQP <code>client-assignment.v1.updated</code></h3>
+<p><strong>Decisión</strong>: extender el payload existente añadiendo campos opcionales (nullable) para preservar backward-compat con consumers desplegados antes del nuevo deploy. Schema final:</p>
+<pre><code class="language-typescript">{
+  // Existentes (mantenidos)
+  clientId: string;
+  employeeId: string;
+  role: 'responsable' | 'coordinador' | 'asesor' | 'tecnico';
+  department: 'fiscal' | 'laboral';
+  dateFrom: string; // ISO date (primer día del mes)
+  dateTo: string | null; // ISO date (último día del mes) o null si activo
+  updatedAt: string; // ISO timestamp
+  updatedBy: string; // email
+  // Nuevos (opcionales hasta que todos los consumers estén alineados)
+  teamId?: string;
+  percentage?: number; // 1-100
+  isPrimaryAdvisor?: boolean;
+  causesBaja?: boolean;
+}</code></pre>
+<p><strong>Rationale</strong>: los nuevos campos son opcionales en JSON, así que <code>pd-service-data-factory</code> y <code>pd-service-jira-adapter</code> con la versión vieja del consumer ignoran los campos extra (Postel's law — tolerante). Cuando ambos consumers se actualicen, la información estará disponible para informes y sync Jira Assets.</p>
+<p><strong>Alternativas consideradas</strong>: bump de routing key a <code>v2.client-assignment.updated</code> (rechazado — duplica complejidad de routing y migración de queues sin ganancia: los campos son aditivos), versionado en payload con discriminator (rechazado — over-engineering).</p>
+<h3>R3 · Alineación de consumers cross-service (deploy plan)</h3>
+<p><strong>Decisión</strong>: deploy en este orden para evitar perder eventos durante la ventana de transición:</p>
+<ol>
+<li><strong><code>pd-service-data-factory</code></strong> primero — desplegar la versión que añade <code>team_id</code> y <code>percentage</code> al modelo + subscriber que lee los nuevos campos cuando vienen. Sigue funcionando con eventos legacy.</li>
+<li><strong><code>pd-service-jira-adapter</code></strong> segundo — desplegar la versión que filtra a <code>isPrimaryAdvisor=true</code> antes de sincronizar a Jira Assets. Sigue tratando eventos legacy como "ese es el único, es el principal".</li>
+<li><strong><code>pgi-service-pgi-api</code></strong> último — desplegar el publisher con los nuevos campos. A partir de ahora los eventos llevan datos completos.</li>
+</ol>
+<p><strong>Rationale</strong>: este orden garantiza que cuando pgi-api empieza a emitir los nuevos campos, los consumers ya están preparados para procesarlos. Si se invirtiera el orden, los consumers nuevos esperarían campos que aún no llegan y procesarían los legacy con valores por defecto incorrectos.</p>
+<p><strong>Alternativas consideradas</strong>: feature flag en el publisher (rechazado — añade complejidad de configuración para algo que se resuelve con orden de deploy).</p>
+<h3>R4 · Validación del 100% por departamento — implementación</h3>
+<p><strong>Decisión</strong>: query agregada SQL ejecutada dentro de la transacción del save, con <code>SELECT ... FOR UPDATE</code> sobre <code>client_assignment</code> filtrado por <code>(client_id, department)</code> y <code>dateTo IS NULL</code>. La query suma <code>percentage</code> agrupando por <code>role</code> (filtrado a asesor / técnico). Si suma ≠ 100% en alguno de los buckets, el team queda en estado <code>incomplete</code> (no rechaza, advisory). Si la composición mínima no se cumple (no hay responsable o 0 asesores en el team siendo modificado), rechaza con HTTP 400.</p>
+<p><strong>Rationale</strong>: usar <code>FOR UPDATE</code> evita race entre dos peticiones simultáneas. También evita race con el AMQP subscriber del onboarding: si el onboarding está creando filas mientras el responsable edita desde UI, ambos lockean la misma fila y serializan.</p>
+<p><strong>Alternativas consideradas</strong>: cálculo en memoria post-flush (rechazado — no detecta race entre transacciones), trigger BD (rechazado — Constitution V simplicity: la lógica vive en el servicio, no en la BD).</p>
+<h3>R5 · Onboarding bridge (D10 sigue parcial)</h3>
+<p><strong>Decisión MVP</strong>: <code>applyFromClientOnboarding</code> sigue creando filas en <code>client_assignment</code> con los valores actuales <strong>con <code>team_id = NULL</code></strong> hasta que PO resuelva D10. Si se decide después que el onboarding debe crear un <code>ClientTeam</code> por defecto, se implementa como cambio aditivo en una segunda iteración sin afectar al modelo principal del MVP.</p>
+<p><strong>Acción inmediata</strong>: añadir test de regresión <code>applyFromClientOnboarding.regression.spec.ts</code> que verifica que el consumer sigue creando filas legacy correctamente.</p>
+<p><strong>Rationale</strong>: no bloquear el MVP por D10. El usuario verá filas huérfanas (sin team) en la vista del cliente — los onboardings nuevos requerirán que un responsable las agrupe manualmente. Se documenta como limitación conocida en <code>quickstart.md</code>.</p>
+<p><strong>Alternativas consideradas</strong>: implementar D10-C como assumption antes de PO confirmation (rechazado — riesgo de retrabajo si PO elige otra opción).</p>
+<h3>R6 · State management frontend</h3>
+<p><strong>Decisión</strong>: <strong>TanStack Query</strong> para queries y mutations de equipos y miembros, con <code>optimisticUpdate</code> para el slider de porcentaje. <strong>Sin Zustand</strong> — la composición del equipo es state servidor cacheado. El bucket-status (suma % por departamento) se calcula client-side a partir del query cache para mostrar la barra advisory en vivo, pero la validación dura es server-side.</p>
+<p><strong>Rationale</strong>: TanStack Query ya es convención en <code>pgi-app-pgi-web</code>. Optimistic update aplica bien al slider. Sin necesidad de store cliente para state que es inherentemente servidor.</p>
+<p><strong>Alternativas consideradas</strong>: Zustand para borrador de team antes de commit (rechazado — la decisión PO 2026-05-29 dice persistencia inmediata, no hay borrador), Redux (rechazado — over-engineering).</p>
+<hr/>
+<h3>Resumen de decisiones</h3>
+<table>
+<tr><th>ID</th><th>Tema</th><th>Decisión</th></tr>
+<tr><td>R1</td><td>Migración</td><td>Aditiva, idempotente, backfill por script separado</td></tr>
+<tr><td>R2</td><td>AMQP payload</td><td>Campos nuevos opcionales, sin bump de versión</td></tr>
+<tr><td>R3</td><td>Deploy order</td><td>data-factory → jira-adapter → pgi-api</td></tr>
+<tr><td>R4</td><td>Validación 100%</td><td>Query agregada con <code>FOR UPDATE</code> en transacción</td></tr>
+<tr><td>R5</td><td>Onboarding</td><td>MVP mantiene legacy (sin team_id); D10 se resolverá después</td></tr>
+<tr><td>R6</td><td>Frontend state</td><td>TanStack Query + optimistic update para slider</td></tr>
+</table>
+<p>Todas las <code>NEEDS CLARIFICATION</code> técnicas resueltas. Las que dependen de PO (D5 routing por rol, D10 onboarding) tienen assumption MVP documentada y no bloquean.</p>
+<hr/>
+<h1>Anexo B · Quickstart dev</h1>
+<p>Pasos para arrancar la feature en desarrollo local. Asume conocimiento previo del workflow de cada servicio (ver <code>CLAUDE.md</code> de cada uno).</p>
+<h3>Prerequisitos</h3>
+<ul>
+<li>Docker corriendo (para PostgreSQL + RabbitMQ).</li>
+<li>Node 20 + npm.</li>
+<li>Acceso a las 4 ramas: <code>feat/001-client-team-assignments</code> en cada uno de los 4 servicios afectados.</li>
+</ul>
+<h3>Orden de arranque</h3>
+<h4>1. <code>pgi-service-pgi-api</code> (owner)</h4>
+<pre><code class="language-bash">cd asesores/pgi-service-pgi-api
+npm install
+npm run infra:up                      # PostgreSQL + RabbitMQ
+npm run migrations:up                 # aplica migration M1 (FR-016, FR-021)
+npm run backfill:primary-advisor      # script idempotente — promueve primer asesor a principal por (cliente, dept)
+npm run start:dev</code></pre>
+<p>Verificar logs: el endpoint <code>/api/v1/clients/{id}/teams</code> debe responder. Los endpoints REST nuevos están en <code>src/application/rest/client-teams/</code> y <code>src/application/rest/client-assignments/</code>.</p>
+<h4>2. <code>pd-service-data-factory</code></h4>
+<pre><code class="language-bash">cd plataforma-del-dato/pd-service-data-factory
+npm install
+npm run infra:up
+npm run migrations:up                 # aplica migration M2 (añade team_id + percentage)
+npm run start:dev</code></pre>
+<p>El subscriber AMQP escucha en <code>data-factory:client-assignment:process</code> queue.</p>
+<h4>3. <code>pd-service-jira-adapter</code></h4>
+<pre><code class="language-bash">cd plataforma-del-dato/pd-service-jira-adapter
+npm install
+npm run start:dev</code></pre>
+<p>Sin migraciones nuevas (sólo cambio de lógica en el filtro a <code>isPrimaryAdvisor=true</code>).</p>
+<h4>4. <code>pgi-app-pgi-web</code> (frontend)</h4>
+<pre><code class="language-bash">cd asesores/pgi-app-pgi-web
+npm install
+npm run dev                           # Vite en :5173</code></pre>
+<p>Acceder a <code>http://localhost:5173/clientes/{clientId}</code> para ver la nueva ficha con composición multi-equipo.</p>
+<h3>Comandos de regresión obligatorios</h3>
+<p>Antes de pushear cualquier cambio:</p>
+<h4>Onboarding pipeline preserved</h4>
+<p>El consumer <code>client_onboarding_persisted</code> NO debe romperse. Test específico:</p>
+<pre><code class="language-bash">cd asesores/pgi-service-pgi-api
+npx jest --testPathPattern=apply-from-client-onboarding.regression</code></pre>
+<p>Debe pasar — verifica que <code>applyFromClientOnboarding</code> sigue creando filas legacy (<code>team_id = NULL</code>, <code>percentage = 100</code>) sin tocar la nueva lógica.</p>
+<h4>Cross-service AMQP contract</h4>
+<pre><code class="language-bash">cd plataforma-del-dato/pd-service-data-factory
+npx jest --testPathPattern=client-assignment-subscriber.contract</code></pre>
+<p>Verifica que un payload legacy (sin <code>teamId</code>/<code>percentage</code>/<code>isPrimaryAdvisor</code>) se procesa sin error.</p>
+<h4>Unique constraints</h4>
+<pre><code class="language-bash">cd asesores/pgi-service-pgi-api
+npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
+<p>Verifica que <code>(client, employee) WHERE date_to IS NULL</code> bloquea la doble asignación activa (FR-021).</p>
+<h3>Limitaciones conocidas del MVP</h3>
+<ol>
+<li><strong>D5 (routing tareas por rol)</strong> sin resolver — todas las tareas auto siguen yendo al asesor principal del dept. Si la PO define mapping por <code>ObligationCategory</code>, se aborda en sprint siguiente.</li>
+<li><strong>D10 (onboarding ↔ team)</strong> parcial — onboarding sigue creando filas con <code>team_id = NULL</code>. El responsable verá filas huérfanas en la vista del cliente hasta agruparlas. Pendiente decisión PO sobre crear "Equipo inicial" automático.</li>
+<li><strong>Pantalla "Mis Clientes" y buscador del PGI</strong> fuera de scope (FR-015). Sólo la ficha de cliente refleja la nueva composición.</li>
+<li><strong>TaxDown / subcontratados</strong> — no contemplado.</li>
+<li><strong>Vista de anomalías</strong> (clientes con servicio sin equipo válido) — backlog futuro.</li>
+</ol>
+<h3>Troubleshooting</h3>
+<ul>
+<li><strong>Error <code>PERSON_ALREADY_ACTIVE_IN_CLIENT</code> al añadir miembro</strong>: la persona ya tiene otra asignación activa en este cliente (incluso en otro dept). Cerrar la anterior primero. Esto es FR-021 (decisión PO 2026-06-01: opción B).</li>
+<li><strong>Banner amarillo "no 100%" persistente</strong>: comprobar <code>/api/v1/clients/{id}/department/{dept}/bucket-status</code> — el bucket de asesores o técnicos del dept está incompleto. La validación es por dept, no por team individual.</li>
+<li><strong>Eventos AMQP no llegan a data-factory</strong>: revisar orden de deploy (R3 de research.md). Si data-factory tiene la versión vieja del subscriber, los nuevos campos se ignoran silenciosamente.</li>
+</ul>
+<h3>Siguientes pasos</h3>
+<p>Una vez merged este MVP:</p>
+<ul>
+<li>Llevar D5 y D10 a la siguiente sesión PO.</li>
+<li>Evaluar si el feature de "asignaciones múltiples masivas" (mover carteras) entra en DEVPT-518 o se hace una épica aparte.</li>
+<li>Plan técnico para informes en <code>pd-service-data-factory</code> que aprovechen <code>team_id</code> + <code>percentage</code> (no en scope DEVPT-518).</li>
+</ul>
+<hr/>
+<h1>Anexo C · Modelo de datos</h1>
 <p><strong>Fase</strong>: 1 (Design &amp; Contracts)</p>
-<h2>Diagrama de entidades</h2>
+<h3>Diagrama de entidades</h3>
 <div class="mermaid">erDiagram
     Client ||--o{ ClientTeam : "has many active teams per department"
     Client ||--o{ ClientAssignment : "has many active assignments"
@@ -751,8 +879,8 @@
         string updated_by
         timestamp updated_at
     }</div>
-<h2>Entities</h2>
-<h3>ClientTeam</h3>
+<h3>Entities</h3>
+<h4>ClientTeam</h4>
 <p>Representa un equipo de trabajo de un cliente en un departamento. Un cliente puede tener N teams activos por departamento (confirmado en frame <code>08-multi-equipo/01</code>). No tiene <code>name</code> persistido en BD (decisión PO 2026-06-01).</p>
 <p><strong>Atributos</strong>:</p>
 <table>
@@ -777,7 +905,7 @@
 <li><code>active</code> → <code>closed</code>: setear <code>endDate</code>, irreversible (FR-009).</li>
 <li>No reapertura — para reanudar atención crear nuevo team.</li>
 </ul>
-<h3>ClientAssignment</h3>
+<h4>ClientAssignment</h4>
 <p>Representa la pertenencia de un empleado a un equipo de cliente en un rol. Modelo extendido sobre el existente en <code>pgi-service-pgi-api</code>.</p>
 <p><strong>Atributos</strong>:</p>
 <table>
@@ -817,7 +945,7 @@
 <ul>
 <li><code>active</code> (date_to IS NULL) → <code>closed</code> (date_to populated). Inmutable después.</li>
 </ul>
-<h3>DepartmentBucketStatus (derived — no entity)</h3>
+<h4>DepartmentBucketStatus (derived — no entity)</h4>
 <p>Estado derivado calculado por el servicio. No es entidad — vive solo en respuesta API y en cache frontend.</p>
 <p><strong>Cálculo</strong>:</p>
 <pre><code class="language-typescript">function getDepartmentBucketStatus(clientId, department): {
@@ -829,8 +957,8 @@
   hasPrimaryAdvisor: boolean;
   globalStatus: 'active' | 'incomplete'; // active iff asesores=100 + tecnicos in {100, not-applicable} + hasPrimary
 }</code></pre>
-<h2>Migrations</h2>
-<h3>Migration M1a — pgi-service-pgi-api (DDL columnas + CHECK, sin partial uniques bloqueantes)</h3>
+<h3>Migrations</h3>
+<h4>Migration M1a — pgi-service-pgi-api (DDL columnas + CHECK, sin partial uniques bloqueantes)</h4>
 <pre><code class="language-sql">-- Add columns (zero-downtime)
 ALTER TABLE client_assignment
   ADD COLUMN is_primary_advisor boolean NOT NULL DEFAULT false,
@@ -845,7 +973,7 @@ ALTER TABLE client_assignment
     CHECK (is_primary_advisor = false OR role = 'asesor'),
   ADD CONSTRAINT chk_causes_baja_only_when_closed
     CHECK (causes_baja = false OR date_to IS NOT NULL);</code></pre>
-<h3>Backfill (DML idempotente — corre como parte de M1a en MikroORM migration class)</h3>
+<h4>Backfill (DML idempotente — corre como parte de M1a en MikroORM migration class)</h4>
 <pre><code class="language-sql">-- Per Constitution III + ADR D-003, backfill vive en la misma MikroORM migration que la DDL
 -- de M1a, dentro del mismo método `async up(em: EntityManager) { ... }`. Esto garantiza:
 --   - Atomicidad: si la DDL se aplica pero el backfill falla, transacción rollback completa.
@@ -893,7 +1021,7 @@ BEGIN
     RAISE EXCEPTION 'M1a abort: % (client, employee) pairs have &gt;1 active assignment — clean manually with PO before M1b', violators;
   END IF;
 END $$;</code></pre>
-<h3>Migration M1b — pgi-service-pgi-api (partial uniques DESPUÉS del backfill)</h3>
+<h4>Migration M1b — pgi-service-pgi-api (partial uniques DESPUÉS del backfill)</h4>
 <pre><code class="language-sql">-- Partial unique: one person, one active assignment per client (FR-021)
 CREATE UNIQUE INDEX client_assignment_active_unique_per_client
   ON client_assignment (client_id, employee_id)
@@ -909,7 +1037,7 @@ CREATE UNIQUE INDEX client_team_primary_unique
   ON client_team (client_id, department)
   WHERE is_primary = true AND end_date IS NULL;</code></pre>
 <p><strong>Por qué dos migraciones separadas (T10)</strong>: M1a (DDL + backfill + audit) garantiza que cuando los partial uniques de M1b se crean, los datos ya cumplen los invariantes. Si se hiciera todo en una sola migración con los uniques al final, el CREATE INDEX podría fallar a mitad y dejar la BD en estado parcial.</p>
-<h3>Migration M2 — pd-service-data-factory</h3>
+<h4>Migration M2 — pd-service-data-factory</h4>
 <pre><code class="language-sql">ALTER TABLE client_assignment
   ADD COLUMN team_id uuid NULL,
   ADD COLUMN percentage smallint NOT NULL DEFAULT 100,
@@ -920,7 +1048,7 @@ CREATE UNIQUE INDEX client_team_primary_unique
 -- Ver ADR-0011 para política completa de huérfanos.
 -- No backfill: filas existentes reciben defaults; serán re-pobladas cuando pgi-api re-emita eventos.</code></pre>
 <p><strong>Por qué M2 ahora incluye <code>is_primary_advisor</code> y <code>causes_baja</code></strong> (resuelve sub-finding del reviewer bucket-9 sobre split migration): aunque US4 (cierre + reasignación con <code>causesBaja</code>) podría implementarse después, añadir las columnas ahora elimina una segunda migración de data-factory en el futuro. Coste cero hoy (columnas con default), evita coordinación cross-service futura.</p>
-<h3>Onboarding bridge — fix mandatory para T1</h3>
+<h4>Onboarding bridge — fix mandatory para T1</h4>
 <p><code>applyFromClientOnboarding(...)</code> en <code>pgi-service-pgi-api/src/domain/services/client-assignments/</code> MUST cambiarse para mantener compat con el nuevo partial unique. Pseudo-código del fix:</p>
 <pre><code class="language-typescript">async applyFromClientOnboarding(onboarding) {
   await this.em.transactional(async txEm =&gt; {
@@ -955,75 +1083,283 @@ CREATE UNIQUE INDEX client_team_primary_unique
   });
 }</code></pre>
 <p><strong>Test de regresión obligatorio</strong> (recordatorio para tasks.md): <code>apply-from-client-onboarding.regression.spec.ts</code> debe cubrir el caso "empleado ya activo en otro rol del mismo cliente" — verifica que el partial unique NO se viola.</p>
-<h2>Open data-model questions</h2>
+<h3>Open data-model questions</h3>
 <p>Pendientes hasta resolución PO:</p>
 <ul>
 <li><strong>D5 (routing tareas por rol)</strong>: si la PO decide que cada <code>ObligationCategory</code> mapea a un rol concreto, habrá que añadir un campo <code>Obligation.roleResponsible</code> y extender el query de routing. No bloquea el MVP — assumption: todo va al asesor principal.</li>
 <li><strong>D10 (onboarding ↔ team)</strong>: si la PO confirma la opción C (crear team por defecto), <code>applyFromClientOnboarding</code> se modifica para crear el <code>ClientTeam</code> antes de las asignaciones. No cambia el esquema.</li>
 </ul>
-</div>
-<div class="section" id="research">
-  <div class="section-label"><span class="icon">🔬</span> Research</div>
-  <h1>Research — Asignaciones múltiples (DEVPT-518)</h1>
-<p><strong>Fase</strong>: 0 (Outline &amp; Research) — todas las <code>NEEDS CLARIFICATION</code> del plan resueltas aquí.</p>
-<h2>R1 · Estrategia de migración legacy 1:1 → multi-equipo</h2>
-<p><strong>Decisión</strong>: una sola migración SQL aditiva ejecutada en <code>pgi-service-pgi-api</code> que (a) añade columnas <code>is_primary_advisor</code>, <code>causes_baja</code> a <code>client_assignment</code>, (b) añade columnas <code>is_primary</code> a <code>client_team</code>, (c) añade el partial unique <code>(client_id, employee_id) WHERE date_to IS NULL</code>. <strong>Sin backfill destructivo</strong>: las filas existentes ya tienen <code>team_id</code> (la columna se creó en una iteración previa) y <code>percentage</code> (con default 100). El bool <code>is_primary_advisor</code> se calcula post-deploy con un script idempotente que marca el primer asesor de cada (cliente, departamento) si no hay ninguno marcado.</p>
-<p><strong>Rationale</strong>: la migración aditiva no rompe filas existentes ni el flujo <code>applyFromClientOnboarding</code>. El backfill por separado permite rollback sin perder datos. La cláusula <code>WHERE date_to IS NULL</code> del partial unique solo cubre filas activas, así que filas históricas no chocan.</p>
-<p><strong>Alternativas consideradas</strong>: migración con backfill atómico (rechazada — riesgo si falla a mitad), reescritura del modelo (rechazada — destructive y rompe el onboarding subscriber existente).</p>
-<h2>R2 · Estructura del payload AMQP <code>client-assignment.v1.updated</code></h2>
-<p><strong>Decisión</strong>: extender el payload existente añadiendo campos opcionales (nullable) para preservar backward-compat con consumers desplegados antes del nuevo deploy. Schema final:</p>
-<pre><code class="language-typescript">{
-  // Existentes (mantenidos)
-  clientId: string;
-  employeeId: string;
+<hr/>
+<h1>Anexo D · Contratos API + AMQP</h1>
+<h2>Client Assignment Event</h2>
+<p><strong>Exchange</strong>: <code>internal</code> (topic) on vhost <code>data_platform</code> <strong>Routing key</strong>: <code>pgi-api.v1.client-assignment.updated</code> <strong>Publisher</strong>: <code>pgi-service-pgi-api</code> <strong>Consumers</strong>: <code>pd-service-data-factory</code>, <code>pd-service-jira-adapter</code></p>
+<h3>Payload schema</h3>
+<pre><code class="language-typescript">interface ClientAssignmentUpdatedPayload {
+  // Identification
+  clientId: string;       // UUID
+  employeeId: string;     // UUID
   role: 'responsable' | 'coordinador' | 'asesor' | 'tecnico';
   department: 'fiscal' | 'laboral';
-  dateFrom: string; // ISO date (primer día del mes)
-  dateTo: string | null; // ISO date (último día del mes) o null si activo
-  updatedAt: string; // ISO timestamp
-  updatedBy: string; // email
-  // Nuevos (opcionales hasta que todos los consumers estén alineados)
-  teamId?: string;
-  percentage?: number; // 1-100
-  isPrimaryAdvisor?: boolean;
-  causesBaja?: boolean;
+
+  // Temporal
+  dateFrom: string;       // ISO date YYYY-MM-DD (always first day of month)
+  dateTo: string | null;  // ISO date YYYY-MM-DD (last day of month) or null if active
+
+  // Audit
+  updatedAt: string;      // ISO timestamp
+  updatedBy: string;      // email or `system:onboarding`
+
+  // NEW (introduced by DEVPT-518, optional during transition)
+  teamId?: string;             // UUID — null/missing for legacy onboarding rows
+  percentage?: number;         // 1..100; missing implies 100 (legacy default)
+  isPrimaryAdvisor?: boolean;  // only meaningful when role=asesor
+  causesBaja?: boolean;        // only meaningful when dateTo is set
 }</code></pre>
-<p><strong>Rationale</strong>: los nuevos campos son opcionales en JSON, así que <code>pd-service-data-factory</code> y <code>pd-service-jira-adapter</code> con la versión vieja del consumer ignoran los campos extra (Postel's law — tolerante). Cuando ambos consumers se actualicen, la información estará disponible para informes y sync Jira Assets.</p>
-<p><strong>Alternativas consideradas</strong>: bump de routing key a <code>v2.client-assignment.updated</code> (rechazado — duplica complejidad de routing y migración de queues sin ganancia: los campos son aditivos), versionado en payload con discriminator (rechazado — over-engineering).</p>
-<h2>R3 · Alineación de consumers cross-service (deploy plan)</h2>
-<p><strong>Decisión</strong>: deploy en este orden para evitar perder eventos durante la ventana de transición:</p>
+<h3>Publication triggers</h3>
+<p>The publisher emits this event when:</p>
+<ul>
+<li>A new <code>ClientAssignment</code> is created (active row).</li>
+<li>An existing active <code>ClientAssignment</code> changes <code>percentage</code> or <code>isPrimaryAdvisor</code>.</li>
+<li>An active <code>ClientAssignment</code> is closed (<code>dateTo</code> set, optionally with <code>causesBaja</code>).</li>
+<li>A team is closed (cascades — one event per active member of that team).</li>
+</ul>
+<p>The publisher does <strong>NOT</strong> emit when the team or assignment is in <code>incomplete</code> department status. The event is suppressed and the data is held until the department reaches <code>active</code> state (FR-014 — Plataforma del Dato sólo recibe estados completos).</p>
+<h3>Consumer behavior</h3>
+<h4><code>pd-service-data-factory</code></h4>
+<p>Subscriber updates its local <code>client_assignment</code> row (which already has <code>team_id</code> and <code>percentage</code> columns after migration M2). Used for downstream report aggregation.</p>
+<ul>
+<li>Handles missing <code>teamId</code>/<code>percentage</code> gracefully (preserves legacy behavior).</li>
+<li>Idempotent: same payload twice produces same DB state (uses business key).</li>
+</ul>
+<h4><code>pd-service-jira-adapter</code></h4>
+<p>Subscriber filters to <code>isPrimaryAdvisor=true</code> (or to the only active row if <code>isPrimaryAdvisor</code> is missing — legacy compat) before mirroring to Jira Assets ("Clientes" object type). Non-primary rows are stored locally but not pushed to Jira.</p>
+<ul>
+<li>Handles missing fields: treats the row as the single primary if no flag exists.</li>
+<li>Honors the existing local-snapshot short-circuit (no Jira write if attribute already matches).</li>
+</ul>
+<h3>Backward compatibility</h3>
+<p>During the rolling deploy (R3 of <code>research.md</code>):</p>
 <ol>
-<li><strong><code>pd-service-data-factory</code></strong> primero — desplegar la versión que añade <code>team_id</code> y <code>percentage</code> al modelo + subscriber que lee los nuevos campos cuando vienen. Sigue funcionando con eventos legacy.</li>
-<li><strong><code>pd-service-jira-adapter</code></strong> segundo — desplegar la versión que filtra a <code>isPrimaryAdvisor=true</code> antes de sincronizar a Jira Assets. Sigue tratando eventos legacy como "ese es el único, es el principal".</li>
-<li><strong><code>pgi-service-pgi-api</code></strong> último — desplegar el publisher con los nuevos campos. A partir de ahora los eventos llevan datos completos.</li>
+<li><code>pd-service-data-factory</code> deployed first with extended subscriber. Tolerates events without new fields.</li>
+<li><code>pd-service-jira-adapter</code> deployed next, also tolerant.</li>
+<li><code>pgi-service-pgi-api</code> deployed last with extended publisher. Begins emitting full payload.</li>
 </ol>
-<p><strong>Rationale</strong>: este orden garantiza que cuando pgi-api empieza a emitir los nuevos campos, los consumers ya están preparados para procesarlos. Si se invirtiera el orden, los consumers nuevos esperarían campos que aún no llegan y procesarían los legacy con valores por defecto incorrectos.</p>
-<p><strong>Alternativas consideradas</strong>: feature flag en el publisher (rechazado — añade complejidad de configuración para algo que se resuelve con orden de deploy).</p>
-<h2>R4 · Validación del 100% por departamento — implementación</h2>
-<p><strong>Decisión</strong>: query agregada SQL ejecutada dentro de la transacción del save, con <code>SELECT ... FOR UPDATE</code> sobre <code>client_assignment</code> filtrado por <code>(client_id, department)</code> y <code>dateTo IS NULL</code>. La query suma <code>percentage</code> agrupando por <code>role</code> (filtrado a asesor / técnico). Si suma ≠ 100% en alguno de los buckets, el team queda en estado <code>incomplete</code> (no rechaza, advisory). Si la composición mínima no se cumple (no hay responsable o 0 asesores en el team siendo modificado), rechaza con HTTP 400.</p>
-<p><strong>Rationale</strong>: usar <code>FOR UPDATE</code> evita race entre dos peticiones simultáneas. También evita race con el AMQP subscriber del onboarding: si el onboarding está creando filas mientras el responsable edita desde UI, ambos lockean la misma fila y serializan.</p>
-<p><strong>Alternativas consideradas</strong>: cálculo en memoria post-flush (rechazado — no detecta race entre transacciones), trigger BD (rechazado — Constitution V simplicity: la lógica vive en el servicio, no en la BD).</p>
-<h2>R5 · Onboarding bridge (D10 sigue parcial)</h2>
-<p><strong>Decisión MVP</strong>: <code>applyFromClientOnboarding</code> sigue creando filas en <code>client_assignment</code> con los valores actuales <strong>con <code>team_id = NULL</code></strong> hasta que PO resuelva D10. Si se decide después que el onboarding debe crear un <code>ClientTeam</code> por defecto, se implementa como cambio aditivo en una segunda iteración sin afectar al modelo principal del MVP.</p>
-<p><strong>Acción inmediata</strong>: añadir test de regresión <code>applyFromClientOnboarding.regression.spec.ts</code> que verifica que el consumer sigue creando filas legacy correctamente.</p>
-<p><strong>Rationale</strong>: no bloquear el MVP por D10. El usuario verá filas huérfanas (sin team) en la vista del cliente — los onboardings nuevos requerirán que un responsable las agrupe manualmente. Se documenta como limitación conocida en <code>quickstart.md</code>.</p>
-<p><strong>Alternativas consideradas</strong>: implementar D10-C como assumption antes de PO confirmation (rechazado — riesgo de retrabajo si PO elige otra opción).</p>
-<h2>R6 · State management frontend</h2>
-<p><strong>Decisión</strong>: <strong>TanStack Query</strong> para queries y mutations de equipos y miembros, con <code>optimisticUpdate</code> para el slider de porcentaje. <strong>Sin Zustand</strong> — la composición del equipo es state servidor cacheado. El bucket-status (suma % por departamento) se calcula client-side a partir del query cache para mostrar la barra advisory en vivo, pero la validación dura es server-side.</p>
-<p><strong>Rationale</strong>: TanStack Query ya es convención en <code>pgi-app-pgi-web</code>. Optimistic update aplica bien al slider. Sin necesidad de store cliente para state que es inherentemente servidor.</p>
-<p><strong>Alternativas consideradas</strong>: Zustand para borrador de team antes de commit (rechazado — la decisión PO 2026-05-29 dice persistencia inmediata, no hay borrador), Redux (rechazado — over-engineering).</p>
-<hr/>
-<h2>Resumen de decisiones</h2>
+<p>If a consumer sees a payload without the new fields, behavior is identical to pre-DEVPT-518 (legacy 1:1 semantics).</p>
+<h3>Related events (not modified)</h3>
+<ul>
+<li><code>client_onboarding_persisted</code> — consumed by <code>pgi-service-pgi-api/client-subscriber</code>. NOT touched by this feature (FR-017 / D10 pending). May trigger this event indirectly via <code>applyFromClientOnboarding</code>.</li>
+</ul>
+<h3>Testing</h3>
+<ul>
+<li><strong>Producer side</strong>: integration test in pgi-api that verifies <code>publish</code> is called with the full payload on each trigger above. Uses Jest mock of <code>RabbitMQService.publish</code>.</li>
+<li><strong>Consumer side (data-factory)</strong>: integration test with testcontainers + AMQP mock subscriber that asserts new columns get populated.</li>
+<li><strong>Consumer side (jira-adapter)</strong>: unit test that verifies the filter to <code>isPrimaryAdvisor=true</code> only mirrors one row per (client, dept, role).</li>
+<li><strong>Backward compat</strong>: contract test that consumers process a legacy payload (without new fields) without errors.</li>
+</ul>
+<h2>Client Assignments Api</h2>
+<p><strong>Servicio</strong>: <code>pgi-service-pgi-api</code>  ·  <strong>Base path</strong>: <code>/api/v1/clients/{clientId}/teams/{teamId}/members</code></p>
+<h3>Endpoints</h3>
+<h4><code>POST /api/v1/clients/{clientId}/teams/{teamId}/members</code></h4>
+<p>Añade un miembro al team. Persistencia inmediata (decisión 2026-05-29: no hay borrador+commit).</p>
+<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code>.</p>
+<p><strong>Request body</strong>:</p>
+<pre><code class="language-json">{
+  "employeeId": "uuid",
+  "role": "responsable" | "coordinador" | "asesor" | "tecnico",
+  "dateFrom": "2026-06-01",
+  "percentage": 60,              // solo si role es asesor o tecnico; 1..100
+  "isPrimaryAdvisor": false       // solo si role=asesor; max 1 true por (client, dept) activo
+}</code></pre>
+<p><strong>Validation (orden de aplicación)</strong>:</p>
+<ol>
+<li><code>role</code> válido + <code>department</code> derivado del team.</li>
+<li><code>percentage</code>: required y 1..100 si rol es asesor/tecnico; ignorado si responsable/coordinador.</li>
+<li><code>isPrimaryAdvisor</code>: rechazado si rol no es asesor.</li>
+<li>Unique constraints BD (FR-021): la persona no puede tener otra asignación activa al mismo cliente, en ningún dept.</li>
+<li>Cálculo derivado: tras añadir, si el <code>globalStatus</code> del dept queda en <code>incomplete</code>, devolver el body con flag advisory pero NO rechazar (FR-016 — banner amarillo, no bloqueo).</li>
+</ol>
+<p><strong>Responses</strong>:</p>
+<ul>
+<li><code>201 Created</code> — body: <code>ClientAssignmentDto</code> con flag <code>departmentStatus</code></li>
+<li><code>400</code> — validación falla</li>
+<li><code>403</code></li>
+<li><code>409 Conflict</code> — <code>(client, employee)</code> ya tiene asignación activa (FR-021) — error <code>PERSON_ALREADY_ACTIVE_IN_CLIENT</code></li>
+<li><code>412 Precondition Failed</code> — composición mínima no cumplida tras añadir (ej. team sin responsable)</li>
+</ul>
+<h4><code>PATCH /api/v1/clients/{clientId}/teams/{teamId}/members/{memberId}</code></h4>
+<p>Modifica <code>percentage</code> o <code>isPrimaryAdvisor</code> de un miembro activo. Requiere <code>If-Match</code>.</p>
+<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code>.</p>
+<p><strong>Headers</strong>: <code>If-Match: "&amp;lt;updatedAt&amp;gt;"</code></p>
+<p><strong>Request body</strong> (todos opcionales):</p>
+<pre><code class="language-json">{
+  "percentage": 40,
+  "isPrimaryAdvisor": true
+}</code></pre>
+<p><strong>Responses</strong>:</p>
+<ul>
+<li><code>200 OK</code></li>
+<li><code>409</code> — concurrencia o ya hay otro <code>isPrimaryAdvisor=true</code></li>
+</ul>
+<h4><code>DELETE /api/v1/clients/{clientId}/teams/{teamId}/members/{memberId}</code></h4>
+<p>Alias semántico de "cerrar miembro". <strong>NO borra físicamente</strong> (decisión PO 2026-06-01): pone <code>date_to</code> y opcionalmente marca <code>causesBaja</code>. El frontend abre un diálogo inline para preguntar la causa antes de mandar la petición.</p>
+<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code>.</p>
+<p><strong>Request body</strong>:</p>
+<pre><code class="language-json">{
+  "causesBaja": true,         // si el empleado deja la empresa, dispara reasignación al sucesor
+  "successorId": "uuid"       // REQUIRED si causesBaja=true (resolución T3 — no inferencia silenciosa).
+                              //          Si se omite, el endpoint devuelve 400 SUCCESSOR_REQUIRED con
+                              //          un campo `suggestedSuccessorId` calculado por temporalidad
+                              //          (asesor activo más antiguo con dateFrom &gt; current.dateTo en el
+                              //          mismo client+department). El frontend puede pre-rellenar el
+                              //          diálogo con esa sugerencia.
+}</code></pre>
+<p><strong>Behavior</strong>:</p>
+<ul>
+<li>Setea <code>dateTo = today</code> y <code>causesBaja</code> según body.</li>
+<li>Publica evento AMQP <code>pgi-api.v1.client-assignment.updated</code> con campos completos.</li>
+<li>Si <code>causesBaja = true</code>: dispara <code>reassignOpenTasksToSuccessor(...)</code> en background.</li>
+</ul>
+<p><strong>Responses</strong>:</p>
+<ul>
+<li><code>200 OK</code> — body con <code>ClientAssignmentDto</code> cerrado</li>
+<li><code>400</code> — successorId no es empleado activo, etc.</li>
+<li><code>403</code></li>
+</ul>
+<h4><code>GET /api/v1/clients/{clientId}/assignments?status=active|closed|all</code></h4>
+<p>Lista asignaciones del cliente, opcional filtrar por status. Lectura para todos los perfiles con acceso a la ficha.</p>
+<p><strong>Response</strong>:</p>
+<pre><code class="language-json">{
+  "items": [
+    {
+      "id": "uuid",
+      "clientId": "uuid",
+      "teamId": "uuid",
+      "employeeId": "uuid",
+      "employeeName": "Alejandro Jiménez",
+      "role": "asesor",
+      "department": "fiscal",
+      "dateFrom": "2026-01-01",
+      "dateTo": null,
+      "percentage": 60,
+      "isPrimaryAdvisor": true,
+      "causesBaja": false,
+      "updatedAt": "2026-06-01T..."
+    }
+  ]
+}</code></pre>
+<h3>Errors</h3>
 <table>
-<tr><th>ID</th><th>Tema</th><th>Decisión</th></tr>
-<tr><td>R1</td><td>Migración</td><td>Aditiva, idempotente, backfill por script separado</td></tr>
-<tr><td>R2</td><td>AMQP payload</td><td>Campos nuevos opcionales, sin bump de versión</td></tr>
-<tr><td>R3</td><td>Deploy order</td><td>data-factory → jira-adapter → pgi-api</td></tr>
-<tr><td>R4</td><td>Validación 100%</td><td>Query agregada con <code>FOR UPDATE</code> en transacción</td></tr>
-<tr><td>R5</td><td>Onboarding</td><td>MVP mantiene legacy (sin team_id); D10 se resolverá después</td></tr>
-<tr><td>R6</td><td>Frontend state</td><td>TanStack Query + optimistic update para slider</td></tr>
+<tr><th>Status</th><th>Code</th><th>Cuándo</th></tr>
+<tr><td>400</td><td><code>INVALID_PERCENTAGE</code></td><td>percentage fuera de 1..100 o ausente para asesor/tecnico</td></tr>
+<tr><td>400</td><td><code>PRIMARY_NOT_ASESOR</code></td><td>isPrimaryAdvisor=true para rol no-asesor</td></tr>
+<tr><td>403</td><td><code>INSUFFICIENT_ROLE</code></td><td>Usuario sin permiso</td></tr>
+<tr><td>409</td><td><code>PERSON_ALREADY_ACTIVE_IN_CLIENT</code></td><td>FR-021 partial unique falla</td></tr>
+<tr><td>409</td><td><code>CONCURRENT_MODIFICATION</code></td><td>If-Match falla</td></tr>
+<tr><td>412</td><td><code>MISSING_COMPOSITION</code></td><td>Tras la operación, team queda sin responsable o sin asesor — composición mínima incumplida</td></tr>
+<tr><td>400</td><td><code>SUCCESSOR_REQUIRED</code></td><td>DELETE con <code>causesBaja=true</code> sin <code>successorId</code>. Respuesta incluye <code>suggestedSuccessorId</code> (puede ser null si no hay candidato — el responsable debe designar uno manualmente o reabrir el equipo).</td></tr>
 </table>
-<p>Todas las <code>NEEDS CLARIFICATION</code> técnicas resueltas. Las que dependen de PO (D5 routing por rol, D10 onboarding) tienen assumption MVP documentada y no bloquean.</p>
+<h2>Client Teams Api</h2>
+<p><strong>Servicio</strong>: <code>pgi-service-pgi-api</code>  ·  <strong>Base path</strong>: <code>/api/v1/clients/{clientId}/teams</code></p>
+<h3>Endpoints</h3>
+<h4><code>POST /api/v1/clients/{clientId}/teams</code></h4>
+<p>Crea un nuevo <code>ClientTeam</code> para un cliente en un departamento. Pre-condición: el cliente debe tener al menos un <code>ProvidedService</code> activo cuya <code>family</code> mapee al departamento (FR-017).</p>
+<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code> del cliente.</p>
+<p><strong>Request body</strong>:</p>
+<pre><code class="language-json">{
+  "department": "fiscal" | "laboral",
+  "startDate": "2026-06-01",  // primer día del mes
+  "isPrimary": false           // opcional, default false; max 1 true por (client, dept)
+}</code></pre>
+<p><strong>Responses</strong>:</p>
+<ul>
+<li><code>201 Created</code> — body: <code>ClientTeamDto</code> (con <code>id</code>, <code>updatedAt</code>)</li>
+<li><code>400 Bad Request</code> — validación falla (fecha no es día 1, dept inválido, etc.)</li>
+<li><code>403 Forbidden</code> — sin permiso de rol</li>
+<li><code>412 Precondition Failed</code> — cliente no tiene <code>ProvidedService</code> activo en ese dept (FR-017)</li>
+<li><code>409 Conflict</code> — ya existe un team con <code>isPrimary=true</code> activo en ese (client, dept)</li>
+</ul>
+<h4><code>PATCH /api/v1/clients/{clientId}/teams/{teamId}</code></h4>
+<p>Modifica un team activo. Soporta cambiar <code>isPrimary</code>. Requiere <code>If-Match</code> header con el <code>updatedAt</code> que tenía al cargar (optimistic concurrency, FR-022).</p>
+<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code>.</p>
+<p><strong>Headers</strong>: <code>If-Match: "2026-06-01T10:23:45.000Z"</code></p>
+<p><strong>Request body</strong> (todos opcionales):</p>
+<pre><code class="language-json">{
+  "isPrimary": true
+}</code></pre>
+<p><strong>Responses</strong>:</p>
+<ul>
+<li><code>200 OK</code> — body actualizado</li>
+<li><code>409 Conflict</code> — <code>If-Match</code> no coincide con <code>updatedAt</code> actual (otro editor lo cambió)</li>
+<li><code>403 Forbidden</code></li>
+<li><code>404 Not Found</code></li>
+</ul>
+<h4><code>POST /api/v1/clients/{clientId}/teams/{teamId}/close</code></h4>
+<p>Cierra un team setting <code>endDate</code>. Acción irreversible (FR-009). Requiere doble confirmación (UI), pero a nivel API es un POST.</p>
+<p><strong>Permisos</strong>: <code>responsable</code>.</p>
+<p><strong>Request body</strong>:</p>
+<pre><code class="language-json">{
+  "endDate": "2027-05-31"  // último día del mes
+}</code></pre>
+<p><strong>Behavior</strong> (resolución T4):</p>
+<ul>
+<li>Toda la mutación (team.endDate + N assignments.dateTo) corre dentro de <strong>un único <code>em.transactional</code></strong>. Si cualquier paso falla, rollback completo — el team no queda parcialmente cerrado.</li>
+<li>Para cada asignación cerrada por esta acción, NO se dispara <code>causesBaja</code> automáticamente — eso es decisión per-member al cerrar individualmente vía <code>DELETE /members/{id}</code>.</li>
+<li><strong>AMQP publish post-commit</strong>: los eventos <code>pgi-api.v1.client-assignment.updated</code> (uno por miembro cerrado) se emiten DESPUÉS del commit exitoso de la transacción. Si el commit falla, no se emite ningún evento. Pendiente D-005 (outbox pattern) para garantizar at-least-once delivery sin ack manual.</li>
+</ul>
+<p><strong>Responses</strong>:</p>
+<ul>
+<li><code>200 OK</code></li>
+<li><code>400</code> — endDate no es último día de mes</li>
+<li><code>403</code></li>
+<li><code>409</code> — team ya cerrado</li>
+</ul>
+<h4><code>GET /api/v1/clients/{clientId}/teams?status=active|closed|all</code></h4>
+<p>Lista teams del cliente. Default <code>status=active</code>. Acceso de lectura para todos los perfiles con acceso a la ficha.</p>
+<p><strong>Response</strong>:</p>
+<pre><code class="language-json">{
+  "items": [
+    {
+      "id": "uuid",
+      "clientId": "uuid",
+      "department": "fiscal",
+      "startDate": "2026-01-01",
+      "endDate": null,
+      "isPrimary": true,
+      "createdBy": "alfonso@afianza-ac.es",
+      "createdAt": "2026-01-01T...",
+      "updatedAt": "2026-06-01T..."
+    }
+  ]
+}</code></pre>
+<h4><code>GET /api/v1/clients/{clientId}/department/{department}/bucket-status</code></h4>
+<p>Devuelve el estado del 100% por departamento (asesores + técnicos por separado, agregado entre todos los teams del dept). Endpoint que la UI consulta para mostrar barras advisory.</p>
+<p><strong>Response</strong>:</p>
+<pre><code class="language-json">{
+  "department": "fiscal",
+  "asesores": {
+    "sum": 100,
+    "status": "complete",
+    "members": [{ "employeeId": "...", "teamId": "...", "percentage": 60 }, ...]
+  },
+  "tecnicos": {
+    "sum": 80,
+    "status": "incomplete",
+    "members": [...]
+  },
+  "hasPrimaryAdvisor": true,
+  "globalStatus": "incomplete"  // active sólo si asesores=100 + tecnicos in {100, not-applicable} + hasPrimary
+}</code></pre>
+<h3>Errors</h3>
+<p>Errores comunes (formato <code>application/problem+json</code>):</p>
+<table>
+<tr><th>Status</th><th>Code</th><th>Cuándo</th></tr>
+<tr><td>400</td><td><code>INVALID_DATE_GRANULARITY</code></td><td>dateFrom/endDate no es primer/último día de mes</td></tr>
+<tr><td>400</td><td><code>MISSING_COMPOSITION</code></td><td>Composición mínima no cumplida al guardar</td></tr>
+<tr><td>403</td><td><code>INSUFFICIENT_ROLE</code></td><td>Usuario no es responsable/coordinador del cliente</td></tr>
+<tr><td>409</td><td><code>CONCURRENT_MODIFICATION</code></td><td><code>If-Match</code> no coincide con <code>updatedAt</code> actual</td></tr>
+<tr><td>409</td><td><code>PRIMARY_ALREADY_EXISTS</code></td><td>Intentar setear <code>isPrimary=true</code> cuando ya existe otro</td></tr>
+<tr><td>412</td><td><code>NO_PROVIDED_SERVICE</code></td><td>Cliente sin <code>ProvidedService</code> activo en ese dept</td></tr>
+</table>
 </div>
 <div class="section" id="tasks">
   <div class="section-label"><span class="icon">✅</span> Tasks</div>
@@ -1192,79 +1528,6 @@ Task: "T032 PercentageSumIndicator"</code></pre>
 <li>Migración masiva legacy (FR-013) dentro de US1 — los datos 1-a-1 son válidos por construcción y se convierten en equipos implícitos al desplegar.</li>
 </ul>
 </div>
-<div class="section" id="quickstart">
-  <div class="section-label"><span class="icon">⚡</span> Quickstart</div>
-  <h1>Quickstart — DEVPT-518 dev local</h1>
-<p>Pasos para arrancar la feature en desarrollo local. Asume conocimiento previo del workflow de cada servicio (ver <code>CLAUDE.md</code> de cada uno).</p>
-<h2>Prerequisitos</h2>
-<ul>
-<li>Docker corriendo (para PostgreSQL + RabbitMQ).</li>
-<li>Node 20 + npm.</li>
-<li>Acceso a las 4 ramas: <code>feat/001-client-team-assignments</code> en cada uno de los 4 servicios afectados.</li>
-</ul>
-<h2>Orden de arranque</h2>
-<h3>1. <code>pgi-service-pgi-api</code> (owner)</h3>
-<pre><code class="language-bash">cd asesores/pgi-service-pgi-api
-npm install
-npm run infra:up                      # PostgreSQL + RabbitMQ
-npm run migrations:up                 # aplica migration M1 (FR-016, FR-021)
-npm run backfill:primary-advisor      # script idempotente — promueve primer asesor a principal por (cliente, dept)
-npm run start:dev</code></pre>
-<p>Verificar logs: el endpoint <code>/api/v1/clients/{id}/teams</code> debe responder. Los endpoints REST nuevos están en <code>src/application/rest/client-teams/</code> y <code>src/application/rest/client-assignments/</code>.</p>
-<h3>2. <code>pd-service-data-factory</code></h3>
-<pre><code class="language-bash">cd plataforma-del-dato/pd-service-data-factory
-npm install
-npm run infra:up
-npm run migrations:up                 # aplica migration M2 (añade team_id + percentage)
-npm run start:dev</code></pre>
-<p>El subscriber AMQP escucha en <code>data-factory:client-assignment:process</code> queue.</p>
-<h3>3. <code>pd-service-jira-adapter</code></h3>
-<pre><code class="language-bash">cd plataforma-del-dato/pd-service-jira-adapter
-npm install
-npm run start:dev</code></pre>
-<p>Sin migraciones nuevas (sólo cambio de lógica en el filtro a <code>isPrimaryAdvisor=true</code>).</p>
-<h3>4. <code>pgi-app-pgi-web</code> (frontend)</h3>
-<pre><code class="language-bash">cd asesores/pgi-app-pgi-web
-npm install
-npm run dev                           # Vite en :5173</code></pre>
-<p>Acceder a <code>http://localhost:5173/clientes/{clientId}</code> para ver la nueva ficha con composición multi-equipo.</p>
-<h2>Comandos de regresión obligatorios</h2>
-<p>Antes de pushear cualquier cambio:</p>
-<h3>Onboarding pipeline preserved</h3>
-<p>El consumer <code>client_onboarding_persisted</code> NO debe romperse. Test específico:</p>
-<pre><code class="language-bash">cd asesores/pgi-service-pgi-api
-npx jest --testPathPattern=apply-from-client-onboarding.regression</code></pre>
-<p>Debe pasar — verifica que <code>applyFromClientOnboarding</code> sigue creando filas legacy (<code>team_id = NULL</code>, <code>percentage = 100</code>) sin tocar la nueva lógica.</p>
-<h3>Cross-service AMQP contract</h3>
-<pre><code class="language-bash">cd plataforma-del-dato/pd-service-data-factory
-npx jest --testPathPattern=client-assignment-subscriber.contract</code></pre>
-<p>Verifica que un payload legacy (sin <code>teamId</code>/<code>percentage</code>/<code>isPrimaryAdvisor</code>) se procesa sin error.</p>
-<h3>Unique constraints</h3>
-<pre><code class="language-bash">cd asesores/pgi-service-pgi-api
-npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
-<p>Verifica que <code>(client, employee) WHERE date_to IS NULL</code> bloquea la doble asignación activa (FR-021).</p>
-<h2>Limitaciones conocidas del MVP</h2>
-<ol>
-<li><strong>D5 (routing tareas por rol)</strong> sin resolver — todas las tareas auto siguen yendo al asesor principal del dept. Si la PO define mapping por <code>ObligationCategory</code>, se aborda en sprint siguiente.</li>
-<li><strong>D10 (onboarding ↔ team)</strong> parcial — onboarding sigue creando filas con <code>team_id = NULL</code>. El responsable verá filas huérfanas en la vista del cliente hasta agruparlas. Pendiente decisión PO sobre crear "Equipo inicial" automático.</li>
-<li><strong>Pantalla "Mis Clientes" y buscador del PGI</strong> fuera de scope (FR-015). Sólo la ficha de cliente refleja la nueva composición.</li>
-<li><strong>TaxDown / subcontratados</strong> — no contemplado.</li>
-<li><strong>Vista de anomalías</strong> (clientes con servicio sin equipo válido) — backlog futuro.</li>
-</ol>
-<h2>Troubleshooting</h2>
-<ul>
-<li><strong>Error <code>PERSON_ALREADY_ACTIVE_IN_CLIENT</code> al añadir miembro</strong>: la persona ya tiene otra asignación activa en este cliente (incluso en otro dept). Cerrar la anterior primero. Esto es FR-021 (decisión PO 2026-06-01: opción B).</li>
-<li><strong>Banner amarillo "no 100%" persistente</strong>: comprobar <code>/api/v1/clients/{id}/department/{dept}/bucket-status</code> — el bucket de asesores o técnicos del dept está incompleto. La validación es por dept, no por team individual.</li>
-<li><strong>Eventos AMQP no llegan a data-factory</strong>: revisar orden de deploy (R3 de research.md). Si data-factory tiene la versión vieja del subscriber, los nuevos campos se ignoran silenciosamente.</li>
-</ul>
-<h2>Siguientes pasos</h2>
-<p>Una vez merged este MVP:</p>
-<ul>
-<li>Llevar D5 y D10 a la siguiente sesión PO.</li>
-<li>Evaluar si el feature de "asignaciones múltiples masivas" (mover carteras) entra en DEVPT-518 o se hace una épica aparte.</li>
-<li>Plan técnico para informes en <code>pd-service-data-factory</code> que aprovechen <code>team_id</code> + <code>percentage</code> (no en scope DEVPT-518).</li>
-</ul>
-</div>
 <div class="section" id="challenge-report">
   <div class="section-label"><span class="icon">📄</span> Challenge Report</div>
   <h1>Anexo técnico — DEVPT-518 (post-PO)</h1>
@@ -1400,287 +1663,12 @@ npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
 <li>Bloqueantes para empezar US1: D1, D2, D6. Resolverlas antes de iniciar implementación.</li>
 </ul>
 </div>
-<div class="section" id="contracts-client-assignment-event">
-  <div class="section-label"><span class="icon">📑</span> Contracts · Client Assignment Event</div>
-  <h1>AMQP Event Contract — <code>client-assignment.updated</code></h1>
-<p><strong>Exchange</strong>: <code>internal</code> (topic) on vhost <code>data_platform</code> <strong>Routing key</strong>: <code>pgi-api.v1.client-assignment.updated</code> <strong>Publisher</strong>: <code>pgi-service-pgi-api</code> <strong>Consumers</strong>: <code>pd-service-data-factory</code>, <code>pd-service-jira-adapter</code></p>
-<h2>Payload schema</h2>
-<pre><code class="language-typescript">interface ClientAssignmentUpdatedPayload {
-  // Identification
-  clientId: string;       // UUID
-  employeeId: string;     // UUID
-  role: 'responsable' | 'coordinador' | 'asesor' | 'tecnico';
-  department: 'fiscal' | 'laboral';
-
-  // Temporal
-  dateFrom: string;       // ISO date YYYY-MM-DD (always first day of month)
-  dateTo: string | null;  // ISO date YYYY-MM-DD (last day of month) or null if active
-
-  // Audit
-  updatedAt: string;      // ISO timestamp
-  updatedBy: string;      // email or `system:onboarding`
-
-  // NEW (introduced by DEVPT-518, optional during transition)
-  teamId?: string;             // UUID — null/missing for legacy onboarding rows
-  percentage?: number;         // 1..100; missing implies 100 (legacy default)
-  isPrimaryAdvisor?: boolean;  // only meaningful when role=asesor
-  causesBaja?: boolean;        // only meaningful when dateTo is set
-}</code></pre>
-<h2>Publication triggers</h2>
-<p>The publisher emits this event when:</p>
-<ul>
-<li>A new <code>ClientAssignment</code> is created (active row).</li>
-<li>An existing active <code>ClientAssignment</code> changes <code>percentage</code> or <code>isPrimaryAdvisor</code>.</li>
-<li>An active <code>ClientAssignment</code> is closed (<code>dateTo</code> set, optionally with <code>causesBaja</code>).</li>
-<li>A team is closed (cascades — one event per active member of that team).</li>
-</ul>
-<p>The publisher does <strong>NOT</strong> emit when the team or assignment is in <code>incomplete</code> department status. The event is suppressed and the data is held until the department reaches <code>active</code> state (FR-014 — Plataforma del Dato sólo recibe estados completos).</p>
-<h2>Consumer behavior</h2>
-<h3><code>pd-service-data-factory</code></h3>
-<p>Subscriber updates its local <code>client_assignment</code> row (which already has <code>team_id</code> and <code>percentage</code> columns after migration M2). Used for downstream report aggregation.</p>
-<ul>
-<li>Handles missing <code>teamId</code>/<code>percentage</code> gracefully (preserves legacy behavior).</li>
-<li>Idempotent: same payload twice produces same DB state (uses business key).</li>
-</ul>
-<h3><code>pd-service-jira-adapter</code></h3>
-<p>Subscriber filters to <code>isPrimaryAdvisor=true</code> (or to the only active row if <code>isPrimaryAdvisor</code> is missing — legacy compat) before mirroring to Jira Assets ("Clientes" object type). Non-primary rows are stored locally but not pushed to Jira.</p>
-<ul>
-<li>Handles missing fields: treats the row as the single primary if no flag exists.</li>
-<li>Honors the existing local-snapshot short-circuit (no Jira write if attribute already matches).</li>
-</ul>
-<h2>Backward compatibility</h2>
-<p>During the rolling deploy (R3 of <code>research.md</code>):</p>
-<ol>
-<li><code>pd-service-data-factory</code> deployed first with extended subscriber. Tolerates events without new fields.</li>
-<li><code>pd-service-jira-adapter</code> deployed next, also tolerant.</li>
-<li><code>pgi-service-pgi-api</code> deployed last with extended publisher. Begins emitting full payload.</li>
-</ol>
-<p>If a consumer sees a payload without the new fields, behavior is identical to pre-DEVPT-518 (legacy 1:1 semantics).</p>
-<h2>Related events (not modified)</h2>
-<ul>
-<li><code>client_onboarding_persisted</code> — consumed by <code>pgi-service-pgi-api/client-subscriber</code>. NOT touched by this feature (FR-017 / D10 pending). May trigger this event indirectly via <code>applyFromClientOnboarding</code>.</li>
-</ul>
-<h2>Testing</h2>
-<ul>
-<li><strong>Producer side</strong>: integration test in pgi-api that verifies <code>publish</code> is called with the full payload on each trigger above. Uses Jest mock of <code>RabbitMQService.publish</code>.</li>
-<li><strong>Consumer side (data-factory)</strong>: integration test with testcontainers + AMQP mock subscriber that asserts new columns get populated.</li>
-<li><strong>Consumer side (jira-adapter)</strong>: unit test that verifies the filter to <code>isPrimaryAdvisor=true</code> only mirrors one row per (client, dept, role).</li>
-<li><strong>Backward compat</strong>: contract test that consumers process a legacy payload (without new fields) without errors.</li>
-</ul>
-</div>
-<div class="section" id="contracts-client-assignments-api">
-  <div class="section-label"><span class="icon">📑</span> Contracts · Client Assignments Api</div>
-  <h1>API Contract — Client Assignments (members of teams)</h1>
-<p><strong>Servicio</strong>: <code>pgi-service-pgi-api</code>  ·  <strong>Base path</strong>: <code>/api/v1/clients/{clientId}/teams/{teamId}/members</code></p>
-<h2>Endpoints</h2>
-<h3><code>POST /api/v1/clients/{clientId}/teams/{teamId}/members</code></h3>
-<p>Añade un miembro al team. Persistencia inmediata (decisión 2026-05-29: no hay borrador+commit).</p>
-<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code>.</p>
-<p><strong>Request body</strong>:</p>
-<pre><code class="language-json">{
-  "employeeId": "uuid",
-  "role": "responsable" | "coordinador" | "asesor" | "tecnico",
-  "dateFrom": "2026-06-01",
-  "percentage": 60,              // solo si role es asesor o tecnico; 1..100
-  "isPrimaryAdvisor": false       // solo si role=asesor; max 1 true por (client, dept) activo
-}</code></pre>
-<p><strong>Validation (orden de aplicación)</strong>:</p>
-<ol>
-<li><code>role</code> válido + <code>department</code> derivado del team.</li>
-<li><code>percentage</code>: required y 1..100 si rol es asesor/tecnico; ignorado si responsable/coordinador.</li>
-<li><code>isPrimaryAdvisor</code>: rechazado si rol no es asesor.</li>
-<li>Unique constraints BD (FR-021): la persona no puede tener otra asignación activa al mismo cliente, en ningún dept.</li>
-<li>Cálculo derivado: tras añadir, si el <code>globalStatus</code> del dept queda en <code>incomplete</code>, devolver el body con flag advisory pero NO rechazar (FR-016 — banner amarillo, no bloqueo).</li>
-</ol>
-<p><strong>Responses</strong>:</p>
-<ul>
-<li><code>201 Created</code> — body: <code>ClientAssignmentDto</code> con flag <code>departmentStatus</code></li>
-<li><code>400</code> — validación falla</li>
-<li><code>403</code></li>
-<li><code>409 Conflict</code> — <code>(client, employee)</code> ya tiene asignación activa (FR-021) — error <code>PERSON_ALREADY_ACTIVE_IN_CLIENT</code></li>
-<li><code>412 Precondition Failed</code> — composición mínima no cumplida tras añadir (ej. team sin responsable)</li>
-</ul>
-<h3><code>PATCH /api/v1/clients/{clientId}/teams/{teamId}/members/{memberId}</code></h3>
-<p>Modifica <code>percentage</code> o <code>isPrimaryAdvisor</code> de un miembro activo. Requiere <code>If-Match</code>.</p>
-<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code>.</p>
-<p><strong>Headers</strong>: <code>If-Match: "&amp;lt;updatedAt&amp;gt;"</code></p>
-<p><strong>Request body</strong> (todos opcionales):</p>
-<pre><code class="language-json">{
-  "percentage": 40,
-  "isPrimaryAdvisor": true
-}</code></pre>
-<p><strong>Responses</strong>:</p>
-<ul>
-<li><code>200 OK</code></li>
-<li><code>409</code> — concurrencia o ya hay otro <code>isPrimaryAdvisor=true</code></li>
-</ul>
-<h3><code>DELETE /api/v1/clients/{clientId}/teams/{teamId}/members/{memberId}</code></h3>
-<p>Alias semántico de "cerrar miembro". <strong>NO borra físicamente</strong> (decisión PO 2026-06-01): pone <code>date_to</code> y opcionalmente marca <code>causesBaja</code>. El frontend abre un diálogo inline para preguntar la causa antes de mandar la petición.</p>
-<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code>.</p>
-<p><strong>Request body</strong>:</p>
-<pre><code class="language-json">{
-  "causesBaja": true,         // si el empleado deja la empresa, dispara reasignación al sucesor
-  "successorId": "uuid"       // REQUIRED si causesBaja=true (resolución T3 — no inferencia silenciosa).
-                              //          Si se omite, el endpoint devuelve 400 SUCCESSOR_REQUIRED con
-                              //          un campo `suggestedSuccessorId` calculado por temporalidad
-                              //          (asesor activo más antiguo con dateFrom &gt; current.dateTo en el
-                              //          mismo client+department). El frontend puede pre-rellenar el
-                              //          diálogo con esa sugerencia.
-}</code></pre>
-<p><strong>Behavior</strong>:</p>
-<ul>
-<li>Setea <code>dateTo = today</code> y <code>causesBaja</code> según body.</li>
-<li>Publica evento AMQP <code>pgi-api.v1.client-assignment.updated</code> con campos completos.</li>
-<li>Si <code>causesBaja = true</code>: dispara <code>reassignOpenTasksToSuccessor(...)</code> en background.</li>
-</ul>
-<p><strong>Responses</strong>:</p>
-<ul>
-<li><code>200 OK</code> — body con <code>ClientAssignmentDto</code> cerrado</li>
-<li><code>400</code> — successorId no es empleado activo, etc.</li>
-<li><code>403</code></li>
-</ul>
-<h3><code>GET /api/v1/clients/{clientId}/assignments?status=active|closed|all</code></h3>
-<p>Lista asignaciones del cliente, opcional filtrar por status. Lectura para todos los perfiles con acceso a la ficha.</p>
-<p><strong>Response</strong>:</p>
-<pre><code class="language-json">{
-  "items": [
-    {
-      "id": "uuid",
-      "clientId": "uuid",
-      "teamId": "uuid",
-      "employeeId": "uuid",
-      "employeeName": "Alejandro Jiménez",
-      "role": "asesor",
-      "department": "fiscal",
-      "dateFrom": "2026-01-01",
-      "dateTo": null,
-      "percentage": 60,
-      "isPrimaryAdvisor": true,
-      "causesBaja": false,
-      "updatedAt": "2026-06-01T..."
-    }
-  ]
-}</code></pre>
-<h2>Errors</h2>
-<table>
-<tr><th>Status</th><th>Code</th><th>Cuándo</th></tr>
-<tr><td>400</td><td><code>INVALID_PERCENTAGE</code></td><td>percentage fuera de 1..100 o ausente para asesor/tecnico</td></tr>
-<tr><td>400</td><td><code>PRIMARY_NOT_ASESOR</code></td><td>isPrimaryAdvisor=true para rol no-asesor</td></tr>
-<tr><td>403</td><td><code>INSUFFICIENT_ROLE</code></td><td>Usuario sin permiso</td></tr>
-<tr><td>409</td><td><code>PERSON_ALREADY_ACTIVE_IN_CLIENT</code></td><td>FR-021 partial unique falla</td></tr>
-<tr><td>409</td><td><code>CONCURRENT_MODIFICATION</code></td><td>If-Match falla</td></tr>
-<tr><td>412</td><td><code>MISSING_COMPOSITION</code></td><td>Tras la operación, team queda sin responsable o sin asesor — composición mínima incumplida</td></tr>
-<tr><td>400</td><td><code>SUCCESSOR_REQUIRED</code></td><td>DELETE con <code>causesBaja=true</code> sin <code>successorId</code>. Respuesta incluye <code>suggestedSuccessorId</code> (puede ser null si no hay candidato — el responsable debe designar uno manualmente o reabrir el equipo).</td></tr>
-</table>
-</div>
-<div class="section" id="contracts-client-teams-api">
-  <div class="section-label"><span class="icon">📑</span> Contracts · Client Teams Api</div>
-  <h1>API Contract — Client Teams</h1>
-<p><strong>Servicio</strong>: <code>pgi-service-pgi-api</code>  ·  <strong>Base path</strong>: <code>/api/v1/clients/{clientId}/teams</code></p>
-<h2>Endpoints</h2>
-<h3><code>POST /api/v1/clients/{clientId}/teams</code></h3>
-<p>Crea un nuevo <code>ClientTeam</code> para un cliente en un departamento. Pre-condición: el cliente debe tener al menos un <code>ProvidedService</code> activo cuya <code>family</code> mapee al departamento (FR-017).</p>
-<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code> del cliente.</p>
-<p><strong>Request body</strong>:</p>
-<pre><code class="language-json">{
-  "department": "fiscal" | "laboral",
-  "startDate": "2026-06-01",  // primer día del mes
-  "isPrimary": false           // opcional, default false; max 1 true por (client, dept)
-}</code></pre>
-<p><strong>Responses</strong>:</p>
-<ul>
-<li><code>201 Created</code> — body: <code>ClientTeamDto</code> (con <code>id</code>, <code>updatedAt</code>)</li>
-<li><code>400 Bad Request</code> — validación falla (fecha no es día 1, dept inválido, etc.)</li>
-<li><code>403 Forbidden</code> — sin permiso de rol</li>
-<li><code>412 Precondition Failed</code> — cliente no tiene <code>ProvidedService</code> activo en ese dept (FR-017)</li>
-<li><code>409 Conflict</code> — ya existe un team con <code>isPrimary=true</code> activo en ese (client, dept)</li>
-</ul>
-<h3><code>PATCH /api/v1/clients/{clientId}/teams/{teamId}</code></h3>
-<p>Modifica un team activo. Soporta cambiar <code>isPrimary</code>. Requiere <code>If-Match</code> header con el <code>updatedAt</code> que tenía al cargar (optimistic concurrency, FR-022).</p>
-<p><strong>Permisos</strong>: <code>responsable</code> o <code>coordinador</code>.</p>
-<p><strong>Headers</strong>: <code>If-Match: "2026-06-01T10:23:45.000Z"</code></p>
-<p><strong>Request body</strong> (todos opcionales):</p>
-<pre><code class="language-json">{
-  "isPrimary": true
-}</code></pre>
-<p><strong>Responses</strong>:</p>
-<ul>
-<li><code>200 OK</code> — body actualizado</li>
-<li><code>409 Conflict</code> — <code>If-Match</code> no coincide con <code>updatedAt</code> actual (otro editor lo cambió)</li>
-<li><code>403 Forbidden</code></li>
-<li><code>404 Not Found</code></li>
-</ul>
-<h3><code>POST /api/v1/clients/{clientId}/teams/{teamId}/close</code></h3>
-<p>Cierra un team setting <code>endDate</code>. Acción irreversible (FR-009). Requiere doble confirmación (UI), pero a nivel API es un POST.</p>
-<p><strong>Permisos</strong>: <code>responsable</code>.</p>
-<p><strong>Request body</strong>:</p>
-<pre><code class="language-json">{
-  "endDate": "2027-05-31"  // último día del mes
-}</code></pre>
-<p><strong>Behavior</strong> (resolución T4):</p>
-<ul>
-<li>Toda la mutación (team.endDate + N assignments.dateTo) corre dentro de <strong>un único <code>em.transactional</code></strong>. Si cualquier paso falla, rollback completo — el team no queda parcialmente cerrado.</li>
-<li>Para cada asignación cerrada por esta acción, NO se dispara <code>causesBaja</code> automáticamente — eso es decisión per-member al cerrar individualmente vía <code>DELETE /members/{id}</code>.</li>
-<li><strong>AMQP publish post-commit</strong>: los eventos <code>pgi-api.v1.client-assignment.updated</code> (uno por miembro cerrado) se emiten DESPUÉS del commit exitoso de la transacción. Si el commit falla, no se emite ningún evento. Pendiente D-005 (outbox pattern) para garantizar at-least-once delivery sin ack manual.</li>
-</ul>
-<p><strong>Responses</strong>:</p>
-<ul>
-<li><code>200 OK</code></li>
-<li><code>400</code> — endDate no es último día de mes</li>
-<li><code>403</code></li>
-<li><code>409</code> — team ya cerrado</li>
-</ul>
-<h3><code>GET /api/v1/clients/{clientId}/teams?status=active|closed|all</code></h3>
-<p>Lista teams del cliente. Default <code>status=active</code>. Acceso de lectura para todos los perfiles con acceso a la ficha.</p>
-<p><strong>Response</strong>:</p>
-<pre><code class="language-json">{
-  "items": [
-    {
-      "id": "uuid",
-      "clientId": "uuid",
-      "department": "fiscal",
-      "startDate": "2026-01-01",
-      "endDate": null,
-      "isPrimary": true,
-      "createdBy": "alfonso@afianza-ac.es",
-      "createdAt": "2026-01-01T...",
-      "updatedAt": "2026-06-01T..."
-    }
-  ]
-}</code></pre>
-<h3><code>GET /api/v1/clients/{clientId}/department/{department}/bucket-status</code></h3>
-<p>Devuelve el estado del 100% por departamento (asesores + técnicos por separado, agregado entre todos los teams del dept). Endpoint que la UI consulta para mostrar barras advisory.</p>
-<p><strong>Response</strong>:</p>
-<pre><code class="language-json">{
-  "department": "fiscal",
-  "asesores": {
-    "sum": 100,
-    "status": "complete",
-    "members": [{ "employeeId": "...", "teamId": "...", "percentage": 60 }, ...]
-  },
-  "tecnicos": {
-    "sum": 80,
-    "status": "incomplete",
-    "members": [...]
-  },
-  "hasPrimaryAdvisor": true,
-  "globalStatus": "incomplete"  // active sólo si asesores=100 + tecnicos in {100, not-applicable} + hasPrimary
-}</code></pre>
-<h2>Errors</h2>
-<p>Errores comunes (formato <code>application/problem+json</code>):</p>
-<table>
-<tr><th>Status</th><th>Code</th><th>Cuándo</th></tr>
-<tr><td>400</td><td><code>INVALID_DATE_GRANULARITY</code></td><td>dateFrom/endDate no es primer/último día de mes</td></tr>
-<tr><td>400</td><td><code>MISSING_COMPOSITION</code></td><td>Composición mínima no cumplida al guardar</td></tr>
-<tr><td>403</td><td><code>INSUFFICIENT_ROLE</code></td><td>Usuario no es responsable/coordinador del cliente</td></tr>
-<tr><td>409</td><td><code>CONCURRENT_MODIFICATION</code></td><td><code>If-Match</code> no coincide con <code>updatedAt</code> actual</td></tr>
-<tr><td>409</td><td><code>PRIMARY_ALREADY_EXISTS</code></td><td>Intentar setear <code>isPrimary=true</code> cuando ya existe otro</td></tr>
-<tr><td>412</td><td><code>NO_PROVIDED_SERVICE</code></td><td>Cliente sin <code>ProvidedService</code> activo en ese dept</td></tr>
-</table>
-</div>
-<div class="section" id="decisions-0001-hybrid-date-granularity">
-  <div class="section-label"><span class="icon">📄</span> Decisions · 0001 Hybrid Date Granularity</div>
-  <h1>ADR-0001: Use hybrid date granularity for assignment periods</h1>
+<div class="section" id="decisions">
+  <div class="section-label"><span class="icon">📄</span> Decisions</div>
+  <h1>Decisiones técnicas (ADRs) — DEVPT-518</h1>
+<blockquote><p>Decisiones consolidadas. Formato Nygard simplificado. Cada sección era un ADR independiente; se han fusionado para reducir proliferación de ficheros.</p></blockquote>
+<hr/>
+<h2>0001-hybrid-date-granularity</h2>
 <p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-05-25 <strong>Story</strong>: All <strong>Sources</strong>: research.md#R-001, spec.md#FR-012, spec.md#clarifications-2026-05-25</p>
 <h2>Context</h2>
 <p><code>ClientAssignment.dateFrom</code> / <code>dateTo</code> are PostgreSQL <code>date</code> columns. The spec left date granularity as a TODO with three options: daily, monthly, or hybrid. The choice affects:</p>
@@ -1705,10 +1693,8 @@ npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
 <li><strong>Daily</strong>: complex edge cases (mid-month advisor switches require two same-month rows); rejected because rentability runs monthly.</li>
 <li><strong>Monthly (column type change to varchar 'YYYY-MM')</strong>: would require schema migration; rejected because hybrid keeps the column unchanged.</li>
 </ul>
-</div>
-<div class="section" id="decisions-0002-rabbitmq-for-task-reassignment">
-  <div class="section-label"><span class="icon">📄</span> Decisions · 0002 Rabbitmq For Task Reassignment</div>
-  <h1>ADR-0002: Use RabbitMQ event for manual task reassignment</h1>
+<hr/>
+<h2>0002-rabbitmq-for-task-reassignment</h2>
 <p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-05-25 <strong>Story</strong>: US4 <strong>Sources</strong>: research.md#R-002, .specify/memory/constitution.md#IV</p>
 <h2>Context</h2>
 <p>FR-010 requires a manual reassignment option where a coordinator transfers specific tasks to another team member. Tasks live in <code>pd-service-obligations-api</code>. Constitution Principle IV (Event-Driven Cross-Service Communication) prohibits direct HTTP calls between backend services.</p>
@@ -1729,10 +1715,8 @@ npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
 <li><strong>HTTP via existing ObligationsApi adapter</strong>: consistent with current legacy pattern and synchronous, but violates Constitution IV. Rejected: new features should not entrench legacy debt.</li>
 <li><strong>Mixed approach (HTTP for some operations, AMQP for others)</strong>: increases cognitive load. Rejected: uniformity wins.</li>
 </ul>
-</div>
-<div class="section" id="decisions-0004-percentage-validation-grouped-by-role">
-  <div class="section-label"><span class="icon">📄</span> Decisions · 0004 Percentage Validation Grouped By Role</div>
-  <h1>ADR-0004: Validate percentages grouped by role (ASESOR / TECNICO)</h1>
+<hr/>
+<h2>0004-percentage-validation-grouped-by-role</h2>
 <p><strong>Status</strong>: Superseded by <a href="0008-single-bucket-percentage-validation.md">ADR-0008</a> <strong>Date</strong>: 2026-05-25 <strong>Story</strong>: US1 <strong>Sources</strong>: research.md#R-004 (original)</p>
 <h2>Context</h2>
 <p>FR-003 originally required that asesores sum to 100% and técnicos sum to 100% independently, both per (client, department, team).</p>
@@ -1755,10 +1739,8 @@ npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
 </ul>
 <h2>Superseded by</h2>
 <p><a href="0008-single-bucket-percentage-validation.md">ADR-0008</a> — Clarification on 2026-05-28 reframed the team as one unit splitting 100% of the work across all operative members. Two-bucket model is no longer the source of truth.</p>
-</div>
-<div class="section" id="decisions-0005-team-scoped-to-client-modelo-a">
-  <div class="section-label"><span class="icon">📄</span> Decisions · 0005 Team Scoped To Client Modelo A</div>
-  <h1>ADR-0005: Adopt Modelo A — teams scoped to a single client, created from the client ficha</h1>
+<hr/>
+<h2>0005-team-scoped-to-client-modelo-a</h2>
 <p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-05-28 <strong>Story</strong>: All <strong>Sources</strong>: spec.md#OQ-005, spec.md#clarifications-2026-05-28</p>
 <h2>Context</h2>
 <p>OQ-005 was the critical open question of the spec: should a team be created per client (Modelo A) or as a standalone entity reusable across multiple clients (Modelo B)?</p>
@@ -1778,10 +1760,8 @@ npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
 <ul>
 <li><strong>Modelo B (reusable teams from a dedicated screen)</strong>: more powerful but requires a new screen, new permissions, more code. Rejected for MVP; documented as future evolution.</li>
 </ul>
-</div>
-<div class="section" id="decisions-0006-responsable-as-clientassignment-row">
-  <div class="section-label"><span class="icon">📄</span> Decisions · 0006 Responsable As Clientassignment Row</div>
-  <h1>ADR-0006: Represent the responsable as a ClientAssignment row with role=responsable</h1>
+<hr/>
+<h2>0006-responsable-as-clientassignment-row</h2>
 <p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-05-28 <strong>Story</strong>: US1 <strong>Sources</strong>: spec.md#clarifications-2026-05-28</p>
 <h2>Context</h2>
 <p><code>ClientAssignmentRole</code> enum already includes <code>responsable</code>, <code>coordinador</code>, <code>asesor</code>, <code>tecnico</code>. Acceptance scenarios (US1) name the responsable as the actor but don't make explicit how the role is materialized in the data model: as a <code>ClientAssignment</code> row, or implicitly as <code>ClientTeam.createdBy</code>?</p>
@@ -1801,10 +1781,8 @@ npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
 <li><strong><code>createdBy</code> field only</strong>: simpler but loses historical visibility of responsable changes and requires a different code path for "is X the responsable?" queries.</li>
 <li><strong>Hybrid (createdBy + optional ClientAssignment row)</strong>: too flexible; opens the door to "responsable in two places" inconsistency.</li>
 </ul>
-</div>
-<div class="section" id="decisions-0009-legacy-data-migration-in-us1">
-  <div class="section-label"><span class="icon">📄</span> Decisions · 0009 Legacy Data Migration In Us1</div>
-  <h1>ADR-0009: Run legacy data migration as part of US1 deployment</h1>
+<hr/>
+<h2>0009-legacy-data-migration-in-us1</h2>
 <p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-05-28 <strong>Story</strong>: US1 <strong>Sources</strong>: spec.md#FR-013, spec.md#clarifications-2026-05-28</p>
 <h2>Context</h2>
 <p>Existing <code>client_assignment</code> rows on production are 1-to-1 (one asesor per client+department). After deploying this feature, those legacy rows have <code>team_id = NULL</code> because they predate the <code>ClientTeam</code> table.</p>
@@ -1831,10 +1809,8 @@ npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
 <li><strong>Hide legacy rows until manual team creation</strong>: confusing UX (active assignments invisible in the new UI), and risks responsables thinking they need to re-input what's already in BD.</li>
 <li><strong>Defer to a separate post-deploy script</strong>: extra moving piece in the release process; the SQL fits perfectly in the same migration.</li>
 </ul>
-</div>
-<div class="section" id="decisions-0010-optimistic-concurrency-version-column">
-  <div class="section-label"><span class="icon">📄</span> Decisions · 0010 Optimistic Concurrency Version Column</div>
-  <h1>ADR-0010 — Optimistic concurrency: dedicated <code>version</code> column instead of <code>updatedAt</code></h1>
+<hr/>
+<h2>0010-optimistic-concurrency-version-column</h2>
 <p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-06-01 <strong>Supersedes</strong>: N/A <strong>Superseded by</strong>: N/A <strong>Origin</strong>: Challenge technical 2026-06-01, T5 (feasibility-F5)</p>
 <h2>Context</h2>
 <p>FR-022 introduce optimistic concurrency en <code>ClientTeam</code> y <code>ClientAssignment</code> para resolver C2 de la sesión PO (último editor pisa silenciosamente al primero). La propuesta inicial del plan usaba <code>updatedAt</code> (timestamp con sub-second precision) comparado vía header <code>If-Match</code> para detectar conflictos.</p>
@@ -1866,10 +1842,8 @@ npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
 <li>Frontend (<code>pgi-app-pgi-web</code>) actualiza los DTO + manejo del 409.</li>
 <li>Tests de integración con concurrencia real (dos transacciones simultáneas via testcontainers) verifican que el conflict se detecta correctamente.</li>
 </ul>
-</div>
-<div class="section" id="decisions-0011-cross-service-team-id-logical-fk">
-  <div class="section-label"><span class="icon">📄</span> Decisions · 0011 Cross Service Team Id Logical Fk</div>
-  <h1>ADR-0011 — <code>team_id</code> in <code>pd-service-data-factory</code> is a logical FK only</h1>
+<hr/>
+<h2>0011-cross-service-team-id-logical-fk</h2>
 <p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-06-01 <strong>Supersedes</strong>: N/A <strong>Superseded by</strong>: N/A <strong>Origin</strong>: Challenge technical 2026-06-01, T7 (feasibility-F7)</p>
 <h2>Context</h2>
 <p>La feature DEVPT-518 introduce <code>ClientTeam</code> en <code>pgi-service-pgi-api</code>. El modelo <code>ClientAssignment</code> en <code>pd-service-data-factory</code> necesita reflejar el <code>team_id</code> para que los informes de rentabilidad puedan agregar por equipo (FR-014 + FR-018, FR-019).</p>
@@ -1896,111 +1870,6 @@ npx jest --testPathPattern=client-assignment.unique-constraints</code></pre>
 <li><code>pd-service-data-factory/client-assignment.subscriber</code> añade log warn cuando recibe payload con teamId no conocido localmente (puede ocurrir en rolling deploy si data-factory está más atrasado).</li>
 <li>Si en una iteración futura se necesita validar integridad, se introduce evento <code>client-team.created/closed</code> aparte y data-factory mantiene una proyección local de <code>ClientTeam</code>. Por ahora, YAGNI (Constitution V).</li>
 <li>No hay migración para "limpiar" huérfanos — los huérfanos son inputs válidos del sistema.</li>
-</ul>
-</div>
-<div class="section" id="decisions-readme">
-  <div class="section-label"><span class="icon">📄</span> Decisions · Readme</div>
-  <h1>Decision Log — 001-client-team-assignments</h1>
-<p>Architecture Decision Records for this feature. One file per decision. Numbered sequentially per feature. See <code>.specify/templates/refinement/decisions.template.md</code> and the <code>speckit-decisions-extract</code> skill for how this index is regenerated.</p>
-<table>
-<tr><th>ADR</th><th>Title</th><th>Status</th><th>Story</th><th>Date</th></tr>
-<tr><td><a href="0001-hybrid-date-granularity.md">0001</a></td><td>Use hybrid date granularity for assignment periods</td><td>Accepted</td><td>All</td><td>2026-05-25</td></tr>
-<tr><td><a href="0002-rabbitmq-for-task-reassignment.md">0002</a></td><td>Use RabbitMQ event for manual task reassignment</td><td>Accepted</td><td>US4</td><td>2026-05-25</td></tr>
-<tr><td><a href="0003-one-active-team-partial-index.md">0003</a></td><td>Enforce one active team per client+department via service guard + partial unique index</td><td>Accepted</td><td>US1</td><td>2026-05-25</td></tr>
-<tr><td><a href="0004-percentage-validation-grouped-by-role.md">0004</a></td><td>Validate percentages grouped by role (ASESOR / TECNICO)</td><td>Superseded by <a href="0008-single-bucket-percentage-validation.md">0008</a></td><td>US1</td><td>2026-05-25</td></tr>
-<tr><td><a href="0005-team-scoped-to-client-modelo-a.md">0005</a></td><td>Adopt Modelo A — teams scoped to a single client, created from the client ficha</td><td>Accepted</td><td>All</td><td>2026-05-28</td></tr>
-<tr><td><a href="0006-responsable-as-clientassignment-row.md">0006</a></td><td>Represent the responsable as a ClientAssignment row with role=responsable</td><td>Accepted</td><td>US1</td><td>2026-05-28</td></tr>
-<tr><td><a href="0007-draft-commit-team-model.md">0007</a></td><td>Use draft + explicit commit model for team management</td><td>Accepted</td><td>US1</td><td>2026-05-28</td></tr>
-<tr><td><a href="0008-single-bucket-percentage-validation.md">0008</a></td><td>Validate percentage as a single-bucket team total (asesor + técnico = 100%)</td><td>Accepted</td><td>US1</td><td>2026-05-28</td></tr>
-<tr><td><a href="0009-legacy-data-migration-in-us1.md">0009</a></td><td>Run legacy data migration as part of US1 deployment</td><td>Accepted</td><td>US1</td><td>2026-05-28</td></tr>
-</table>
-<h2>Conventions</h2>
-<ul>
-<li>ADRs are <strong>immutable once accepted</strong>. To change a decision, write a new ADR with <code>Supersedes: ADR-XXXX</code> and mark the older one <code>Status: Superseded by ADR-YYYY</code>.</li>
-<li>Numbering is per feature. <code>decisions/</code> resets at <code>0001</code> for each new feature.</li>
-<li>Edits to existing ADRs are allowed only for: status changes (when superseded), source-link additions, or enriching <code>Consequences</code> with empirical findings post-implementation.</li>
-<li>This <code>README.md</code> is auto-regenerated by <code>/speckit-decisions-extract</code>. Do not edit by hand.</li>
-</ul>
-</div>
-<div class="section" id="decisions-_archived-0003-one-active-team-partial-index">
-  <div class="section-label"><span class="icon">📄</span> Decisions ·  Archived · 0003 One Active Team Partial Index</div>
-  <h1>ADR-0003: Enforce one active team per client+department via service guard + partial unique index</h1>
-<p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-05-25 <strong>Story</strong>: US1 <strong>Sources</strong>: research.md#R-003, spec.md#FR-005</p>
-<h2>Context</h2>
-<p>FR-005 mandates that a client cannot have more than one active team per department (unicity over <code>client_id + department WHERE end_date IS NULL</code>). MikroORM 6 does not generate partial unique indexes natively — it requires raw SQL in the migration.</p>
-<p>We need to choose between enforcing at the service layer, the DB layer, or both.</p>
-<h2>Decision</h2>
-<p>Belt-and-suspenders: enforce at <strong>both</strong> layers.</p>
-<ol>
-<li><strong>Service guard</strong> in <code>ClientTeamsService.createTeam()</code> checks for an existing active team and throws <code>ACTIVE_TEAM_EXISTS</code> with a clean error message before attempting the insert.</li>
-<li><strong>Partial unique index</strong> <code>idx_client_team_active ON client_team (client_id, department) WHERE end_date IS NULL</code> enforces the constraint at the DB layer to prevent race conditions.</li>
-</ol>
-<h2>Consequences</h2>
-<ul>
-<li>✅ Race-condition safety: even under concurrent requests, the DB rejects the second insert.</li>
-<li>✅ Clean error UX: the service guard catches the common case and returns a human-readable error before hitting the DB.</li>
-<li>⚠️ The migration includes raw SQL for the partial index (<code>addSql</code> with <code>CREATE UNIQUE INDEX ... WHERE</code>), which MikroORM doesn't auto-generate.</li>
-</ul>
-<h2>Alternatives Considered</h2>
-<ul>
-<li><strong>Service guard only</strong>: simpler but loses race-condition safety under concurrent traffic.</li>
-<li><strong>DB constraint only</strong>: race-safe but produces an opaque <code>unique violation</code> error that requires translation at the application layer. Worse UX.</li>
-</ul>
-</div>
-<div class="section" id="decisions-_archived-0007-draft-commit-team-model">
-  <div class="section-label"><span class="icon">📄</span> Decisions ·  Archived · 0007 Draft Commit Team Model</div>
-  <h1>ADR-0007: Use draft + explicit commit model for team management</h1>
-<p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-05-28 <strong>Story</strong>: US1 <strong>Sources</strong>: spec.md#clarifications-2026-05-28, contracts/client-teams.md</p>
-<h2>Context</h2>
-<p>When constructing a team incrementally (add 1st asesor at 60%, add 2nd asesor at 40%), validating "sum = 100%" on every <code>POST /members</code> is impossible: between adding the 1st and the 2nd, the team is transiently invalid by definition. We need a strategy that allows the team to exist in an invalid state during construction and only enforce the rule at the right moment.</p>
-<h2>Decision</h2>
-<p>Two-phase model:</p>
-<ol>
-<li><strong>Draft phase</strong>: <code>POST /members</code>, <code>PATCH /members/:id</code>, <code>DELETE /members/:id</code> operate freely without validating the 100% sum. They only validate per-row constraints (range 1–100, role uniqueness for responsable/coordinador, date boundary).</li>
-<li><strong>Commit phase</strong>: <code>POST /v1/client-teams/:clientId/:teamId/commit</code> runs the full validation (sum = 100, ≥ 1 asesor) and:</li>
-<li>On success: marks the team as confirmed and publishes one <code>backoffice-api.v1.client-assignment.updated</code> event per active member.</li>
-<li>On failure: returns <code>400 PERCENTAGE_VALIDATION_FAILED</code> or <code>MIN_ASESOR_REQUIRED</code> and leaves the team in draft.</li>
-</ol>
-<p><code>POST /validate</code> exists as a read-only helper for the frontend's live indicator.</p>
-<h2>Consequences</h2>
-<ul>
-<li>✅ Natural UX: responsable can construct a team in any order without intermediate errors.</li>
-<li>✅ Single source of "the team is now official" → events are only emitted on commit, downstream consumers (Plataforma del Dato) see consistent state.</li>
-<li>✅ Validation rules concentrated in one method (<code>ClientTeamsService.commitTeam</code>); fewer places to maintain.</li>
-<li>⚠️ A team can exist in BD in an invalid state ("orphan draft") if the responsable abandons construction. Acceptable: drafts are scoped per client+department and are visible only to editors.</li>
-<li>⚠️ Frontend must distinguish "Save draft" (PATCH member) from "Confirm team" (POST commit) explicitly.</li>
-</ul>
-<h2>Alternatives Considered</h2>
-<ul>
-<li><strong>Validate on every add/edit/remove</strong>: simpler API but impossible to build a multi-member team incrementally; would require sending all members in a single request.</li>
-<li><strong>POST /validate as advisory + auto-commit on last update</strong>: implicit transitions are surprising; explicit commit is clearer.</li>
-</ul>
-</div>
-<div class="section" id="decisions-_archived-0008-single-bucket-percentage-validation">
-  <div class="section-label"><span class="icon">📄</span> Decisions ·  Archived · 0008 Single Bucket Percentage Validation</div>
-  <h1>ADR-0008: Validate percentage as a single-bucket team total (asesor + técnico = 100%)</h1>
-<p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-05-28 <strong>Story</strong>: US1 <strong>Sources</strong>: spec.md#clarifications-2026-05-28, spec.md#FR-003 <strong>Supersedes</strong>: <a href="0004-percentage-validation-grouped-by-role.md">ADR-0004</a></p>
-<h2>Context</h2>
-<p>Initial interpretation of FR-003 (see <a href="0004-percentage-validation-grouped-by-role.md">ADR-0004</a>) had asesores summing to 100% and técnicos summing to 100% independently — a two-bucket model. The PO clarified that conceptually the team is <strong>one</strong> unit of work load distributed across all operative members.</p>
-<p>Example the PO described: 1 asesor 60% + 1 asesor 20% + 1 técnico 20% = 100% — a valid configuration that the two-bucket model would reject (asesores at 80, técnicos at 20).</p>
-<h2>Decision</h2>
-<p>Validate the <strong>sum of all members with role ASESOR or TECNICO</strong> as a single bucket against 100%. Responsable and coordinador are management roles and <strong>do not enter the sum</strong> (they carry an implicit 100% with no constraint).</p>
-<p>The validation runs only on <code>POST /commit</code> (see <a href="0007-draft-commit-team-model.md">ADR-0007</a>).</p>
-<h2>Consequences</h2>
-<ul>
-<li>✅ Matches the PO's mental model: "the team handles 100% of work, split across operative members".</li>
-<li>✅ Simpler API surface: one validation, one error code, one frontend indicator.</li>
-<li>✅ More flexible team compositions (e.g. a junior técnico can absorb 10% while two senior asesores cover 80% + 10%).</li>
-<li>⚠️ Acceptance scenarios (US1 AC-2, US2 ACs) needed rewriting to match the new rule.</li>
-<li>⚠️ If in the future business wants to differentiate workload accounting per role (e.g. asesor hours vs técnico hours), this decision would need to be revisited.</li>
-</ul>
-<h2>Alternatives Considered</h2>
-<ul>
-<li><strong>Two-bucket model</strong>: asesores 100% + técnicos 100% independently. Rejected — doesn't match how the business reasons about team load.</li>
-</ul>
-<h2>Supersedes</h2>
-<ul>
-<li><a href="0004-percentage-validation-grouped-by-role.md">ADR-0004</a> — original two-bucket model.</li>
 </ul>
 </div>
 <div class="section" id="designs-index">
