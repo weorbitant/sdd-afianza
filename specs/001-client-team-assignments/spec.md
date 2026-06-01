@@ -530,11 +530,215 @@ _Estado_: pending
 
 ---
 
+### Nuevas — Challenge funcional 2026-06-01
+
+> Detectadas por `/speckit-challenge functional`. Ver `challenge-report.md` para evidencia y categorización.
+
+### D1 — El indicador del equipo solo mide a los asesores
+
+**Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1 (Crear y gestionar el equipo de un cliente)  ·  **Bloquea empezar**: US1
+
+**Escenario**: En la vista del equipo aparece una sola barra que dice literalmente *"Dedicación asesores 20%"* y un contador *"Faltan 80% por asignar"*. Sin embargo, la regla escrita dice que asesores y técnicos suman juntos hasta 100%. Hoy podrían convivir lecturas distintas según quién mire la pantalla.
+
+**Por qué te preguntamos**: Si el indicador real es "solo asesores" y técnicos van por separado, cambia la regla central de la feature y los informes de rentabilidad. Si el copy está mal y de verdad es un único cubo, hay que reescribir la etiqueta antes de salir.
+
+**Recomendación del equipo**: A — La decisión de un solo cubo está ratificada en ADR-0008 y simplifica todo (validación, evento, informes). Lo único que sobra es el copy *"Dedicación asesores"* del diseño: cambiarlo cierra la inconsistencia sin reabrir nada.
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A ⭐ | Mantener un único cubo (asesores+técnicos = 100%) y corregir el copy de la barra a *"Dedicación del equipo"*. | Hay que reabrir el diseño para retocar etiquetas; el resto de la lógica no cambia. |
+| B | Volver a dos cubos independientes: asesores 100% y técnicos 100%, cada uno con su propia barra. | Invalida la decisión madura del 28/05 y el ADR-0008; rehace validaciones backend y modelo de evento. |
+| C | Mantener un único cubo pero mostrar dos barras informativas (asesores / técnicos) que solo suman para el badge global. | Más complejo de leer; multiplica la lógica de UI sin cambiar la regla de negocio. |
+
+_Estado_: pending
+
+---
+
+### D2 — Dos puntos de entrada distintos para crear el equipo
+
+**Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1  ·  **Bloquea empezar**: US1
+
+**Escenario**: El responsable abre la ficha de un cliente y, según desde dónde haya llegado, ve dos pantallas diferentes para empezar: una pone *"Añadir persona"* bajo *"Mis clientes"* y otra *"Crear equipo"* bajo *"Mis tareas"*. Ambas parecen iniciar el mismo flujo pero el botón se llama distinto.
+
+**Por qué te preguntamos**: Sin aclarar, los responsables se confunden (*"¿desde dónde se crea?"*) y soporte recibe consultas duplicadas. Además, si solo una entrada está implementada, gente que entra por la otra cree que la feature no está activa.
+
+**Recomendación del equipo**: A — Tener dos entradas suma flexibilidad para los responsables, pero llamarlas distinto induce dudas. Un solo nombre (*"Crear equipo"*) alinea ambos puntos sin cerrar accesos.
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A ⭐ | Unificar el CTA a *"Crear equipo"* en ambas vistas, manteniendo los dos puntos de entrada al mismo modal. | Hay que retocar diseño y copy de *"Mis clientes"* para alinear. |
+| B | Dejar el empty state solo en *"Datos de cliente"* / *"Mis clientes"* y quitarlo de *"Mis tareas"*. | Quien vive en *"Mis tareas"* tiene que cambiar de sección para crear el equipo. |
+| C | Permitir ambos puntos de entrada con su copy actual, asumiendo que conviven. | Mantiene la inconsistencia textual; soporte tendrá que explicar la equivalencia. |
+
+_Estado_: pending
+
+---
+
+### D3 — Qué hace la papelera junto a cada miembro del equipo
+
+**Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1  ·  **Relacionada con**: OQ-007
+
+**Escenario**: Una vez que el responsable añade gente al equipo, junto a cada miembro aparece un icono de papelera. Hoy no está claro si pulsarla borra al miembro como si nunca hubiera estado o cierra su asignación con la fecha de hoy y deja huella en el histórico.
+
+**Por qué te preguntamos**: Si la papelera borra sin dejar rastro, el histórico (US3) deja de ser fiable y se pueden perder porcentajes pagados a un asesor. Si cierra con fecha fin, hace falta decidir cuándo se pregunta por `causesBaja` y por el sucesor de las tareas (FR-010).
+
+**Recomendación del equipo**: A — Cerrar siempre con `endDate` preserva el histórico de US3 sin excepciones. El diálogo inline mantiene la operación dentro del mismo modal y evita una pantalla nueva.
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A ⭐ | La papelera cierra la asignación con `endDate` = hoy y abre un diálogo inline preguntando *"¿Causa baja?"* y sucesor si procede. | Más pasos por miembro, pero conserva trazabilidad y respeta FR-010. |
+| B | La papelera solo borra miembros añadidos en la misma sesión que aún no se han propagado; los ya activos se cierran desde otra acción. | Lógica condicional poco descubrible: el mismo icono hace cosas distintas según el estado del miembro. |
+| C | La papelera abre una pantalla / modal dedicado de cierre con campos extensos (fecha, motivo, sucesor, `causesBaja`). | Más superficie a diseñar y construir; rompe la fluidez del modal lateral. |
+
+_Estado_: pending
+
+---
+
+### D4 — Equipos a medias que se quedan así para siempre
+
+**Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1, US4
+
+**Escenario**: Un responsable empieza a montar el equipo de un cliente, añade un par de miembros, suma 60% y se va a otra cosa. El equipo queda en estado *"incompleto"* con un banner amarillo. Nadie le recuerda nada y la rentabilidad de ese cliente deja de propagarse a los informes.
+
+**Por qué te preguntamos**: La empresa pierde datos de rentabilidad mientras el equipo siga incompleto. Si el responsable se olvida (vacaciones, baja, salida), nadie reclama y el cliente queda fuera de los cuadros de mando hasta que alguien lo descubre.
+
+**Recomendación del equipo**: A — Mantener la decisión actual evita ampliar el alcance. Si en producción aparecen olvidos reales, lo medimos y añadimos visibilidad en una iteración siguiente. La opción B sería ideal pero requiere construir un widget que hoy no está en el plan.
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A ⭐ | No imponer límite: el banner advisory es suficiente y el responsable es quien decide cuándo cerrar el 100%. | Riesgo real de equipos olvidados durante semanas; informes infrarrepresentados. |
+| B 🏗 | Mostrar un listado/contador de equipos incompletos en la home de cada responsable para visibilidad operativa. | Requiere un widget nuevo en la home — fuera del alcance del FR-015 (solo ficha de cliente). |
+| C | Bloquear la creación de un nuevo equipo en el mismo cliente+departamento mientras haya otro en estado `incomplete`. | Evita olvidos pero puede frustrar a equipos grandes que necesiten varios borradores en paralelo. |
+
+_Estado_: pending
+
+---
+
+### D5 — Bajas temporales prolongadas (enfermedad, maternidad)
+
+**Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1, US4
+
+**Escenario**: Un asesor del equipo entra en baja médica de larga duración. Sigue figurando como miembro activo del equipo al 40%, las tareas le siguen llegando, y nadie las atiende durante semanas. Cuando vuelve, encuentra una cola enorme o el cliente ya se ha quejado.
+
+**Por qué te preguntamos**: El cliente queda mal atendido durante la baja y no hay registro de quién está realmente cubriendo el hueco. En facturación, el porcentaje que cobra ese asesor durante la baja queda en zona gris.
+
+**Recomendación del equipo**: A — La opción B es la correcta a futuro pero requiere construir entidad y UI nuevas (suplencias) que no están en el plan. Lo pragmático es operar con cierres manuales y aceptar la fricción hasta que tengamos datos reales de cuántas bajas largas hay al año.
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A ⭐ | Sustituir manualmente: el responsable cierra la asignación del asesor de baja y añade otro al equipo durante la ausencia, sin un flujo específico. | Cuando el asesor vuelve, hay que volver a montar el equipo a mano; depende de que el responsable se acuerde. |
+| B 🏗 | Añadir el concepto de *"suplencia temporal"* a `TeamMember` (fecha inicio/fin suplencia, sustituto), sin alterar el porcentaje del titular. | Requiere construir un modelo de suplencias nuevo — entidad y UI propias; fuera del alcance actual. |
+| C | No tratar el caso en esta entrega y documentarlo como gap conocido para una iteración posterior. | Las bajas largas seguirán ocurriendo y se gestionan a mano sin trazabilidad estructurada. |
+
+_Estado_: pending
+
+---
+
+### D6 — De dónde sale el nombre del equipo (Libros, Cuota, Larsa…)
+
+**Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1  ·  **Bloquea empezar**: US1  ·  **Relacionada con**: OQ-006
+
+**Escenario**: En el rediseño multi-equipo aparecen equipos llamados *"Libros"*, *"Cuota"*, *"Larsa"* y *"Costa"*. *"Libros"* y *"Cuota"* coinciden con categorías reales de servicio contratado. *"Larsa"* y *"Costa"* parecen apellidos o marcas. Hoy no está claro si el responsable escribe el nombre a mano o lo elige de una lista cerrada.
+
+**Por qué te preguntamos**: Si es texto libre, dos responsables pueden llamar *"Cuota"* y *"cuota mensual"* al mismo equipo, los informes no agruparán. Si es lista cerrada de `ServiceCategory`, hay que crear vínculo `ClientTeam → ProvidedService` y limita qué equipos puede crear el responsable.
+
+**Recomendación del equipo**: C — Los frames muestran ambos tipos de nombre (categoría y apellido), así que la realidad es híbrida. Sugerir desde categoría limpia el caso común; permitir texto libre cubre los casos especiales como Larsa/Costa.
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A | Texto libre con validación de unicidad por cliente+departamento, sin vínculo a `ProvidedService`. | Máxima flexibilidad pero datos sucios; no se puede agrupar *"equipos de Libros"* entre clientes. |
+| B | Lista cerrada derivada de `ServiceCategory` del cliente: el responsable elige entre los servicios contratados activos. | Modelo limpio y consistente, pero no encaja con nombres tipo *"Larsa"*/*"Costa"* que no son categorías. |
+| C ⭐ | Híbrido: sugerencia desde `ServiceCategory` con opción a texto libre cuando ninguna categoría aplica. | Más complejo de construir; la sugerencia puede confundir si el responsable la ignora siempre. |
+
+_Estado_: pending
+
+---
+
+### D7 — Qué porcentajes ve cada perfil en el histórico
+
+**Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US3 (Histórico de cambios de asignación)
+
+**Escenario**: Un asesor entra a la ficha de un cliente que comparte con otros dos asesores y abre el histórico. Hoy la spec dice que cualquier perfil con acceso a la ficha ve el histórico completo — eso incluye que vea qué porcentaje tienen sus compañeros, lo cual se traduce indirectamente en cuánto cobra cada uno por ese cliente.
+
+**Por qué te preguntamos**: Hay sensibilidad alrededor de la rentabilidad y reparto de carga entre asesores. Si se expone sin filtrar, se generan conversaciones internas incómodas. Por otro lado, ocultar porcentajes al asesor le impide entender su propia carga.
+
+**Recomendación del equipo**: A — Es la opción ya descrita en US3 y la más simple de construir. Si en producción surge fricción por exposición de porcentajes, se reduce visibilidad en una iteración siguiente sin romper datos.
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A ⭐ | Histórico completo y porcentajes visibles para todos los perfiles con acceso a la ficha. | Transparencia total dentro del equipo, asumiendo conversaciones internas posibles. |
+| B | El asesor solo ve sus propias entradas y porcentajes; responsable/coordinador ven todo el equipo. | Más complejo de filtrar; el asesor pierde contexto del reparto global del cliente. |
+| C | Todos ven la composición y miembros, pero los porcentajes solo se muestran a responsable/coordinador. | Histórico parcial; el asesor sabe quién está pero no cómo se reparte. |
+
+_Estado_: pending
+
+---
+
+### D8 — Equipo activo en un departamento que el cliente ya no contrata
+
+**Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1, US4  ·  **Relacionada con**: OQ-008
+
+**Escenario**: Un cliente cancela el servicio Laboral pero sigue con Fiscal. El equipo de Laboral, con sus dos asesores y técnico, sigue marcado como *"activo"* en la ficha. Aparece en informes y los asesores siguen contando ese cliente en su carga, aunque ya no haya trabajo real que hacer.
+
+**Por qué te preguntamos**: Los porcentajes del equipo huérfano siguen alimentando rentabilidad e informes en Plataforma del Dato, distorsionando métricas. Además, los asesores ven al cliente en su *"Mis Clientes"* (cuando se actualice) sin entender por qué.
+
+**Recomendación del equipo**: B — El cierre automático evita huérfanos pero quita control al responsable y depende de un consumer reactivo a eventos de baja de servicio que hoy no está construido. El banner es feasible con lo que hay y deja la decisión en quien conoce al cliente.
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A | El sistema cierra automáticamente el equipo cuando se da de baja el último `ProvidedService` activo de ese departamento, fecha = fecha de baja del servicio. | Automatismo que el responsable no controla; si la baja del servicio se hizo por error hay que crear equipo nuevo. |
+| B ⭐ | El sistema no cierra el equipo pero muestra banner persistente en la ficha *"Cliente sin servicios activos en este departamento — considera cerrar el equipo"*. | El cierre depende de que un humano vea el banner; durante el delay los informes están sesgados. |
+| C | No tratar el caso en esta entrega: el equipo queda activo y se confía en el responsable. | Acumula deuda; sabemos que pasará y elegimos ignorarlo. |
+
+_Estado_: pending
+
+---
+
+### D10 — Cómo encajan las asignaciones que llegan por onboarding desde Jira en el nuevo modelo multi-equipo
+
+**Origen**: `challenge-report.md` (2026-06-01, detectado tras challenge por flag manual)  ·  **Afecta a**: US1, cross-cutting (todas las historias)  ·  **Bloquea empezar**: US1
+
+**Escenario**: Hoy hay un flujo automático que crea asignaciones sin que el responsable haga nada: cuando un cliente se da de alta en Jira y se procesa el onboarding, `pgi-service-pgi-api` recibe el evento `client_onboarding_persisted` y crea filas de `client_assignment` automáticamente (responsable, coordinador, asesor, técnico) con `actor = "system:onboarding"`. Esto lleva meses en producción y la spec actual no lo mencionaba. Cuando esta feature añada `team_id` y multi-equipo, hay que decidir cómo se comportan las asignaciones que entran por onboarding sin saber nada de equipos.
+
+**Por qué te preguntamos**: Si no se decide, el onboarding seguirá creando filas con `team_id = NULL` y aparecerán asignaciones huérfanas en la ficha del cliente. El responsable verá *"hay un asesor asignado pero no está en ningún equipo"* y tendrá que reagruparlas a mano cada vez que se da de alta un cliente nuevo. Tampoco está claro si el onboarding debe respetar la pre-condición de `ProvidedService` (FR-017) o si tiene barra libre por ser un sistema interno.
+
+**Recomendación del equipo**: C — Crear automáticamente un *"Equipo inicial"* por cliente+departamento dentro del propio `applyFromClientOnboarding` y meter ahí las asignaciones del onboarding. Sin tocar el contrato del evento ni al productor (data-factory). El responsable luego renombra el equipo si quiere usar nombre real (D6).
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A | Dejar el onboarding como está: crea filas con `team_id = NULL`. El responsable abre la ficha y agrupa manualmente las asignaciones en un equipo. | Cero cambios en código consumer, pero cada alta de cliente nuevo genera trabajo manual para el responsable y rompe la regla de "todo miembro pertenece a un team". |
+| B 🏗 | Ampliar el contrato del evento `client_onboarding_persisted` para que el productor (data-factory / Jira flow) envíe ya `teamName`/`teamId` y el consumer cree el team explícitamente con esos datos. | Requiere coordinar con plataforma del dato + el flujo Jira que origina el onboarding. Cambio cross-team que no está en el alcance de esta épica. |
+| C ⭐ | El consumer `applyFromClientOnboarding` crea automáticamente un `ClientTeam` con nombre por defecto (*"Equipo inicial"* o el `ServiceCategory` del servicio si está disponible en el mensaje) por cada cliente+departamento, y mete dentro las asignaciones del onboarding. El responsable puede renombrar después. | Aísla el cambio dentro de pgi-api; no toca contratos. Si llega un cliente con dos servicios del mismo departamento (Libros+Cuota), se crea un único *"Equipo inicial"* que mezcla ambos — el responsable lo separa después si quiere. |
+
+_Estado_: pending
+
+---
+
+### D9 — Cambio de rol del empleado (técnico pasa a asesor)
+
+**Origen**: `challenge-report.md` (2026-06-01)  ·  **Afecta a**: US1, US4
+
+**Escenario**: Pablo Ríos es técnico en el equipo Fiscal de un cliente al 100%. Se le promociona a asesor. El responsable necesita reflejarlo. Hoy no sabemos si Pablo se queda en el mismo equipo cambiando su etiqueta (con su porcentaje intacto), o si se cierra su asignación de técnico y se crea una nueva como asesor desde cero.
+
+**Por qué te preguntamos**: Si se *"edita"* el rol in situ, el histórico pierde el momento del cambio y la rentabilidad de los meses anteriores queda atribuida erróneamente al rol nuevo. Si se cierra y se vuelve a crear, hay un día sin cobertura técnica formal — viola FR-011 si no se sustituye.
+
+**Recomendación del equipo**: A — Mantiene la trazabilidad del cambio en el histórico (cumple US3) y respeta la granularidad mensual de FR-012, que es la base del cálculo de rentabilidad.
+
+| Opción | Qué hace | Trade-off |
+|--------|----------|-----------|
+| A ⭐ | Cerrar la asignación actual con `endDate` = último día del mes anterior y crear una nueva con el nuevo rol al día 1 del mes siguiente. | Hay un mes de transición que requiere coordinación; respeta granularidad mensual. |
+| B | Editar el rol en el mismo `TeamMember` manteniendo `id`, `startDate` y `percentage`. | El histórico no refleja el cambio; reporting atribuye mal los meses anteriores. |
+| C | Cerrar y crear el mismo día sin gap: dos filas en histórico con la transición clara. | Rompe la convención de granularidad mensual (FR-012). |
+
+_Estado_: pending
+
+---
+
 ## Clarifications
 
 ### Session 2026-06-01 (cross-service discovery + nuevas restricciones)
 
-- Q: Verificación en código del polyrepo — ¿qué rutas de creación/propagación de asignaciones existen además de la UI del PGI? → A: **UI del PGI única ruta de ESCRITURA** sobre `ClientAssignment` y `ClientTeam`. Verificado: existen dos pipelines AMQP de SALIDA que deben actualizarse como parte de la feature — `pd-service-jira-adapter` (sync a Jira Assets "Clientes" object type) y `pd-service-data-factory` (alimenta informes). El modelo `ClientAssignment` en `pd-service-data-factory` está desalineado (sin `team_id` ni `percentage`); el modelo en `pd-service-jira-adapter` también requiere extensión. **Nuevos FR-018, FR-019, FR-020, FR-021** documentan los cambios cross-service. El pipeline `issueClientServicePersisted` queda fuera de scope de esta feature.
+- Q: Verificación en código del polyrepo — ¿qué rutas de creación/propagación de asignaciones existen además de la UI del PGI? → A (parcial — corregida 2026-06-01 tarde, ver D10): **UI del PGI es UNA de las rutas de escritura, pero NO la única**. Existen también: (i) ruta de **entrada AMQP `client_onboarding_persisted`** consumida por `pgi-service-pgi-api/client-subscriber` que llama a `ClientAssignmentsService.applyFromClientOnboarding(...)` y crea filas en `client_assignment` automáticamente cuando se da de alta un cliente desde Jira (actor = `system:onboarding`) — flujo en producción desde mayo 2026, fix de duplicados ya implementado (DEVPT-539); (ii) pipelines AMQP de **SALIDA** que deben actualizarse — `pd-service-jira-adapter` (sync a Jira Assets) y `pd-service-data-factory` (informes). Modelos `ClientAssignment` desalineados en data-factory (sin `team_id`/`percentage`). **Nuevos FR-018..FR-021** documentan los cambios de salida; **la integración con la ruta de onboarding queda como D10 pendiente PO**.
 - Q: Restricción por servicios contratados — ¿se permite crear un equipo en un departamento donde el cliente no tiene `ProvidedService` activo? → A: **No** — la creación se bloquea en frontend (CTA oculto) y backend (validación). Apunte introducido en clarify 2026-06-01. Verificado en código: existen `ProvidedService` con `family: ServiceFamily` y `category: ServiceCategory`. **Nuevo FR-017**. Pregunta abierta sobre equipos huérpanos al darse de baja servicios → **OQ-008**.
 - Q: Un mismo empleado puede ocupar varios roles en un mismo equipo (ej. Coordinador y Asesor a la vez)? → A: **No** — un empleado, un único rol por equipo. **Nuevo FR-016**. (El mismo empleado SÍ puede estar en equipos de departamentos distintos del mismo cliente — eso está permitido por el unique constraint actual.)
 - Q: Política de concurrencia cuando dos editores tocan el mismo equipo a la vez? → A: **Optimistic concurrency con `updatedAt`**. HTTP 409 al conflicto + aviso UI. **Nuevo FR-022**.
