@@ -169,15 +169,18 @@ comprobar que el equipo queda inactivo y registrado en el histórico.
   Modelo A vs Modelo B; ver Key Entities.)*
 - **FR-002**: Cada miembro del equipo DEBE tener una fecha de inicio, un porcentaje de carga
   (por defecto 100%) y opcionalmente una fecha de fin.
-- **FR-003**: El sistema DEBE validar que la suma de porcentajes de **todos los miembros del equipo
-  (asesores y técnicos) sea exactamente 100%**, por cliente+departamento, **en el momento de confirmar
-  el equipo** (`POST /commit`). El responsable y el coordinador NO entran en la suma — son roles de
-  gestión con 100% implícito. Las operaciones de borrador (`POST/PATCH/DELETE /members`) no validan la
-  suma — permiten construir el equipo de forma incremental. Solo `POST /commit` rechaza el guardado si
-  la suma no es exactamente 100%.
+- **FR-003**: El sistema DEBE validar la suma de porcentajes de **todos los miembros del equipo
+  (asesores y técnicos)** y el estado resultante del equipo **tras cada operación de miembro**
+  (`POST/PATCH/DELETE /members`). El responsable y el coordinador NO entran en la suma — son roles de
+  gestión con 100% implícito. Cada operación persiste de inmediato (ver Clarifications 2026-05-29).
+  El equipo está en estado `active` si y solo si: (a) la suma de asesores+técnicos = 100% **y**
+  (b) existe exactamente un `TeamMember` con `role: asesor` e `isPrimary: true`. En caso contrario el
+  equipo está en estado `incomplete`. Las transiciones entre estados se calculan automáticamente tras
+  cada operación. El sistema NO rechaza operaciones que dejen el equipo en `incomplete` — solo lo
+  refleja en la UI con banner advisory y suprime la publicación a Plataforma del Dato.
 - **FR-004**: Solo los perfiles **responsable** y **coordinador** DEBEN poder crear, modificar o cerrar
   asignaciones. Los asesores y técnicos tienen acceso de solo lectura.
-- **FR-005**: Un **cliente** NO PUEDE tener más de un equipo activo por departamento (unicidad: `cliente + departamento` cuando el equipo no tiene fecha de fin). La restricción es sobre el cliente, no sobre el empleado que ejerce de responsable.
+- **FR-005**: Un **cliente** PUEDE tener varios equipos activos por departamento (modelo multi-equipo confirmado por los diseños `08-multi-equipo/*` — ver Clarifications 2026-05-29). Cada equipo se identifica con un **nombre obligatorio y único** dentro del par cliente+departamento; la unicidad efectiva pasa a ser `(client_id, department, name)` cuando `endDate IS NULL`. La validación del 100% se aplica **por equipo**, no por cliente+departamento. La restricción es sobre el cliente, no sobre el empleado que ejerce de responsable.
 - **FR-006**: Un responsable NO PUEDE pertenecer a más de un departamento.
   *(Restricción organizativa preexistente del modelo de empleados — gestionada en la creación
   del empleado, no validada en esta feature. Documentada aquí para que el equipo de asignaciones
@@ -187,9 +190,14 @@ comprobar que el equipo queda inactivo y registrado en el histórico.
 - **FR-008**: El sistema DEBE mantener un histórico inmutable de todos los cambios de asignación
   (altas, bajas, cambios de porcentaje), con fecha de inicio y fin de cada período.
 - **FR-009**: El sistema DEBE permitir cerrar un equipo fijando una fecha de fin que se propaga a
-  todos sus miembros activos. El cierre es **permanente e irreversible**: no se puede reabrir ni
-  modificar la fecha de fin una vez confirmada. Para reanudar la atención al cliente en el mismo
-  departamento se DEBE crear un nuevo equipo con una nueva fecha de inicio.
+  todos sus miembros activos. **UX del cierre** (alineada con el diseño `03-fecha-fin-equipo/*`):
+  el responsable activa un checkbox **"Marcar fecha fin de equipo"** dentro del modal de añadir
+  asignación e introduce la fecha. Al pulsar "Guardar" con el checkbox activo, el sistema DEBE
+  mostrar un diálogo de confirmación obligatorio (*"Estás a punto de cerrar este equipo el
+  DD/MM/YYYY. Esta acción no se puede deshacer. ¿Confirmas?"*) — solo al confirmar se aplica el
+  cierre. El cierre es **permanente e irreversible**: no se puede reabrir ni modificar la fecha de
+  fin una vez confirmada. Para reanudar la atención al cliente en el mismo departamento se DEBE
+  crear un nuevo equipo (con un nombre distinto — ver FR-005) y una nueva fecha de inicio.
 - **FR-010**: Las tareas existentes NUNCA se cancelan. La asignación de tareas sigue esta lógica:
   - Las **nuevas tareas y obligaciones** se asignan al miembro activo en el período correspondiente.
   - Si un asesor **sigue en la empresa** tras un cambio de asignación, conserva y cierra sus tareas
@@ -210,20 +218,60 @@ comprobar que el equipo queda inactivo y registrado en el histórico.
   (tipo `date`), pero el servicio valida que `dateFrom` sea siempre el primer día del mes y `dateTo`
   el último. Los porcentajes y la rentabilidad se calculan a granularidad mensual. Esta decisión no
   requiere cambio de esquema y permite mayor precisión en el histórico de auditoría.
+  **UX**: la UI solo permite al responsable seleccionar **mes** (no día concreto); el servicio
+  asume día 1 al alta y último día del mes al cierre (ver Clarifications 2026-05-29).
 - **FR-013**: El sistema DEBE migrar automáticamente todas las asignaciones 1-a-1 existentes al modelo
   de porcentajes, asignando un 100% a cada miembro único en su rol y departamento. La migración DEBE
   ser idempotente, no destructiva y ejecutarse en una única pasada sin afectar a los registros de
   histórico existentes.
 - **FR-014**: El sistema DEBE sincronizar los datos de asignación (empleado, rol, porcentaje, período)
   con la **Plataforma del Dato** publicando un **evento en el bus de mensajería interno** (RabbitMQ,
-  exchange `internal`) al confirmar cada cambio. La Plataforma del Dato consume el evento y actualiza
-  sus informes de rentabilidad y cuadros de mando. La propagación DEBE completarse en menos de 5
-  minutos desde el guardado confirmado.
+  exchange `internal`) **únicamente cuando el equipo esté en estado `active`** (FR-003). Se publica
+  evento en: (a) la transición `incomplete → active`, (b) cualquier cambio de miembro que mantenga
+  el equipo en `active`, y (c) la transición `active → closed` (FR-009). Cambios en equipos
+  `incomplete` NO disparan evento. La Plataforma del Dato consume el evento y actualiza sus informes
+  de rentabilidad y cuadros de mando. La propagación DEBE completarse en menos de 5 minutos desde el
+  cambio que produjo el evento.
 - **FR-015**: En el **MVP**, únicamente la **ficha de cliente** DEBE actualizarse para reflejar la lista
   completa de miembros del equipo activo con sus porcentajes. Las pantallas "Mis Clientes", buscador
   global del PGI y los informes internos quedan fuera del alcance de esta iteración y se abordarán
   en una fase posterior. El seguimiento por asesor/técnico en Plataforma del Dato (informes externos)
   queda cubierto por FR-014 vía sincronización.
+- **FR-016**: Un empleado MUST ocupar como máximo **un único rol** dentro de un mismo `ClientTeam`. No
+  se permite que el mismo empleado figure simultáneamente como Coordinador y Asesor del mismo equipo.
+  Si una persona ejerce funciones de coordinación y de asesoría en la práctica, el responsable elige
+  el rol formal del equipo (típicamente Coordinador).
+- **FR-017**: El sistema MUST permitir crear o activar un `ClientTeam` para un cliente en un
+  departamento **solo si** el cliente tiene al menos un `ProvidedService` activo cuya `family` mapee a
+  ese departamento (mapping: `family=fiscal` → Fiscal, `family=laboral` → Laboral). La UI MUST ocultar
+  el CTA `+ Añadir equipo` en los departamentos sin servicios contratados activos; el backend MUST
+  rechazar la creación con error de validación (defensa en profundidad). Los equipos existentes en un
+  departamento permanecen activos aunque luego se den de baja todos los servicios contratados de ese
+  departamento — la regla bloquea **creación**, no invalida **existentes** (a confirmar con PO — ver
+  OQ-008).
+- **FR-018**: El mensaje AMQP `client-assignment` publicado por `pgi-service-pgi-api` (consumido por
+  `pd-service-jira-adapter` y `pd-service-data-factory` — verificado en código) MUST ampliarse para
+  incluir `teamId`, `teamName` y `percentage` además de los campos actuales (`clientId`, `employeeId`,
+  `role`, `department`, `dateFrom`, `dateTo`). Los consumers deben actualizarse para deserializar y
+  persistir los nuevos campos.
+- **FR-019**: El modelo `ClientAssignment` en `pd-service-data-factory` (actualmente sin `team_id` ni
+  `percentage`) MUST alinearse con el modelo de `pgi-service-pgi-api`: añadir columnas `team_id`
+  (nullable FK lógica) y `percentage` (1–100). Migración inicial: `percentage=100` para todas las filas
+  existentes y `team_id=NULL` hasta que se re-publiquen desde pgi-api.
+- **FR-020**: El sync hacia Jira Assets ("Clientes" object type) realizado por `pd-service-jira-adapter`
+  MUST mantener su contrato actual de "una asignación por rol y cliente" cuando hay multi-equipo,
+  escribiendo solo la asignación del **equipo principal** del cliente y del **asesor principal**
+  (`isPrimary=true`). Las asignaciones de otros equipos NO se reflejan en Jira Assets en esta
+  iteración. *(Decisión de scope para no romper contrato existente; ampliable en futura épica.)*
+- **FR-021**: El unique constraint actual de `pgi-service-pgi-api/client_assignment`
+  `(client, employee, role, department, dateFrom)` MUST modificarse para incluir `team_id` — sin
+  este cambio, el caso multi-equipo (mismo empleado como Asesor del Equipo 1 y del Equipo 2 del mismo
+  cliente/departamento/fecha) queda bloqueado por BD.
+- **FR-022**: Las operaciones de escritura sobre `ClientTeam` y `ClientAssignment` MUST aplicar control
+  de concurrencia optimista basado en `updatedAt`. El cliente envía el `updatedAt` que tenía al cargar
+  el equipo; si la BD tiene un `updatedAt` posterior, el backend rechaza con HTTP 409 y la UI muestra
+  un aviso *"El equipo ha cambiado, recarga para ver el estado más reciente"* sin perder los datos
+  introducidos.
 
 ### Key Entities
 
@@ -231,9 +279,13 @@ comprobar que el equipo queda inactivo y registrado en el histórico.
 > decisión pendiente de PO. El resto de entidades están definidas independientemente del modelo elegido.
 
 - **Equipo** (`Team`): Agrupación de personas con un responsable, una fecha de inicio y opcionalmente
-  una fecha de cierre. *(Scope: ver decisión pendiente arriba.)*
+  una fecha de cierre. Lleva un **nombre obligatorio y único** dentro del par cliente+departamento
+  (ver FR-005). Estado calculado: `incomplete` | `active` | `closed` (ver FR-003 y FR-009).
+  *(Scope: ver decisión pendiente arriba.)*
 - **Miembro del Equipo** (`TeamMember`): Persona que pertenece al equipo, con rol (responsable,
   coordinador, asesor, técnico), porcentaje de carga, fecha de inicio y fecha de fin opcional.
+  Cuando `role = asesor`, el atributo booleano `isPrimary` indica si es el **asesor principal**
+  del equipo (exactamente uno por equipo activo — ver FR-005 y Clarifications 2026-05-29).
 - **Rol** (`Role`): Enum — responsable | coordinador | asesor | técnico. Excluyentes dentro del
   mismo equipo.
 - **Período de Asignación** (`AssignmentPeriod`): Registro histórico de un miembro en un equipo para
@@ -320,7 +372,11 @@ Frames exportados desde Figma — Portal Asesor / Ficha de cliente:
 | OQ-002 | Asesor de referencia | Cuando un cliente tiene varios asesores repartidos por porcentaje, ¿quién es el "asesor de referencia" (el que recibe las tareas automáticas y aparece como interlocutor principal)? ¿Lo elige el responsable explícitamente, o es siempre el primero que se añadió? | Alto — afecta cómo se reparten las tareas automáticas y quién aparece en los informes |
 | OQ-003 | Edición simultánea | Si dos responsables editan el equipo del mismo cliente al mismo tiempo y los dos guardan, ¿qué debería ocurrir? ¿Se guardan los cambios del último en guardar (el primero los pierde sin aviso), o el sistema avisa al segundo de que alguien ya ha modificado el equipo? | Medio — afecta la experiencia de usuario en equipos con varios responsables |
 | OQ-004 | Informes no disponibles | Si en el momento de guardar un cambio de equipo el sistema de informes no está disponible, ¿qué prefiere negocio? ¿Que el cambio se guarde en el portal y los informes se actualicen en cuanto el sistema vuelva (puede haber minutos de desfase), o que no se permita guardar hasta que los informes también puedan actualizarse? | Medio — afecta la experiencia al guardar y la fiabilidad de los informes en tiempo real |
+| ~~OQ-002~~ | ~~Asesor de referencia~~ | ~~Cuando un cliente tiene varios asesores repartidos por porcentaje, ¿quién es el "asesor de referencia"?~~ | ✅ **RESUELTO 2026-05-29** — Ver Clarifications (asesor principal `isPrimary`, obligatorio uno por equipo). |
 | ~~OQ-005~~ | ~~Modelo de equipo~~ | ~~Cuando se configura un equipo para un cliente, ¿ese equipo es siempre exclusivo de ese cliente (se crea desde cero para cada cliente), o puede el mismo equipo atender a varios clientes a la vez?~~ | ✅ **RESUELTO 2026-05-28** — Ver Clarifications. |
+| OQ-006 | Nombre del equipo | El campo `name` (FR-005) es obligatorio. ¿Es texto libre que rellena el responsable, viene de un catálogo predefinido (administrado por empresa), o se deriva del `ProvidedService.category` que el equipo cubre (los nombres `Libros`/`Cuota` de los frames `08-multi-equipo/*` coinciden con valores reales de `ServiceCategory` — el equipo podría estar vinculado a uno o varios servicios contratados del cliente y heredar el nombre)? | Alto — afecta UX del modal, modelo de datos (¿FK `ClientTeam → ProvidedService`?), y justificación semántica del multi-equipo |
+| OQ-007 | UX del cierre/baja de miembro | El frame `01-crear-equipo/08-tras-anadir-responsable.png` muestra un icono **papelera** junto a cada miembro ya añadido del equipo. Las reglas de cierre/causa baja están en FR-010, pero falta decidir la superficie UX: ¿(a) diálogo inline dentro del mismo modal lateral que pregunta "¿Causa baja?", (b) pantalla / modal aparte dedicada al cierre con campos extensos, validaciones y aviso de consecuencias, o (c) híbrido — inline para cierre simple, pantalla aparte cuando entra causa baja + sucesor? | Medio — define número de pantallas a diseñar y construir |
+| OQ-008 | Equipos huérfanos por baja de servicios | FR-017 bloquea la **creación** de equipos en departamentos sin servicios contratados activos, pero NO invalida equipos existentes si después se dan de baja todos los servicios de ese departamento. ¿Es correcto, o el sistema debería cerrar automáticamente los equipos huérfanos cuando se da de baja el último servicio del departamento? | Medio — afecta lifecycle y tareas automáticas en clientes que cancelan servicios |
 
 ### Nuevas — Challenge funcional 2026-05-28
 
@@ -414,7 +470,7 @@ Si se cierra un equipo por error humano (fecha mal puesta, `causesBaja` marcado 
 
 Recomendación técnica: (a) — mantener la inmutabilidad simplifica el modelo y obliga a procesos de QA en la UI (confirmación doble).
 
-_Estado_: pending
+_Estado_: ✅ **RESUELTA 2026-05-29** — Opción (a). El cierre sigue siendo irreversible (FR-009); el control suficiente es el modal de doble confirmación obligatorio al guardar (ver Clarifications 2026-05-29 sobre UX del cierre). No se construye mecanismo de reversión.
 
 ---
 
@@ -475,6 +531,24 @@ _Estado_: pending
 ---
 
 ## Clarifications
+
+### Session 2026-06-01 (cross-service discovery + nuevas restricciones)
+
+- Q: Verificación en código del polyrepo — ¿qué rutas de creación/propagación de asignaciones existen además de la UI del PGI? → A: **UI del PGI única ruta de ESCRITURA** sobre `ClientAssignment` y `ClientTeam`. Verificado: existen dos pipelines AMQP de SALIDA que deben actualizarse como parte de la feature — `pd-service-jira-adapter` (sync a Jira Assets "Clientes" object type) y `pd-service-data-factory` (alimenta informes). El modelo `ClientAssignment` en `pd-service-data-factory` está desalineado (sin `team_id` ni `percentage`); el modelo en `pd-service-jira-adapter` también requiere extensión. **Nuevos FR-018, FR-019, FR-020, FR-021** documentan los cambios cross-service. El pipeline `issueClientServicePersisted` queda fuera de scope de esta feature.
+- Q: Restricción por servicios contratados — ¿se permite crear un equipo en un departamento donde el cliente no tiene `ProvidedService` activo? → A: **No** — la creación se bloquea en frontend (CTA oculto) y backend (validación). Apunte introducido en clarify 2026-06-01. Verificado en código: existen `ProvidedService` con `family: ServiceFamily` y `category: ServiceCategory`. **Nuevo FR-017**. Pregunta abierta sobre equipos huérpanos al darse de baja servicios → **OQ-008**.
+- Q: Un mismo empleado puede ocupar varios roles en un mismo equipo (ej. Coordinador y Asesor a la vez)? → A: **No** — un empleado, un único rol por equipo. **Nuevo FR-016**. (El mismo empleado SÍ puede estar en equipos de departamentos distintos del mismo cliente — eso está permitido por el unique constraint actual.)
+- Q: Política de concurrencia cuando dos editores tocan el mismo equipo a la vez? → A: **Optimistic concurrency con `updatedAt`**. HTTP 409 al conflicto + aviso UI. **Nuevo FR-022**.
+- Q: Nombre del equipo (`name` de FR-005) — ¿texto libre, catálogo, o derivado de `ProvidedService.category` que el equipo cubre? → A: **Pendiente de PO** — los nombres `Libros`/`Cuota` de los frames coinciden literalmente con valores reales de `ServiceCategory`, sugiriendo enlace `ClientTeam ↔ ProvidedService`. **Nuevo OQ-006** para llevar a PO.
+- Q: Comportamiento del icono papelera del modal — ¿diálogo inline o pantalla aparte para causa baja? → A: **Pendiente de PO** — las reglas de negocio ya están en FR-010, falta sólo la superficie UX. **Nuevo OQ-007** para llevar a PO.
+- Conflict flag pendiente: la decisión "dos cubos separados (asesores 100% + técnicos 100%)" tomada en una iteración paralela del 2026-06-01 mañana **queda invalidada** — la decisión madura del 2026-05-28 (un solo cubo, ratificada en ADR-0008) prevalece. Spec actual mantiene **single bucket**.
+
+### Session 2026-05-29 (US1 — Design Conformance)
+
+- Q: ¿Permite la spec varios equipos activos por cliente+departamento (los frames `08-multi-equipo/*` muestran 'Equipo Larsa' y 'Equipo Costa' coexistiendo en Fiscal)? → A: **Sí — multi-equipo permitido**. Los diseños son fuente de verdad: FR-005 cambia de "1 equipo activo por cliente+departamento" a "N equipos activos por cliente+departamento, identificados por nombre". La validación del 100% pasa a aplicarse **por equipo**. La unicidad pasa a ser `(client, department, name)` cuando `endDate IS NULL`. Implica que el campo `name` del equipo es obligatorio (resuelto en la pregunta siguiente).
+- Q: ¿Existe el concepto de "asesor principal" del equipo (frame `02-anadir-asesor/01-modal-checkbox-asesor-principal.png` muestra checkbox 'Marcar como asesor principal' + badge `Principal`)? → A: **Sí — obligatorio, exactamente uno por equipo**. `TeamMember` incorpora el atributo booleano `isPrimary` (solo aplicable cuando `role = asesor`). En cada equipo activo debe existir **exactamente un** `TeamMember` con `role: asesor` y `isPrimary: true`. El sistema valida esta regla en la transición del equipo a estado `active` (ver pregunta siguiente). El asesor principal es el **destinatario por defecto de tareas automáticas** y el **sucesor por defecto** cuando otros asesores del equipo causan baja. **Resuelve OQ-002.**
+- Q: ¿Persistencia inmediata por miembro (toast tras cada add) o borrador+commit explícito? (frames `05-vista-equipo-incompleto/*` muestran toast inmediato y banner advisory; no hay botón "Confirmar equipo") → A: **Persistencia inmediata con estado del equipo `incomplete` / `active`**. Cada `POST/PATCH/DELETE /members` persiste al instante y devuelve toast. El equipo permanece en estado `incomplete` mientras la suma de asesores + técnicos sea distinta de 100% **o** mientras no exista un asesor con `isPrimary: true`. Transiciona automáticamente a `active` cuando ambas condiciones se cumplen, y a `incomplete` si vuelven a romperse por una edición posterior. **Solo se publican eventos a Plataforma del Dato (FR-014) cuando el equipo está en estado `active`**, incluyendo la propia transición `incomplete → active`. El endpoint `POST /commit` y el modelo borrador+commit declarados en Clarifications 2026-05-28 **quedan invalidados** — ADR-0007 debe revisarse en consecuencia.
+- Q: ¿Cómo se cierra un equipo — acción separada en la ficha o checkbox dentro del modal de añadir asignación? (frame `03-fecha-fin-equipo/01-modal-checkbox-fecha-fin-equipo.png` muestra checkbox "Marcar fecha fin de equipo" incrustado en el modal) → A: **Checkbox en el modal (como el diseño) + modal de confirmación obligatorio al guardar si está marcado**. Al pulsar "Guardar" con el checkbox activo, el sistema DEBE mostrar un diálogo: *"Estás a punto de cerrar este equipo el DD/MM/YYYY. Esta acción no se puede deshacer. ¿Confirmas?"* con opciones [Cancelar] [Sí, cerrar el equipo]. Solo al confirmar se aplica el cierre. Mantiene la irreversibilidad declarada en FR-009. **Resuelve B6** (corrección de cierre por error): no se construye mecanismo de reversión, la doble confirmación es el control suficiente.
+- Q: ¿Granularidad del selector de fecha en la UI — mes o día? (frame `01-crear-equipo/06-modal-fecha-inicio-calendario.png` muestra calendario que solo permite seleccionar mes) → A: **UI solo permite seleccionar mes**. El servicio fija `startDate` al día 1 del mes seleccionado y `endDate` al último día del mes seleccionado. Alineado con FR-012 (granularidad híbrida ya existente) y con la lógica mensual de rentabilidad. Si en el futuro algún caso exige el día exacto, se amplía el modal de forma aditiva sin cambio de esquema.
 
 ### Session 2026-05-28 (US1)
 

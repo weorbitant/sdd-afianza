@@ -1,9 +1,9 @@
 # Readiness Report — 001-client-team-assignments
 
 **Verdict**: ❌ NOT-READY
-**Generated**: 2026-05-28T23:20:48Z
+**Generated**: 2026-06-01T06:35:33Z
 **Rubric version**: 1.0
-**Spec evaluated**: spec.md (last modified 2026-05-28T20:11:09+0200)
+**Spec evaluated**: spec.md (last modified 2026-05-29T15:32:45+0200)
 
 ## Summary
 
@@ -24,37 +24,43 @@
 
 ### ⚠️ C4-cross-service — Cross-service touchpoints
 
-**Evidence**: Servicios cross-service detectados en spec.md: `pd-service-azuread-adapter` (L333, contexto B1/B2), `pd-service-data-factory` (L370, B3 y B10), `pc-app-portalcliente-web` (L444, B8). FR-014 declara la integración AMQP: *"sincronizar los datos de asignación (empleado, rol, porcentaje, período) con la Plataforma del Dato publicando un evento en el bus de mensajería interno (RabbitMQ, exchange `internal`)"* (spec.md:L217-220). Sin embargo, **no se especifica el routing key concreto** siguiendo el patrón `<service>.v1.<entity>.<event>` exigido por la convención del polyrepo. Tampoco hay sección que liste los contratos del evento (qué campos publica, qué consume `pd-service-data-factory`).
+**Evidence**: Servicios cross-service detectados: `pd-service-azuread-adapter` (L335, B1/B2), `pd-service-data-factory` (L372, B3/B10), `pc-app-portalcliente-web` (L446, B8). FR-014 declara la integración AMQP: *"publicando un evento en el bus de mensajería interno (RabbitMQ, exchange `internal`) **únicamente cuando el equipo esté en estado `active`**"* (spec.md:L218-225). Esta ronda de clarify ha **enriquecido la semántica** (eventos condicionados a `active`, transiciones explícitas) pero sigue sin nombrar el routing key concreto (`<service>.v1.<entity>.<event>`) ni listar el payload de los eventos.
 
-**Remediation**: Edición manual de spec.md (o `/speckit-clarify` con foco explícito). `/speckit-challenge functional` ya se ejecutó (challenge-report.md presente) y surfaceó B1/B2/B3/B8/B10 pero esos hallazgos quedaron como Open Questions y no se promovieron a un contrato AMQP explícito en FR-014.
+**Remediation**: Edición manual de FR-014 (o `/speckit-clarify` con foco explícito). Alternativa razonable: diferir a `/speckit-plan` y registrarlo en `contracts/` — el routing key es habitualmente un detalle de planning más que de spec. Si decides diferirlo, marca C4 como "Deferred to planning" en una nota de la spec para que el rubric lo reconozca.
 
 ---
 
 ### ⚠️ C5-nfrs — NFRs explícitos
 
 **Evidence**: Cubiertos:
-- **Auth scope**: FR-004 + permiso `CLIENT_ASSIGNMENT_EDIT` mencionado en US1-AC3 (spec.md:L44-46).
-- **Performance**: FR-014 propagación AMQP <5min (L220-221); SC-003 histórico visible <1s (L256-257); SC-001 UX <3min (L250-251).
+- **Auth scope**: FR-004 + `CLIENT_ASSIGNMENT_EDIT` (spec.md:L44-46).
+- **Performance**: FR-014 propagación AMQP <5min (L223-225); SC-003 histórico visible <1s (L258); SC-001 UX <3min (L252).
 
-No cubiertos pese a ser relevantes para el scope:
-- **Retención / privacidad**: la feature persiste datos personales de empleados (nombre, rol, período, porcentaje de carga) y trazabilidad histórica indefinida (SC-005: *"sin limitación temporal"*, L260-261). No hay mención de GDPR, anonimización tras baja del empleado, o política de retención del histórico.
-- **Disponibilidad**: OQ-004 abre exactamente esta dimensión (qué hacer si Plataforma del Dato no está disponible al guardar) y queda sin resolver. El comportamiento degradado de FR-014 no está definido.
+Sin cubrir pese a ser relevantes:
+- **Retención / privacidad**: la spec persiste histórico inmutable de períodos de asignación de empleados sin política de retención. SC-005 dice *"sin limitación temporal"* (L262) — bandera roja GDPR sin mención explícita.
+- **Disponibilidad / degradación AMQP**: OQ-004 (informes no disponibles al guardar) sigue abierta. El nuevo FR-014 condicionado a `active` no resuelve qué hacer si RabbitMQ está caído al transicionar a `active` — ¿se persiste sin publicar y se reintenta? ¿se bloquea la transición?
 
-**Remediation**: `/speckit-clarify` — el objetivo está claro y el gap es de concreción puntual sobre dos dimensiones (retención + degradación AMQP).
+**Remediation**: `/speckit-clarify` con foco en estas dos dimensiones. Son 2 preguntas concretas; el siguiente clarify probablemente las cubre.
 
 ---
 
 ### ❌ C6-open-questions — Open questions resueltas/diferidas
 
-**Evidence**: La sección "Open Questions — Pending PO Decision" contiene **4 preguntas originales + 7 nuevas del challenge funcional**, todas con `_Estado_: pending`. De ellas, dos están **explícitamente etiquetadas como impacto Alto**:
-- OQ-001 (baja sin sucesor) — *"Alto — define el comportamiento de US4 en el escenario de baja"* (spec.md:L319).
-- OQ-002 (asesor de referencia) — *"Alto — afecta cómo se reparten las tareas automáticas y quién aparece en los informes"* (spec.md:L320).
+**Evidence**: Mejora sustancial respecto a la ronda anterior — de **4 Alto-impacto** pasamos a **1 Alto + 1 parcial**:
 
-Adicionalmente, B4 (reasignación tras baja con múltiples sucesores) y B6 (corrección de cierre por error humano) bloquean comportamientos de US4/FR-009. Ninguna pregunta está marcada como "Deferred to <fase>" con motivo escrito; todas están abiertas sin gestión explícita.
+**Cerradas en esta sesión**:
+- ✅ **OQ-002** (asesor de referencia) → resuelta via Clarifications 2026-05-29 (asesor principal `isPrimary`).
+- ✅ **B6** (corrección de cierre por error) → resuelta via doble confirmación en cierre.
 
-Per rubric C6-open-questions Fail: *"≥1 Open Question abierta marcada como bloqueante o etiquetada con criticidad alta"* → cumple los dos triggers.
+**Siguen abiertas con criticidad alta**:
+- ❌ **OQ-001** (baja de asesor sin sucesor) — *"Alto — define el comportamiento de US4 en el escenario de baja"* (spec.md:L321). **Bloqueante**.
+- 🟡 **B4** (reasignación con múltiples sucesores) — parcialmente resuelta porque ahora el asesor principal hereda por defecto; queda definir qué pasa con tareas que NO estaban asignadas al principal. _Estado_ todavía `pending` en spec.md:L398.
 
-**Remediation**: `/speckit-atlassian-sync-push` para escalar al PO las preguntas Alto-impacto (OQ-001, OQ-002, B4, B6) o resolver inline y registrar la decisión en `decisions.md`. Las preguntas de menor impacto (B3, B7, B8, B10) pueden marcarse explícitamente como "Deferred to fase X" con justificación.
+Otras pending de impacto medio/bajo (B1, B2, B3, B7, B8, B10) siguen abiertas pero diferibles.
+
+Per rubric C6-open-questions Fail: *"≥1 Open Question abierta marcada como bloqueante o etiquetada con criticidad alta"* → OQ-001 cumple el trigger.
+
+**Remediation**: `/speckit-atlassian-sync-push` para escalar OQ-001 + B4 al PO (Paula). La épica DEVPT-518 ya está en estado "Blocked" desde el 26/5 esperando estas respuestas — el siguiente push las añadirá como comentarios individuales.
 
 ---
 
@@ -62,17 +68,15 @@ Per rubric C6-open-questions Fail: *"≥1 Open Question abierta marcada como blo
 
 To reach READY, run in this order:
 
-1. `/speckit-atlassian-sync-push` — escalar al PO las OQ Alto-impacto (OQ-001, OQ-002, B4, B6) **o** resolver inline en `decisions.md` y marcar el resto como diferidas con motivo. Resuelve **C6-open-questions**.
-2. `/speckit-clarify` — concretar retención de datos personales del histórico y comportamiento degradado de FR-014 si Plataforma del Dato no está disponible. Resuelve **C5-nfrs**.
-3. Edición manual de FR-014 (o `/speckit-clarify` con foco explícito) — añadir routing key concreto `<service>.v1.<entity>.<event>` y lista de campos del evento publicado. Resuelve **C4-cross-service**.
+1. `/speckit-atlassian-sync-push` — escalar OQ-001 + B4 al PO **o** resolver inline en `decisions.md` si tienes criterio. Marcar el resto de pending de impacto bajo (B1/B2/B3/B7/B8/B10) como "Deferred to phase 2" con motivo. Resuelve **C6-open-questions**.
+2. `/speckit-clarify` — concretar (a) política de retención del histórico de empleados y (b) comportamiento degradado de FR-014 si RabbitMQ no está disponible al transicionar a `active`. Resuelve **C5-nfrs**.
+3. Decidir si C4 (routing key concreto) se resuelve en spec o se difiere a `/speckit-plan`. Si se difiere, añadir nota explícita en FR-014 ("routing key concreto se define en plan.md") — el rubric debería reconocerlo. Si se resuelve, edición manual de FR-014 añadiendo `pgi-api.v1.team.activated` / `pgi-api.v1.team.closed` y campos del payload.
 4. `/speckit-ready` — re-evaluar.
 
 ## Notes
 
-- **C1-problem-scope juzgado como ✅ con margen**: la spec no tiene una sección "Problem" formal; el problema se infiere del título y del `Input` line (L13). El usuario tipo (responsable, coordinador, asesor, técnico) sí está identificado por rol concreto. El "Out of scope" se materializa en FR-015 (no es sección dedicada pero es explícito y testable). Si el rubric se endurece en el futuro, este criterio podría caer a ⚠️ por falta de sección Problem dedicada.
-
-- **C4-cross-service juzgado como ⚠️ y no ❌**: la integración AMQP está declarada con exchange concreto (`internal`), por lo que no cae en el supuesto "menciona ≥2 servicios pero no lista eventos AMQP ni contratos". Cae en el supuesto de risk: "eventos mencionados pero sin routing key concreta".
-
-- **C5-nfrs — retención**: la feature persiste el histórico inmutable de períodos de asignación de empleados sin política de retención. Esto es típicamente un punto de fricción con compliance. Si el equipo legal del proyecto ya tiene una política transversal aplicable a histórico de empleados, basta con referenciarla en NFRs y el criterio sube a ✅. Validar con el humano.
-
-- **El `challenge-report.md` ya existente (2026-05-28) cubrió bien C8-edge-cases y parte de C4-cross-service**, pero los hallazgos B1-B10 quedaron como Open Questions sin promoverse a FRs o NFRs. Es decir, ejecutar `/speckit-challenge functional` otra vez no añadiría valor — los gaps están identificados, falta resolverlos.
+- **Progreso real desde el último report (2026-05-28)**: de 11 Open Questions pendientes (4 Alto) bajamos a 8 (1 Alto + 1 parcial). 6 decisiones de diseño se han integrado como Clarifications + FRs reescritas (FR-003 estado calculado, FR-005 multi-equipo, FR-009 UX cierre, FR-014 condicionado a `active`, FR-012 mes-only, Key Entities `isPrimary`).
+- **C4 podría justificadamente marcarse ⚠️→✅ con una nota** del estilo *"el routing key concreto se define durante `/speckit-plan` en `contracts/team-events.md`"*. Es una decisión de proyecto sobre dónde vive cada artefacto. Lo dejo en ⚠️ por estricta aplicación del rubric, pero si esa nota se añade a FR-014 el criterio sube a ✅ en la siguiente ronda.
+- **C5 retención de datos personales** es la dimensión más cara políticamente — si hay política transversal de compliance ya aprobada en la organización, basta con referenciarla en NFRs. Si no, requiere decisión de legal.
+- **OQ-001** está marcada explícitamente como bloqueante y lleva 6 días esperando en DEVPT-518. La épica de Jira está en estado "Blocked". El siguiente paso natural es un ping a Paula sobre las 2 preguntas que ya tiene + escalar las nuevas que han surgido.
+- **ADR-0007** (draft+commit) está marcada como "requires revisitation" en Clarifications 2026-05-29 — no es un finding del rubric pero el equipo debe procesarla con `/speckit-decisions-extract` antes de planificar.
