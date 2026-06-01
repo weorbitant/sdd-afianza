@@ -1,171 +1,110 @@
-# Quickstart: Asignaciones Múltiples en Ficha de Cliente
+# Quickstart — DEVPT-518 dev local
 
-**Feature**: 001-client-team-assignments | **Date**: 2026-05-25
+Pasos para arrancar la feature en desarrollo local. Asume conocimiento previo del workflow de cada servicio (ver `CLAUDE.md` de cada uno).
 
----
+## Prerequisitos
 
-## Prerequisites
+- Docker corriendo (para PostgreSQL + RabbitMQ).
+- Node 20 + npm.
+- Acceso a las 4 ramas: `feat/001-client-team-assignments` en cada uno de los 4 servicios afectados.
 
-- Docker running (PostgreSQL + RabbitMQ via `npm run infra:up`)
-- Node.js ≥ 20
-- Access to `asesores/pgi-service-pgi-api/` and `asesores/pgi-app-pgi-web/`
+## Orden de arranque
 
----
-
-## 1. Backend setup
+### 1. `pgi-service-pgi-api` (owner)
 
 ```bash
 cd asesores/pgi-service-pgi-api
-
-# Check migration snapshot is clean before touching entities
-npx mikro-orm migration:check
-
-# Apply new migration (ClientTeam table + percentage column)
-npm run migrations:up
-
-# Verify: no pending changes after migration
-npx mikro-orm migration:create --dump
-# Expected: "No changes required"
-
-npm run start:dev
-# Runs on http://localhost:3000
-```
-
----
-
-## 2. Frontend setup
-
-```bash
-cd asesores/pgi-app-pgi-web
-
 npm install
-npm run dev
-# Runs on http://localhost:5173
+npm run infra:up                      # PostgreSQL + RabbitMQ
+npm run migrations:up                 # aplica migration M1 (FR-016, FR-021)
+npm run backfill:primary-advisor      # script idempotente — promueve primer asesor a principal por (cliente, dept)
+npm run start:dev
 ```
 
----
+Verificar logs: el endpoint `/api/v1/clients/{id}/teams` debe responder. Los endpoints REST nuevos están en `src/application/rest/client-teams/` y `src/application/rest/client-assignments/`.
 
-## 3. Smoke test — create a team via API
+### 2. `pd-service-data-factory`
 
 ```bash
-# Replace :clientId with a real client UUID from your dev DB
-CLIENT_ID="<uuid>"
-DEPT="FISCAL"
-
-# 1. Create a team
-curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/department/$DEPT \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"startDate": "2026-06-01"}'
-# → 201 Created, returns team with id
-
-TEAM_ID="<team-id-from-response>"
-EMPLOYEE_A="<employee-uuid-A>"
-EMPLOYEE_B="<employee-uuid-B>"
-
-# 2. Add first asesor at 60%
-curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/members \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d "{\"employeeId\": \"$EMPLOYEE_A\", \"role\": \"asesor\", \"percentage\": 60, \"dateFrom\": \"2026-06-01\"}"
-# → 201 Created
-
-# 3. Add second asesor at 40%
-curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/members \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d "{\"employeeId\": \"$EMPLOYEE_B\", \"role\": \"asesor\", \"percentage\": 40, \"dateFrom\": \"2026-06-01\"}"
-# → 201 Created
-
-# 4. Validate team (informational only — sum should be 100%)
-curl http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/validate \
-  -H "Authorization: Bearer <token>"
-# → { "valid": true, "violations": [] }
-
-# 4b. Commit the team — runs full validation, marks team as confirmed,
-# and publishes one `backoffice-api.v1.client-assignment.updated` event
-# per active member (with the new `percentage` field).
-curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/commit \
-  -H "Authorization: Bearer <token>"
-# → 200 { "teamId": "...", "committedAt": "...", "membersPublished": 2 }
-# If validation fails:
-# → 400 PERCENTAGE_VALIDATION_FAILED or MIN_ASESOR_REQUIRED
-
-# 5. Try invalid: bump first asesor to 80% → should fail 400
-curl -X PATCH http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/members/<assignment-a-id> \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"percentage": 80, "effectiveFrom": "2026-07-01"}'
-# → 400 PERCENTAGE_VALIDATION_FAILED (asesores would sum to 120%)
-
-# 6. View history
-curl http://localhost:3000/v1/client-assignments/$CLIENT_ID/department/$DEPT/history \
-  -H "Authorization: Bearer <token>"
-# → Shows all assignment periods
-
-# 7. Close the team
-curl -X PUT http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/close \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"endDate": "2026-06-30"}'
-# → 200 OK, team is now closed; all members get dateTo = 2026-06-30
+cd plataforma-del-dato/pd-service-data-factory
+npm install
+npm run infra:up
+npm run migrations:up                 # aplica migration M2 (añade team_id + percentage)
+npm run start:dev
 ```
 
----
+El subscriber AMQP escucha en `data-factory:client-assignment:process` queue.
 
-## 4. Smoke test — try to create duplicate active team
+### 3. `pd-service-jira-adapter`
 
 ```bash
-# Attempt to create a second active team for the same client+dept (should fail)
-curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/department/$DEPT \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"startDate": "2026-07-01"}'
-# → 409 ACTIVE_TEAM_EXISTS  (if first team not yet closed)
-# → 201 Created             (if first team was closed in step 7)
+cd plataforma-del-dato/pd-service-jira-adapter
+npm install
+npm run start:dev
 ```
 
----
+Sin migraciones nuevas (sólo cambio de lógica en el filtro a `isPrimaryAdvisor=true`).
 
-## 5. Frontend verification
-
-1. Navigate to `/general/ficha-cliente/:clientId`
-2. Open the **Asignaciones** tab
-3. Verify the new **Team** section shows:
-   - Active team header with start date and createdBy
-   - Per-member percentage fields (editable for responsable/coordinador)
-   - Live % sum indicator (green = 100%, red = other)
-   - **Histórico** accordion showing all past periods
-4. Try editing a percentage so the sum goes above 100% → Save button is disabled and indicator turns red
-5. Click **Cerrar equipo** → confirm → team shows as inactive
-
----
-
-## 6. Run tests
+### 4. `pgi-app-pgi-web` (frontend)
 
 ```bash
-# Backend — integration tests (starts testcontainers automatically)
-cd asesores/pgi-service-pgi-api
-npm test -- --testPathPattern=client-team
-
-# Frontend — component tests
 cd asesores/pgi-app-pgi-web
-npx vitest run src/features/client-teams
+npm install
+npm run dev                           # Vite en :5173
 ```
 
----
+Acceder a `http://localhost:5173/clientes/{clientId}` para ver la nueva ficha con composición multi-equipo.
 
-## 7. RabbitMQ — manual task reassignment
+## Comandos de regresión obligatorios
+
+Antes de pushear cualquier cambio:
+
+### Onboarding pipeline preserved
+
+El consumer `client_onboarding_persisted` NO debe romperse. Test específico:
 
 ```bash
-# Via API (triggers event)
-curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/reassign-tasks \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d "{\"fromEmployeeId\": \"$EMPLOYEE_A\", \"toEmployeeId\": \"$EMPLOYEE_B\", \"taskIds\": null}"
-# → 202 Accepted
-
-# Verify in RabbitMQ management UI (localhost:15672):
-# Exchange: internal, routing key: backoffice-api.v1.task-reassignment.requested
-# Check obligations-api queue: obligations-api:task-reassignment:process consumed the message
+cd asesores/pgi-service-pgi-api
+npx jest --testPathPattern=apply-from-client-onboarding.regression
 ```
+
+Debe pasar — verifica que `applyFromClientOnboarding` sigue creando filas legacy (`team_id = NULL`, `percentage = 100`) sin tocar la nueva lógica.
+
+### Cross-service AMQP contract
+
+```bash
+cd plataforma-del-dato/pd-service-data-factory
+npx jest --testPathPattern=client-assignment-subscriber.contract
+```
+
+Verifica que un payload legacy (sin `teamId`/`percentage`/`isPrimaryAdvisor`) se procesa sin error.
+
+### Unique constraints
+
+```bash
+cd asesores/pgi-service-pgi-api
+npx jest --testPathPattern=client-assignment.unique-constraints
+```
+
+Verifica que `(client, employee) WHERE date_to IS NULL` bloquea la doble asignación activa (FR-021).
+
+## Limitaciones conocidas del MVP
+
+1. **D5 (routing tareas por rol)** sin resolver — todas las tareas auto siguen yendo al asesor principal del dept. Si la PO define mapping por `ObligationCategory`, se aborda en sprint siguiente.
+2. **D10 (onboarding ↔ team)** parcial — onboarding sigue creando filas con `team_id = NULL`. El responsable verá filas huérfanas en la vista del cliente hasta agruparlas. Pendiente decisión PO sobre crear "Equipo inicial" automático.
+3. **Pantalla "Mis Clientes" y buscador del PGI** fuera de scope (FR-015). Sólo la ficha de cliente refleja la nueva composición.
+4. **TaxDown / subcontratados** — no contemplado.
+5. **Vista de anomalías** (clientes con servicio sin equipo válido) — backlog futuro.
+
+## Troubleshooting
+
+- **Error `PERSON_ALREADY_ACTIVE_IN_CLIENT` al añadir miembro**: la persona ya tiene otra asignación activa en este cliente (incluso en otro dept). Cerrar la anterior primero. Esto es FR-021 (decisión PO 2026-06-01: opción B).
+- **Banner amarillo "no 100%" persistente**: comprobar `/api/v1/clients/{id}/department/{dept}/bucket-status` — el bucket de asesores o técnicos del dept está incompleto. La validación es por dept, no por team individual.
+- **Eventos AMQP no llegan a data-factory**: revisar orden de deploy (R3 de research.md). Si data-factory tiene la versión vieja del subscriber, los nuevos campos se ignoran silenciosamente.
+
+## Siguientes pasos
+
+Una vez merged este MVP:
+- Llevar D5 y D10 a la siguiente sesión PO.
+- Evaluar si el feature de "asignaciones múltiples masivas" (mover carteras) entra en DEVPT-518 o se hace una épica aparte.
+- Plan técnico para informes en `pd-service-data-factory` que aprovechen `team_id` + `percentage` (no en scope DEVPT-518).

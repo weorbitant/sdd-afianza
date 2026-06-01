@@ -1,155 +1,91 @@
-# Research: Asignaciones Múltiples en Ficha de Cliente
+# Research — Asignaciones múltiples (DEVPT-518)
 
-**Feature**: 001-client-team-assignments | **Date**: 2026-05-25
+**Fase**: 0 (Outline & Research) — todas las `NEEDS CLARIFICATION` del plan resueltas aquí.
 
----
+## R1 · Estrategia de migración legacy 1:1 → multi-equipo
 
-## R-001 — Date Granularity for Assignment Periods (FR-012)
+**Decisión**: una sola migración SQL aditiva ejecutada en `pgi-service-pgi-api` que (a) añade columnas `is_primary_advisor`, `causes_baja` a `client_assignment`, (b) añade columnas `is_primary` a `client_team`, (c) añade el partial unique `(client_id, employee_id) WHERE date_to IS NULL`. **Sin backfill destructivo**: las filas existentes ya tienen `team_id` (la columna se creó en una iteración previa) y `percentage` (con default 100). El bool `is_primary_advisor` se calcula post-deploy con un script idempotente que marca el primer asesor de cada (cliente, departamento) si no hay ninguno marcado.
 
-### Context
+**Rationale**: la migración aditiva no rompe filas existentes ni el flujo `applyFromClientOnboarding`. El backfill por separado permite rollback sin perder datos. La cláusula `WHERE date_to IS NULL` del partial unique solo cubre filas activas, así que filas históricas no chocan.
 
-The `ClientAssignment` entity stores `dateFrom` / `dateTo` as PostgreSQL `date` columns. The spec left date granularity as a TODO with three options: daily, monthly, or hybrid.
+**Alternativas consideradas**: migración con backfill atómico (rechazada — riesgo si falla a mitad), reescritura del modelo (rechazada — destructive y rompe el onboarding subscriber existente).
 
-### Alternatives Considered
+## R2 · Estructura del payload AMQP `client-assignment.v1.updated`
 
-| Option | Storage | Validation | Migration cost | Edge cases |
-|---|---|---|---|---|
-| **Daily** | Exact date | % sum per day | None | Complex: what if assignment changes mid-month? Two separate days with different advisors |
-| **Monthly** | First-of-month convention (e.g. `2026-06-01` = "June 2026") | % sum per month | None (schema unchanged; service enforces convention) | Simpler; aligns with billing |
-| **Hybrid** | Exact date stored; service enforces `dateFrom = 1st of month` for new records | % sum per month | None | Allows future migration to daily without schema change |
+**Decisión**: extender el payload existente añadiendo campos opcionales (nullable) para preservar backward-compat con consumers desplegados antes del nuevo deploy. Schema final:
 
-### Decision: **Hybrid (first-of-month convention)**
-
-- `dateFrom` MUST be the first day of a month (enforced by service validation on create/update)
-- `dateTo` MUST be the last day of a month, or `null` for open-ended assignments (enforced by service)
-- Schema: no change — keep `columnType: 'date'`
-- Validation: `ClientTeamsService.validateMonthBoundary(date)` helper
-- Historical display: show dates as "Jun 2026 – Ago 2026" (format in frontend)
-
-### Rationale
-
-1. Obligations in `pd-service-obligations-api` run on a monthly cycle; monthly granularity aligns with how advisors are actually scheduled.
-2. No schema migration needed — existing rows with daily dates are grandfathered; only new records enforce the convention.
-3. The hybrid retains exact date storage, so pivoting to daily in future requires zero DB migration.
-4. FR-003 (100% validation) is much simpler computed per month than per day.
-
----
-
-## R-002 — Manual Task Reassignment: HTTP vs RabbitMQ
-
-### Context
-
-FR-010 requires a "manual reassignment" option where a coordinator can transfer specific tasks to another team member. Tasks live in `pd-service-obligations-api`. Constitution IV prohibits direct HTTP calls between backend services.
-
-### Finding: ObligationsApi adapter already performs HTTP mutations
-
-The existing `infrastructure/obligations-api/ObligationsApi` in `pgi-service-pgi-api` already calls obligations-api HTTP endpoints for mutations: `updateObligationState`, `updateTask`, `updateSubmission`. This is a pre-existing pattern (predates the constitution's 2026-05-25 ratification).
-
-### Alternatives Considered
-
-| Option | Pro | Con |
-|---|---|---|
-| **RabbitMQ event** `pgi-api.v1.task-reassignment.requested` | Constitution IV compliant | New AMQP consumer in obligations-api; async (response not immediate) |
-| **HTTP via existing ObligationsApi adapter** | Consistent with existing pattern; synchronous response | Violates Constitution IV technically; documented in Complexity Tracking |
-
-### Decision: **RabbitMQ event** (constitution-compliant)
-
-Even though the existing `ObligationsApi` adapter makes HTTP mutations, the recommended approach for manual reassignment is a RabbitMQ event, because:
-
-1. This is a new feature written post-constitution — it should model the correct pattern.
-2. The HTTP adapter mutations are legacy technical debt (should be migrated to events in future).
-3. Reassignment is not latency-critical; async processing is acceptable.
-4. A new AMQP subscriber in obligations-api is minimal code.
-
-**Event schema**: `pgi-api.v1.task-reassignment.requested`
-```json
+```typescript
 {
-  "clientId": "uuid",
-  "department": "FISCAL | LABORAL",
-  "fromEmployeeId": "uuid",
-  "toEmployeeId": "uuid",
-  "taskIds": ["uuid", "uuid"]  // null = all PENDING tasks for this client+dept+fromEmployee
+  // Existentes (mantenidos)
+  clientId: string;
+  employeeId: string;
+  role: 'responsable' | 'coordinador' | 'asesor' | 'tecnico';
+  department: 'fiscal' | 'laboral';
+  dateFrom: string; // ISO date (primer día del mes)
+  dateTo: string | null; // ISO date (último día del mes) o null si activo
+  updatedAt: string; // ISO timestamp
+  updatedBy: string; // email
+  // Nuevos (opcionales hasta que todos los consumers estén alineados)
+  teamId?: string;
+  percentage?: number; // 1-100
+  isPrimaryAdvisor?: boolean;
+  causesBaja?: boolean;
 }
 ```
 
-Routing key: `backoffice-api.v1.task-reassignment.requested`
-Queue in obligations-api: `obligations-api:task-reassignment:process`
+**Rationale**: los nuevos campos son opcionales en JSON, así que `pd-service-data-factory` y `pd-service-jira-adapter` con la versión vieja del consumer ignoran los campos extra (Postel's law — tolerante). Cuando ambos consumers se actualicen, la información estará disponible para informes y sync Jira Assets.
 
-### Existing path for automatic reassignment (no change needed)
+**Alternativas consideradas**: bump de routing key a `v2.client-assignment.updated` (rechazado — duplica complejidad de routing y migración de queues sin ganancia: los campos son aditivos), versionado en payload con discriminator (rechazado — over-engineering).
 
-When an assignment changes (new employee for same role/dept), the existing flow already handles automatic task reassignment:
-```
-pgi-service publishes client_assignment_updated
-  → data-factory receives → publishes client_assignment_persisted
-  → obligations-api: refreshAdvisorForClient() updates PENDING tasks
-```
-Only PENDING tasks are updated (IN_PROGRESS, SUBMITTED, CANCELLED preserve their original advisor). This is intentional per DEVPT-472.
+## R3 · Alineación de consumers cross-service (deploy plan)
 
----
+**Decisión**: deploy en este orden para evitar perder eventos durante la ventana de transición:
 
-## R-003 — Soft Uniqueness: One Active Team per Client+Department
+1. **`pd-service-data-factory`** primero — desplegar la versión que añade `team_id` y `percentage` al modelo + subscriber que lee los nuevos campos cuando vienen. Sigue funcionando con eventos legacy.
+2. **`pd-service-jira-adapter`** segundo — desplegar la versión que filtra a `isPrimaryAdvisor=true` antes de sincronizar a Jira Assets. Sigue tratando eventos legacy como "ese es el único, es el principal".
+3. **`pgi-service-pgi-api`** último — desplegar el publisher con los nuevos campos. A partir de ahora los eventos llevan datos completos.
 
-### Context
+**Rationale**: este orden garantiza que cuando pgi-api empieza a emitir los nuevos campos, los consumers ya están preparados para procesarlos. Si se invirtiera el orden, los consumers nuevos esperarían campos que aún no llegan y procesarían los legacy con valores por defecto incorrectos.
 
-FR-005: "Un responsable NO PUEDE tener más de un equipo activo por departamento." A partial unique index (`WHERE endDate IS NULL`) would enforce this at DB level, but MikroORM 6.x requires raw SQL for partial indexes.
+**Alternativas consideradas**: feature flag en el publisher (rechazado — añade complejidad de configuración para algo que se resuelve con orden de deploy).
 
-### Decision: **Service-layer guard + raw migration index**
+## R4 · Validación del 100% por departamento — implementación
 
-In `ClientTeamsService.createTeam()`, check for an existing active team before creation. Additionally, create a partial unique index in the migration for belt-and-suspenders:
+**Decisión**: query agregada SQL ejecutada dentro de la transacción del save, con `SELECT ... FOR UPDATE` sobre `client_assignment` filtrado por `(client_id, department)` y `dateTo IS NULL`. La query suma `percentage` agrupando por `role` (filtrado a asesor / técnico). Si suma ≠ 100% en alguno de los buckets, el team queda en estado `incomplete` (no rechaza, advisory). Si la composición mínima no se cumple (no hay responsable o 0 asesores en el team siendo modificado), rechaza con HTTP 400.
 
-```sql
-CREATE UNIQUE INDEX idx_client_team_active
-  ON client_team (client_id, department)
-  WHERE end_date IS NULL;
-```
+**Rationale**: usar `FOR UPDATE` evita race entre dos peticiones simultáneas. También evita race con el AMQP subscriber del onboarding: si el onboarding está creando filas mientras el responsable edita desde UI, ambos lockean la misma fila y serializan.
 
-The service-layer guard gives a clean error message; the DB constraint prevents race conditions.
+**Alternativas consideradas**: cálculo en memoria post-flush (rechazado — no detecta race entre transacciones), trigger BD (rechazado — Constitution V simplicity: la lógica vive en el servicio, no en la BD).
 
----
+## R5 · Onboarding bridge (D10 sigue parcial)
 
-## R-004 — Percentage Validation: single-bucket team total
+**Decisión MVP**: `applyFromClientOnboarding` sigue creando filas en `client_assignment` con los valores actuales **con `team_id = NULL`** hasta que PO resuelva D10. Si se decide después que el onboarding debe crear un `ClientTeam` por defecto, se implementa como cambio aditivo en una segunda iteración sin afectar al modelo principal del MVP.
 
-### Context
+**Acción inmediata**: añadir test de regresión `applyFromClientOnboarding.regression.spec.ts` que verifica que el consumer sigue creando filas legacy correctamente.
 
-FR-003 (revised 2026-05-28): All team members (ASESOR + TECNICO combined) must sum to exactly 100% per (client, department). RESPONSABLE and COORDINADOR are management roles and do not enter the sum (implicit 100% each, max 1 per team).
+**Rationale**: no bloquear el MVP por D10. El usuario verá filas huérfanas (sin team) en la vista del cliente — los onboardings nuevos requerirán que un responsable las agrupe manualmente. Se documenta como limitación conocida en `quickstart.md`.
 
-### Decision: **Validate at commit time in domain service**
+**Alternativas consideradas**: implementar D10-C como assumption antes de PO confirmation (rechazado — riesgo de retrabajo si PO elige otra opción).
 
-Validation runs only on `POST /commit` (not on add/edit/remove — those operate on the draft):
+## R6 · State management frontend
 
-1. Fetch all **active** assignments for (client, department, team) where role IN (ASESOR, TECNICO) → sum of `percentage` must equal 100.
-2. Guard: at least 1 active ASESOR must exist (FR-011) → else `MIN_ASESOR_REQUIRED`.
+**Decisión**: **TanStack Query** para queries y mutations de equipos y miembros, con `optimisticUpdate` para el slider de porcentaje. **Sin Zustand** — la composición del equipo es state servidor cacheado. El bucket-status (suma % por departamento) se calcula client-side a partir del query cache para mostrar la barra advisory en vivo, pero la validación dura es server-side.
 
-"Active" = no `dateTo`, or `dateTo >= today`.
+**Rationale**: TanStack Query ya es convención en `pgi-app-pgi-web`. Optimistic update aplica bien al slider. Sin necesidad de store cliente para state que es inherentemente servidor.
 
-Returns structured error:
-```json
-{
-  "error": "PERCENTAGE_VALIDATION_FAILED",
-  "sum": 90,
-  "required": 100,
-  "membersIncluded": ["ASESOR", "TECNICO"]
-}
-```
+**Alternativas consideradas**: Zustand para borrador de team antes de commit (rechazado — la decisión PO 2026-05-29 dice persistencia inmediata, no hay borrador), Redux (rechazado — over-engineering).
 
 ---
 
-## R-005 — Frontend: Live % Sum Validation with TanStack Form
+## Resumen de decisiones
 
-### Decision: **Field array with single derived sum**
-
-The team management form uses `useForm` from `@tanstack/react-form` with a field array for members. A derived selector computes the **total sum of ASESOR + TECNICO percentages** (RESPONSABLE and COORDINADOR excluded). A `<PercentageSumIndicator>` component shows one live sum with color feedback (green = 100%, red = other).
-
-Validation: Zod schema validates each `percentage` (1–100 integer) + form-level cross-field validation that the team total is 100. Submit ("Confirmar equipo") is disabled if sum ≠ 100.
-
----
-
-## Summary of Resolved Decisions
-
-| ID | Topic | Decision |
+| ID | Tema | Decisión |
 |---|---|---|
-| R-001 | Date granularity (FR-012) | **Hybrid**: store exact date, enforce first-of-month convention in service |
-| R-002 | Manual task reassignment | **RabbitMQ event** `pgi-api.v1.task-reassignment.requested` |
-| R-003 | One active team enforcement | Service guard + partial unique index in migration |
-| R-004 | % validation logic | Single-bucket: validate at commit time, sum of all members (ASESOR + TECNICO) = 100% |
-| R-005 | Frontend live validation | TanStack Form field array + derived sum + Zod cross-field |
+| R1 | Migración | Aditiva, idempotente, backfill por script separado |
+| R2 | AMQP payload | Campos nuevos opcionales, sin bump de versión |
+| R3 | Deploy order | data-factory → jira-adapter → pgi-api |
+| R4 | Validación 100% | Query agregada con `FOR UPDATE` en transacción |
+| R5 | Onboarding | MVP mantiene legacy (sin team_id); D10 se resolverá después |
+| R6 | Frontend state | TanStack Query + optimistic update para slider |
+
+Todas las `NEEDS CLARIFICATION` técnicas resueltas. Las que dependen de PO (D5 routing por rol, D10 onboarding) tienen assumption MVP documentada y no bloquean.

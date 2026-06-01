@@ -1,72 +1,66 @@
+# Implementation Plan: PGI · Asignaciones múltiples por porcentajes (DEVPT-518)
 
-# Implementation Plan: Asignaciones Múltiples en Ficha de Cliente
+**Branch**: `feat/001-client-team-assignments`  ·  **Date**: 2026-06-01  ·  **Spec**: [spec.md](./spec.md)
 
-**Branch**: `feat/001-client-team-assignments` | **Date**: 2026-05-28 | **Spec**: [spec.md](./spec.md)
-
-**Input**: Feature specification from `specs/001-client-team-assignments/spec.md`
-
----
+**Input**: Feature specification from `/specs/001-client-team-assignments/spec.md` (848 líneas, 39 FRs, 12 entradas de Clarifications, 11 Open Questions PO con 7 resueltas).
 
 ## Summary
 
-Add multi-member teams with percentage-based load distribution to client profiles. Each client gets a `ClientTeam` header per department; `ClientAssignment` is extended with a `percentage` column. The feature covers team creation, percentage validation (asesor/técnico groups each sum to 100%), full assignment history, team closure, and task reassignment via RabbitMQ — all surfaced in a new **Asignaciones** tab in the PGI client ficha.
+Evolucionar las asignaciones cliente↔empleado desde el modelo legacy 1:1 (un empleado por rol y departamento) a un modelo **multi-equipo con porcentajes**: cada cliente puede tener N `ClientTeam` activos por departamento, cada team agrupa miembros con `role` (responsable / coordinador / asesor / técnico), porcentaje de dedicación y un asesor principal. La validación del 100% se calcula **por bucket de rol** (asesores / técnicos) **y por departamento del cliente** (agregando entre todos los teams del mismo departamento), no por equipo individual.
 
-**Services affected**:
-- `asesores/pgi-service-pgi-api` — backend (new entities, endpoints, AMQP events)
-- `asesores/pgi-app-pgi-web` — frontend (new Asignaciones tab + team management UI)
-- `pd-service-obligations-api` — new AMQP subscriber for task reassignment
-
----
+Stack confirmado en el polyrepo: NestJS 10 + MikroORM 6 + PostgreSQL 17 (backend), React 19 + Vite (frontend), RabbitMQ para coordinación cross-service. Tres servicios backend y un frontend tocados: `pgi-service-pgi-api` (owner), `pgi-app-pgi-web` (UI), `pd-service-data-factory` (consumer del evento `client-assignment` para informes), `pd-service-jira-adapter` (consumer + sync a Jira Assets).
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x (all services)
+**Language/Version**: TypeScript 5.7 (todos los servicios).
 
-**Primary Dependencies**:
-- Backend: NestJS 10, MikroORM 6, `@afianza-ac/nest-module-rabbitmq`, `@afianza-ac/nest-module-auth`
-- Frontend: React 19, Vite, TanStack Form, Zod, `@afianza-ac/ui`
+**Primary Dependencies**: NestJS 10, MikroORM 6 (PostgreSQL), `@afianza-ac/nest-module-rabbitmq` (AMQP wrapper), `@afianza-ac/lib-core-definitions` (enums + shared types: `Department`, `ClientAssignmentRole`, `ServiceFamily`, `ServiceCategory`), React 19 + Vite + TanStack Query (frontend).
 
-**Storage**: PostgreSQL 17 (MikroORM). New table `client_team` + two new columns on `client_assignment`.
+**Storage**: PostgreSQL 17 (esquema compartido por servicio).
 
-**Testing**:
-- Backend: Jest + `@testcontainers/postgresql` (real DB — no EntityManager mocking)
-- Frontend: Vitest + Testing Library
+**Testing**: Jest + `@testcontainers/postgresql` con `postgres:17-alpine` (integration), Jest mocks para servicios sin EntityManager, Supertest para controllers, Vitest para frontend.
 
-**Target Platform**: Linux server (NestJS services on AKS); browser SPA (React + Vite)
+**Target Platform**: Linux (AKS) para backend; web browser moderno (Chrome/Edge corporativo) para frontend.
 
-**Project Type**: Web service (backend API) + Web application (React SPA)
+**Project Type**: Multi-service web — backend NestJS + frontend React, comunicación entre servicios vía AMQP.
 
-**Performance Goals**: Save team operation < 500 ms p95. History query < 200 ms p95.
+**Performance Goals**:
+- Sincronización a Plataforma del Dato vía AMQP en <5 min desde el cambio (FR-014, ya existente).
+- Carga de "Asignaciones actuales" en la ficha de cliente <500 ms incluso con 4+ teams activos (degradación aceptable hasta 800 ms en p95).
+- Validación de suma 100% por departamento sincrónica al guardar miembro (<200 ms).
 
-**Constraints**: No gap in asesor coverage (FR-011). Percentage sums validated at flush time. Assignment history immutable once closed.
+**Constraints**:
+- Optimistic concurrency vía `updatedAt` en `ClientTeam` y `ClientAssignment` (FR-022) — HTTP 409 al conflicto.
+- Backward-compat con pipeline `client_onboarding_persisted` existente (FR-017 onboarding sigue creando filas legacy hasta resolver D10).
+- Validación cross-service: cualquier nueva regla aplicada en UI MUST replicarse en backend (decisión PO 2026-06-01).
+- Migración no destructiva, idempotente, sin afectar registros históricos.
+- ⚠️ D10 (onboarding ↔ ClientTeam) y D11 (asignación tareas por rol) siguen abiertas — assumption MVP: onboarding sigue creando legacy + reagrupación manual / todas las tareas van al asesor principal.
 
-**Scale/Scope**: ~200 clients in production; teams of 2–8 members; low write frequency (assignment changes happen monthly).
+**Scale/Scope**: ~3-4k clientes activos · ~150 empleados · ~2 departamentos (Fiscal + Laboral, enum cerrado) · 4 user stories (P1-P4) · 4 servicios tocados.
 
----
+## Compliance & Security Surface *(mandatory — Afianza preset)*
+
+- **Datos sensibles tocados**: porcentajes de dedicación (≈ retribución implícita por cliente), histórico de cambios de asignación con autoría (`updatedBy`). Acceso restringido por rol (responsable/coordinador = edición; asesor/técnico = lectura).
+- **Auth**: Azure AD via `@afianza-ac/nest-module-auth` en todos los endpoints. JWT con claims de rol.
+- **Authorization**: validación de rol en cada endpoint de escritura (composición mínima + permiso de edición). Defense in depth: UI oculta CTA + backend rechaza 403 si el rol no encaja.
+- **OWASP**:
+  - Input validation via `class-validator` en DTOs (límites de porcentaje 1-100, enums cerrados, fechas válidas).
+  - SQL injection: ORM (MikroORM) — no se usan queries raw.
+  - Authorization bypass: tests específicos en controllers verificando 403 para roles sin permiso.
+- **Histórico**: las filas de `ClientAssignment` con `dateTo` no se borran (preserva auditoría — decisión PO).
+- **Logs**: cambios de asignación generan eventos AMQP que data-factory ingiere para auditoría.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-| Principle | Status | Notes |
-|-----------|--------|-------|
-| I. Strict 3-layer architecture | ✅ PASS | All business logic in `ClientTeamsService` / `ClientAssignmentsService` (domain layer). Controllers only handle DTO mapping. No infrastructure calls from application. |
-| II. Real-container testing | ✅ PASS | All integration tests use `@testcontainers/postgresql`. No EntityManager mocking anywhere. |
-| III. MikroORM Unit of Work discipline | ✅ PASS | Writes use `em.fork()`. Reads use `{ disableIdentityMap: true }`. No `@EnsureRequestContext()` in AMQP consumers. |
-| IV. Event-driven cross-service communication | ✅ PASS | Manual task reassignment publishes a RabbitMQ event (`backoffice-api.v1.task-reassignment.requested`). No direct HTTP calls between services. |
-| V. Simplicity — no unnecessary abstractions | ✅ PASS | No new abstract repositories. Direct MikroORM EntityManager usage. `AssignmentPeriod` is a logical concept, not a new entity. |
-
-**Post-design re-check**: All constitution principles satisfied. The only tracked complexity is the pre-existing `ObligationsApi` HTTP adapter (legacy technical debt, not modified here).
-
----
-
-## Complexity Tracking
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| Pre-existing `ObligationsApi` HTTP mutations in `pgi-service-pgi-api` | Legacy pattern predating constitution ratification (2026-05-25) | Not touched in this feature — new task reassignment uses RabbitMQ event (constitution-compliant) |
-
----
+| Principio | Estado | Notas |
+|---|---|---|
+| I · 3-layer arch | ✅ Pass | Endpoints en `application/rest/`, lógica en `domain/services/`, persistencia via MikroORM `domain/models/`. AMQP subscribers en `application/amqp/` sin lógica de negocio. |
+| II · Real-container testing | ✅ Pass | Integration tests con `@testcontainers/postgresql` para `ClientAssignmentsService`, `ClientTeamsService`, AMQP subscribers. Sin mocks del EntityManager. |
+| III · MikroORM UoW | ✅ Pass | AMQP subscribers usan `em.fork()` + `em.transactional` para inserciones masivas. `em.upsert()` en `applyFromClientOnboarding`. `disableIdentityMap: true` en queries de validación. |
+| IV · Event-driven | ✅ Pass | Cross-service vía AMQP (`client-assignment` ampliado con `teamId`+`percentage`, `client_onboarding_persisted` sin cambios). Sin llamadas HTTP entre servicios. |
+| V · Simplicity | ✅ Pass | No se introduce ningún patrón nuevo (Repository, Factory, etc.). Reuso de `RabbitMQService`, `BackofficeUser` actor pattern, `MikroOrmModule`. Sin abstracciones especulativas. |
 
 ## Project Structure
 
@@ -74,168 +68,174 @@ Add multi-member teams with percentage-based load distribution to client profile
 
 ```text
 specs/001-client-team-assignments/
-├── plan.md              ← this file
-├── spec.md
-├── research.md          ← completed
-├── data-model.md        ← completed
-├── quickstart.md        ← completed
-├── contracts/
-│   ├── client-teams.md           ← completed
-│   └── client-assignments-history.md  ← completed
-└── tasks.md             ← generated by /speckit-tasks
+├── plan.md                   # Este fichero
+├── research.md               # Phase 0: decisiones técnicas resueltas (NEEDS CLARIFICATION → answers)
+├── data-model.md             # Phase 1: entidades + migraciones
+├── quickstart.md             # Phase 1: cómo arrancar este feature en local
+├── contracts/                # Phase 1: contratos API + AMQP events
+│   ├── client-teams-api.md
+│   ├── client-assignments-api.md
+│   └── client-assignment-event.md
+├── decisions/                # ADRs existentes — se añadirá ADR-0010
+├── spec.md                   # Spec (input)
+└── tasks.md                  # Phase 2 output (/speckit-tasks)
 ```
 
-### Source Code
+### Source Code (polyrepo — afecta a 4 servicios)
 
 ```text
-# Backend — pgi-service-pgi-api
-asesores/pgi-service-pgi-api/src/
-├── application/
-│   ├── controllers/
-│   │   ├── client-teams.controller.ts       (NEW)
-│   │   └── client-assignments.controller.ts (EXTENDED)
-│   └── amqp/
-│       └── [no new publishers here — publishing done in domain]
-├── domain/
-│   ├── entities/
-│   │   ├── client-team.entity.ts            (NEW)
-│   │   └── client-assignment.entity.ts      (EXTENDED: + percentage, + team FK)
-│   └── services/
-│       ├── client-teams.service.ts          (NEW)
-│       └── client-assignments.service.ts    (EXTENDED)
-└── infrastructure/
-    └── [no new infrastructure for this feature]
-
-asesores/pgi-service-pgi-api/src/migrations/
-└── Migration<timestamp>_add_client_team.ts  (NEW)
-
-# Backend — pd-service-obligations-api
-plataforma-del-dato/pd-service-obligations-api/src/
-└── application/
-    └── amqp/
-        └── task-reassignment.subscriber.ts  (NEW)
-
-# Frontend — pgi-app-pgi-web
-asesores/pgi-app-pgi-web/src/
-└── features/
-    └── client-teams/
-        ├── api/
-        │   └── client-teams.api.ts         (NEW — TanStack Query hooks)
-        ├── components/
-        │   ├── TeamSection.tsx             (NEW — Asignaciones tab container)
-        │   ├── TeamMemberForm.tsx          (NEW — add/edit member form)
-        │   ├── TeamMemberList.tsx          (NEW — active members table)
-        │   ├── PercentageSumIndicator.tsx  (NEW — live sum feedback)
-        │   ├── TeamHistory.tsx             (NEW — historical accordion)
-        │   └── CloseTeamModal.tsx          (NEW — close team confirmation)
-        └── types/
-            └── client-team.types.ts        (NEW)
+afianza/                                  # workspace root
+├── asesores/
+│   ├── pgi-service-pgi-api/              # OWNER · backend principal
+│   │   ├── src/
+│   │   │   ├── application/
+│   │   │   │   ├── rest/
+│   │   │   │   │   ├── client-teams/            # NEW · controller + DTOs equipos
+│   │   │   │   │   └── client-assignments/      # MODIFY · añadir endpoints de % + isPrimary
+│   │   │   │   └── amqp/
+│   │   │   │       ├── client-subscriber/       # MODIFY · onboarding consumer (D10 partial)
+│   │   │   │       └── client-assignment-publisher/  # NEW · publica `client-assignment` ampliado
+│   │   │   └── domain/
+│   │   │       ├── models/
+│   │   │       │   ├── client-team.ts           # MODIFY · añadir `isPrimary`, validation por dept
+│   │   │       │   └── client-assignment.ts     # MODIFY · añadir `isPrimary` (asesor), `causesBaja`, unique constraint nuevo
+│   │   │       └── services/
+│   │   │           ├── client-teams/            # NEW · CRUD + validation 100% por dept
+│   │   │           └── client-assignments/      # MODIFY · routing tareas + reasignación al sucesor
+│   │   └── migrations/                    # NEW · migración aditiva FR-013 + nuevos constraints
+│   └── pgi-app-pgi-web/                   # FRONTEND
+│       └── src/features/client-assignments/
+│           ├── presentation/components/   # MODIFY · modal lateral con multi-rol + slider %
+│           ├── application/use-cases/     # MODIFY · validate composition + 100% por dept
+│           └── infrastructure/            # MODIFY · DTOs alineados con nuevos contratos
+├── plataforma-del-dato/
+│   ├── pd-service-data-factory/           # MODIFY · alineación modelo + consumer client-assignment
+│   │   ├── src/domain/models/
+│   │   │   └── client-assignment.ts       # MODIFY · añadir `team_id` + `percentage`
+│   │   └── src/application/amqp/          # MODIFY · subscriber consume nuevos campos
+│   │   └── migrations/                    # NEW · añadir columnas
+│   └── pd-service-jira-adapter/           # MODIFY · sync solo principal a Jira Assets
+│       └── src/domain/services/client-assignment/  # MODIFY · seleccionar `isPrimary=true` + team principal
+└── specs/001-client-team-assignments/     # docs
 ```
 
----
+**Structure Decision**: Polirepo existente — no se crea ningún servicio nuevo. La feature se reparte entre 4 repos siguiendo el patrón cross-service via AMQP existente (`internal` exchange, `data_platform` vhost). Cada servicio mantiene su 3-layer arch y migraciones locales. No hay nuevo módulo NestJS (Constitution I: monolithic AppModule).
 
-## Phase 0: Research — Resolved Decisions
+## Complexity Tracking
 
-All research completed. See [research.md](./research.md) for full rationale.
+> Fill ONLY if Constitution Check has violations that must be justified.
 
-| ID | Topic | Decision |
-|----|-------|----------|
-| R-001 | Date granularity (FR-012) | **Hybrid**: exact `date` column, service enforces first/last-of-month convention |
-| R-002 | Manual task reassignment | **RabbitMQ event** `backoffice-api.v1.task-reassignment.requested` (constitution-compliant) |
-| R-003 | One active team per client+department | Service-layer guard + partial unique index `WHERE end_date IS NULL` |
-| R-004 | Percentage validation logic | Single-bucket: sum of all team members (ASESOR + TECNICO; responsable/coordinador excluded) = 100% at commit time |
-| R-005 | Frontend live % validation | TanStack Form field array + derived sum + Zod cross-field validation |
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| (ninguna) | — | — |
 
----
+Ningún principio constitucional se rompe. No se introduce abstracción nueva (`ClientTeamsService` y `ClientAssignmentsService` ya existen — se amplían). Migración aditiva, sin destructive changes. Reuso de patterns existentes para AMQP + onboarding subscriber.
 
-## Phase 1: Design & Contracts — Completed
+## Phase Plan
 
-### Data Model
+### Phase 0 — Research (genera `research.md`)
 
-See [data-model.md](./data-model.md) for entity definitions, ERD, state diagrams, and migration SQL.
+Resolver dudas técnicas surgidas del spec + open questions parcialmente respondidas:
 
-**Summary of schema changes** (single migration in `pgi-service-pgi-api`):
+1. **Migración 1:1 → multi-equipo**: ¿cómo asignar `team_id` a las filas existentes sin team? Crear un `ClientTeam` por (cliente, departamento) con miembros existentes al 100% — idempotente.
+2. **AMQP message ampliado**: estructura exacta del payload `client-assignment.v1.updated` con los nuevos campos `teamId`, `percentage`, `isPrimary`.
+3. **Consumer alignment**: pasos para que `pd-service-data-factory` y `pd-service-jira-adapter` deserialicen los nuevos campos sin romper compat con productores legacy (rolling deploy).
+4. **Validación 100% por departamento — implementación**: query agregada vs cálculo en memoria; ¿forzar transacción para evitar race con AMQP subscriber paralelo?
+5. **Onboarding bridge (D10 partial)**: documentar la assumption de que `applyFromClientOnboarding` sigue creando filas con `team_id = NULL` hasta resolución PO; añadir test de regresión para asegurar que no rompe.
+6. **Frontend state model**: TanStack Query vs Zustand para el modal de composición de equipo con validación reactiva del 100% por departamento.
 
-```sql
--- New table
-CREATE TABLE client_team (
-  id uuid PRIMARY KEY,
-  client_id uuid NOT NULL REFERENCES client(id),
-  department varchar NOT NULL,
-  start_date date NOT NULL,
-  end_date date,
-  created_by varchar NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE UNIQUE INDEX idx_client_team_active
-  ON client_team (client_id, department) WHERE end_date IS NULL;
+### Phase 1 — Design & Contracts
 
--- Extend existing table
-ALTER TABLE client_assignment
-  ADD COLUMN percentage smallint NOT NULL DEFAULT 100
-    CHECK (percentage >= 1 AND percentage <= 100),
-  ADD COLUMN team_id uuid REFERENCES client_team(id);
+**Artefactos a generar**:
+
+1. **`data-model.md`** — entidades y migraciones:
+   - `ClientTeam` (modificar): añadir `isPrimary: boolean = false` por departamento del cliente (max 1 con `true`).
+   - `ClientAssignment` (modificar): añadir `isPrimaryAdvisor: boolean = false` (solo aplica si `role: asesor`, max 1 por team), `causesBaja: boolean = false`. Constraints nuevos:
+     - Mantener actual: `(client, employee, role, department, dateFrom) UNIQUE`.
+     - Añadir: `(client_id, employee_id) WHERE dateTo IS NULL` partial unique (FR-021 — opción B PO: una persona, un equipo por cliente).
+     - Mantener CHECK `percentage >= 1 AND percentage <= 100`.
+   - Nuevo concepto: validación derivada (no entidad) `DepartmentBucketState` calculada en `ClientTeamsService.getDepartmentBucketStatus(clientId, department)`.
+
+2. **`contracts/client-teams-api.md`** — endpoints REST para gestión de equipos:
+   - `POST /clients/{clientId}/teams` (crear team)
+   - `PATCH /clients/{clientId}/teams/{teamId}` (modificar nombre / `isPrimary`)
+   - `POST /clients/{clientId}/teams/{teamId}/close` (cerrar con fecha fin)
+   - Headers: `If-Match: <updatedAt>` para optimistic concurrency.
+
+3. **`contracts/client-assignments-api.md`** — endpoints de miembros:
+   - `POST /clients/{clientId}/teams/{teamId}/members` (añadir miembro)
+   - `PATCH /clients/{clientId}/teams/{teamId}/members/{memberId}` (ajustar % / `isPrimary`)
+   - `DELETE /clients/{clientId}/teams/{teamId}/members/{memberId}` (alias semántico de "cerrar" — pone `dateTo = hoy` y abre diálogo causa baja).
+   - `GET /clients/{clientId}/department/{dept}/bucket-status` (devuelve estado del 100% por dept).
+
+4. **`contracts/client-assignment-event.md`** — schema del evento AMQP ampliado:
+   - Topic: `internal`, routing key `pgi-api.v1.client-assignment.updated`.
+   - Payload: `{ clientId, teamId, teamId, employeeId, role, department, dateFrom, dateTo?, percentage, isPrimaryAdvisor, updatedAt, updatedBy }`.
+   - Backward compat: campos nuevos como nullable, consumers actuales no rompen.
+
+5. **`quickstart.md`** — cómo arrancar el dev local:
+   - Migración inicial pgi-api.
+   - Migración aditiva data-factory.
+   - Verificación AMQP local (RabbitMQ in docker-compose).
+   - Comando de regresión onboarding (consumer de `client_onboarding_persisted` sigue funcionando).
+
+6. **ADR-0010 — Supersede ADR-0008** (single-bucket → two-bucket-por-departamento), documentando la decisión PO 2026-06-01.
+
+7. **Agent context update**: actualizar el bloque `<!-- SPECKIT START --> ... <!-- SPECKIT END -->` en CLAUDE.md root para apuntar a este plan.
+
+### Phase 2 — Tasks (manejado por `/speckit-tasks`)
+
+Plan generará una `tasks.md` ordenada por user story con secciones por servicio:
+
+```text
+- US1 (Crear equipo)
+  - pgi-api: model, service, controller, tests, migration
+  - frontend: modal lateral, validation, mutation TanStack
+- US2 (Distribución %)
+  - backend: bucket status endpoint, validation logic
+  - frontend: slider, live stats
+- US3 (Histórico)
+  - backend: query histórico
+  - frontend: panel lateral timeline
+- US4 (Cierre + reasignación)
+  - backend: closure logic, successor inference, AMQP reassignment publish
+  - frontend: dialog cierre, alert sucesor
+- Cross-cutting
+  - data-factory: model alignment, migration, subscriber update
+  - jira-adapter: select primary, sync filtered
+- Regression
+  - onboarding pipeline preserved
 ```
 
-### API Contracts
+## Re-check Constitution post-design
 
-See [contracts/client-teams.md](./contracts/client-teams.md) — new endpoints:
-- `GET /v1/client-teams/:clientId/department/:department`
-- `POST /v1/client-teams/:clientId/department/:department`
-- `PUT /v1/client-teams/:clientId/:teamId/close`
-- `GET /v1/client-teams/:clientId/:teamId/members`
-- `POST /v1/client-teams/:clientId/:teamId/members`
-- `PATCH /v1/client-teams/:clientId/:teamId/members/:assignmentId`
-- `DELETE /v1/client-teams/:clientId/:teamId/members/:assignmentId`
-- `POST /v1/client-teams/:clientId/:teamId/validate`
-- `POST /v1/client-teams/:clientId/:teamId/reassign-tasks`
-- `GET /v1/client-teams/:clientId/department/:department/active-summary`
+| Principio | Post-Phase 1 |
+|---|---|
+| I · 3-layer | ✅ Ningún cambio en arquitectura. |
+| II · Real-container | ✅ Tests previstos con testcontainers. |
+| III · MikroORM UoW | ✅ Forks + transactional en consumers AMQP. |
+| IV · Event-driven | ✅ Sin HTTP cross-service nuevo. |
+| V · Simplicity | ✅ Sin nuevas abstracciones. |
 
-See [contracts/client-assignments-history.md](./contracts/client-assignments-history.md) — extended endpoint:
-- `GET /v1/client-assignments/:clientId/department/:department` (adds `percentage`, `teamId`)
-- `GET /v1/client-assignments/:clientId/department/:department/history`
+## Technical Challenge resolutions (2026-06-01)
 
-### RabbitMQ Events
+`/speckit-challenge technical` detectó 6 BLOCKERs + 2 ADRs. Todos abordados antes de `/speckit-tasks`:
 
-| Event | Direction | Schema |
-|-------|-----------|--------|
-| `backoffice-api.v1.client-assignment.updated` | Published (extended) | Adds `percentage` field — backward-compatible |
-| `backoffice-api.v1.task-reassignment.requested` | Published (new) | `clientId, department, fromEmployeeId, toEmployeeId, taskIds, requestedBy, requestedAt` |
-| `obligations-api:task-reassignment:process` | Consumed by obligations-api (new subscriber) | Reassigns PENDING tasks between employees |
+| ID | Finding | Resolución |
+|----|---------|------------|
+| T1 | Onboarding `upsert` vs nuevo partial unique | `applyFromClientOnboarding` cierra fila activa existente antes de insertar (pseudo-código + test de regresión en `data-model.md > Onboarding bridge`) |
+| T2 | Faltaban CHECK constraints | Añadidos `chk_primary_advisor_only_asesor` y `chk_causes_baja_only_when_closed` en migración M1a |
+| T3 | Sucesor no modelado | `successorId` REQUIRED en DELETE/close con `causesBaja=true`. Backend devuelve 400 SUCCESSOR_REQUIRED con `suggestedSuccessorId` calculado por temporalidad. Sin nuevo schema |
+| T4 | Cierre de team sin transactionality | Contrato POST close ahora dice `em.transactional` + AMQP publish post-commit. Referencia a D-005 PENDING (outbox) |
+| T5 | `updatedAt` para optimistic concurrency | **ADR-0010** — cambio a columna `version: integer` (`@Property({version: true})`) |
+| T6 | At-least-one primary team no garantizado | Service auto-promotes el primer team de `(client, dept)` a `isPrimary=true`. Documentado en data-model lifecycle |
+| T7 | `team_id` en data-factory sin FK justificado | **ADR-0011** — logical FK only, política de huérfanos documentada |
+| T8 | Race en cómputo bucket status + publish | `SELECT ... FOR UPDATE` sobre fila padre `client` en la transacción que puede emitir transición |
+| T10 | Backfill ordenado después del partial unique | Migración partida en **M1a (DDL + CHECKs + backfill + audit)** → **M1b (partial uniques)**. Si los datos legacy violan FR-021, M1a aborta con mensaje claro antes de crear el unique |
 
----
+T9 (QUESTION-PO sobre OQ-008) sigue abierta pero **no bloquea el MVP** — ver assumption documentada en `quickstart.md > Limitaciones`.
 
-## Open Questions — Still Pending PO
-
-These were open at spec-freeze. They do **not** block implementation of US1–US3; they only affect US4 edge cases.
-
-| # | Question | Impact on Implementation |
-|---|----------|--------------------------|
-| OQ-001 | Baja de asesor sin sucesor: ¿bloquear cierre o bandeja sin asignar? | US4 / `causesBaja: true` path — task provisionally blocks close until successor designated |
-| OQ-002 | Asesor de referencia cuando hay múltiples asesores | Task distribution logic — implement explicit `isReference` flag on `ClientAssignment` for when this is resolved |
-| OQ-003 | Edición simultánea por dos responsables | Optimistic lock via `updatedAt` check — implement defensively (409 with hint to reload) |
-| OQ-004 | Informes no disponibles al guardar | Currently: save succeeds; RabbitMQ event guarantees eventual consistency (FR-014) |
-| OQ-005 | Modelo A vs B (equipo exclusivo de cliente vs compartido) | **Resolved as Modelo A** (client-scoped) — current data model already implements this |
-
----
-
-## Implementation Order
-
-Based on dependency analysis and US priorities:
-
-1. **Migration** — `client_team` table + `percentage` column (blocks all else)
-2. **US1 Backend** — `ClientTeam` entity + `ClientTeamsService` + controllers + tests
-3. **US2 Backend** — percentage validation in `ClientAssignmentsService` + PATCH endpoint
-4. **US3 Backend** — history endpoint extension
-5. **US4 Backend** — close team + `causesBaja` + RabbitMQ task reassignment event
-6. **obligations-api** — `TaskReassignmentSubscriber`
-7. **Frontend** — Asignaciones tab (TeamSection, TeamMemberForm, live % validation)
-8. **Frontend** — History accordion + close modal
-9. **Migration for existing data** — FR-013 idempotent migration to set `percentage = 100` on legacy rows
-
----
-
-## Quickstart
-
-See [quickstart.md](./quickstart.md) for local dev setup and smoke test commands.
+Sub-findings del reviewer bucket-9 (que devolvió formato incorrecto y fue descartado) parcialmente cubiertos:
+- M2 ahora añade también `is_primary_advisor` y `causes_baja` para evitar split migration cuando US4 ship later.
+- Recordatorio explícito de test de regresión `apply-from-client-onboarding` en `data-model.md`.
+- Coordinación de `@afianza-ac/lib-core-definitions` bump pendiente — se aborda en `tasks.md` cuando se genere.
