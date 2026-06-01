@@ -236,15 +236,15 @@
 </ul>
 <p>(por defecto 100%) y opcionalmente una fecha de fin.</p>
 <ul>
-<li><strong>FR-003</strong>: El sistema DEBE validar la suma de porcentajes de **todos los miembros del equipo</li>
+<li><strong>FR-003</strong>: El sistema DEBE validar la suma de porcentajes <strong>por bucket de rol</strong> y <strong>por departamento del cliente</strong> (no por equipo individual). Hay <strong>dos buckets independientes</strong>: (i) <strong>asesores</strong> del departamento (suma de % de TODOS los asesores activos en TODOS los equipos del cliente en ese departamento = 100%), y (ii) <strong>técnicos</strong> del departamento (suma de % de TODOS los técnicos activos en TODOS los equipos del cliente en ese departamento = 100%). El responsable y el coordinador NO entran en la suma — son roles de gestión con 100% implícito. <strong>Ejemplo</strong>: 2 equipos Fiscal para un cliente, con 4 asesores totales (2 en Eq1, 2 en Eq2) cada uno al 25% → suma asesores Fiscal = 100% ✓. Lo mismo con técnicos por separado.</li>
 </ul>
-<p>(asesores y técnicos)<strong> y el estado resultante del equipo </strong>tras cada operación de miembro<strong> (<code>POST/PATCH/DELETE /members</code>). El responsable y el coordinador NO entran en la suma — son roles de gestión con 100% implícito. Cada operación persiste de inmediato (ver Clarifications 2026-05-29). El equipo está en estado <code>active</code> si y solo si: (a) la suma de asesores+técnicos = 100% </strong>y** (b) existe exactamente un <code>TeamMember</code> con <code>role: asesor</code> e <code>isPrimary: true</code>. En caso contrario el equipo está en estado <code>incomplete</code>. Las transiciones entre estados se calculan automáticamente tras cada operación. El sistema NO rechaza operaciones que dejen el equipo en <code>incomplete</code> — solo lo refleja en la UI con banner advisory y suprime la publicación a Plataforma del Dato.</p>
+<p>La validación se evalúa tras cada operación de miembro (<code>POST/PATCH/DELETE /members</code>). El cliente+departamento está en estado <code>active</code> si y solo si: (a) la suma de asesores del departamento = 100% <strong>y</strong> (b) la suma de técnicos del departamento = 100% (con la salvedad: si NO hay técnicos en ningún equipo del departamento, el bucket de técnicos se considera "no aplicable" y no bloquea) <strong>y</strong> (c) existe exactamente un <code>TeamMember</code> con <code>role: asesor</code> e <code>isPrimary: true</code> por departamento. En caso contrario está en estado <code>incomplete</code>. El sistema persiste cada operación inmediatamente; muestra banner advisory cuando alguno de los dos buckets ≠ 100% (no bloquea el guardado del miembro). La publicación a Plataforma del Dato se suprime mientras esté en <code>incomplete</code>. La validación bloqueante de <strong>composición mínima</strong> (1 responsable + 1+ asesor por equipo) es independiente y SÍ deshabilita el botón Guardar (decisión PO 2026-06-01).</p>
 <ul>
 <li><strong>FR-004</strong>: Solo los perfiles <strong>responsable</strong> y <strong>coordinador</strong> DEBEN poder crear, modificar o cerrar</li>
 </ul>
 <p>asignaciones. Los asesores y técnicos tienen acceso de solo lectura.</p>
 <ul>
-<li><strong>FR-005</strong>: Un <strong>cliente</strong> PUEDE tener varios equipos activos por departamento (modelo multi-equipo confirmado por los diseños <code>08-multi-equipo/*</code> — ver Clarifications 2026-05-29). Cada equipo se identifica con un <strong>nombre obligatorio y único</strong> dentro del par cliente+departamento; la unicidad efectiva pasa a ser <code>(client_id, department, name)</code> cuando <code>endDate IS NULL</code>. La validación del 100% se aplica <strong>por equipo</strong>, no por cliente+departamento. La restricción es sobre el cliente, no sobre el empleado que ejerce de responsable.</li>
+<li><strong>FR-005</strong>: Un <strong>cliente</strong> PUEDE tener varios equipos activos por departamento (modelo multi-equipo confirmado por los diseños <code>08-multi-equipo/*</code> — ver Clarifications 2026-05-29). Los equipos NO tienen <code>name</code> persistido en BD (decisión PO 2026-06-01 — los nombres tipo <code>Libros</code>/<code>Cuota</code>/<code>Larsa</code>/<code>Costa</code> de los frames no representan regla de negocio). Para identificar visualmente en UI cuando hay varios equipos del mismo departamento se usa orden de creación (<code>Equipo 1</code>, <code>Equipo 2</code>) calculado en frontend, sin persistir. La unicidad activa se mantiene a nivel <code>(client_id, department, id)</code> — un cliente puede tener N equipos activos en el mismo departamento. La <strong>validación del 100% se aplica por cliente+departamento</strong> (suma de % asesores y técnicos por separado, agregada entre todos los equipos del departamento — ver FR-003 actualizado). La restricción es sobre el cliente, no sobre el empleado que ejerce de responsable.</li>
 <li><strong>FR-006</strong>: Un responsable NO PUEDE pertenecer a más de un departamento.</li>
 </ul>
 <p><em>(Restricción organizativa preexistente del modelo de empleados — gestionada en la creación del empleado, no validada en esta feature. Documentada aquí para que el equipo de asignaciones pueda asumirla con confianza al consultar el departamento del responsable.)</em></p>
@@ -674,6 +674,9 @@
 <li>Q: ¿La validación en la UI del PGI debe ser idéntica a la de Jira? → A: <strong>Sí</strong>. Una sola lógica de validación, aplicada en ambos lados.</li>
 <li>Q: ¿Asignaciones múltiples = mover carteras entre asesores masivamente? → A: Aclarada como funcionalidad de <strong>reasignación masiva</strong> (varios clientes a la vez, manteniendo porcentajes y con fecha efectiva). <strong>Confirmar si está en scope de DEVPT-518 o es feature separada</strong>.</li>
 <li>Q: ¿Persona en más de un rol/equipo simultáneo? → A: <strong>No permitido</strong>. ⚠️ Ambigüedad: ¿se refiere a no más de un rol por equipo (= FR-016) o a no en más de un equipo punto? Ver <code>po-followup-conflicts.md</code> punto 1.</li>
+<li>Q (post-sesión) · Modelo de suma 100% → A: <strong>Dos buckets independientes (asesores 100% + técnicos 100%) y suma POR DEPARTAMENTO del cliente, NO por equipo individual</strong>. Confirmado por la PO con el frame <code>08-multi-equipo/01-multi-equipo-fiscal-larsa-costa.png</code>: 2 equipos Fiscal con 3 asesores totales distribuidos entre ambos, todos sumando 100% en conjunto. Si hay 4 asesores en 2 equipos Fiscal, cada uno al 25% → 100%. Lo mismo con técnicos por separado. <strong>Esto invalida ADR-0008 (single bucket por equipo)</strong> — la decisión debe registrarse como nuevo ADR que supersede al anterior. <strong>Cambia FR-003</strong> (aplicado en esta misma iteración).</li>
+<li>Q (post-sesión) · Bajas largas → A: <strong>Se gestionan como cualquier baja</strong>: fecha fin a la asignación. Si el equipo está al 100%, hay que SUSTITUIR (cerrar la asignación del que se va + abrir nueva para el sustituto, manteniendo la suma 100% por departamento). No hay flujo especial de "suplencia temporal" en esta iteración. Cierra D5.</li>
+<li>Q (post-sesión) · Nombre del equipo → A: <strong>Descartado de scope</strong>. La PO confirmó que los nombres <code>Libros</code>/<code>Cuota</code>/<code>Larsa</code>/<code>Costa</code> de los frames no representan regla de negocio. <strong>Acción</strong>: documentar como assumption que el equipo NO tiene campo <code>name</code> obligatorio en MVP. Si en algún momento se necesita identificar visualmente equipos del mismo departamento, se hará por orden de creación (<code>Equipo 1</code>, <code>Equipo 2</code>) sin persistirlo en BD. Cierra D6 y OQ-006.</li>
 </ul>
 <p><strong>Pendientes después de la sesión</strong> (no bloquean diseño técnico del MVP si asumimos defaults):</p>
 <ul>
@@ -1904,39 +1907,26 @@ curl -X POST http://localhost:3000/v1/client-teams/$CLIENT_ID/$TEAM_ID/reassign-
 <div class="section" id="po-followup-conflicts">
   <div class="section-label"><span class="icon">📄</span> Po Followup Conflicts</div>
   <h1>Mensaje a PO — Seguimiento sesión 2026-06-01</h1>
-<blockquote><p>Para mandar por Slack / mail / comentario en Epic DEVPT-518.</p></blockquote>
-<blockquote><p>Tono: gracias por la sesión + 4 dudas concretas que necesitamos confirmar antes de empezar a tocar código.</p></blockquote>
+<blockquote><p>Tras tu feedback post-meeting, las preguntas 2 (validación bloqueante), 3 (nombre de equipo) y 4 (bajas largas) ya quedaron respondidas verbalmente o reformuladas. Queda <strong>1 punto</strong> que aún necesita confirmación explícita del PO antes de codificar el constraint de BD.</p></blockquote>
 <hr/>
-<p>Hola, muchas gracias por la sesión de hoy — cerramos un montón de cosas. Antes de ponernos a implementar, hay <strong>4 puntos</strong> en los que necesitamos confirmación o aclaración porque pueden ir en direcciones contrarias y queremos no equivocarnos:</p>
-<h2>1 · Una persona en más de un equipo a la vez</h2>
-<p>Dijiste que <em>"una persona no puede ocupar simultáneamente más de un equipo/rol en el mismo periodo"</em>. Necesitamos confirmar qué significa exactamente:</p>
+<p>Hola, una última aclaración tras la sesión de ayer:</p>
+<h2>Una persona en más de un equipo a la vez</h2>
+<p>Dijiste que <em>"una persona no puede ocupar simultáneamente más de un equipo/rol en el mismo periodo"</em>. Lo necesitamos cerrar antes de añadir el constraint a la BD:</p>
 <ul>
-<li>(a) <strong>No más de un ROL dentro del mismo equipo</strong> — ej. Pedro no puede ser coordinador y asesor del mismo equipo Fiscal del cliente X. <em>(Esto es lo que ya teníamos asumido).</em></li>
-<li>(b) <strong>No en más de un EQUIPO, punto</strong> — ej. Pedro no puede ser asesor del equipo Fiscal del cliente X <strong>y a la vez</strong> asesor del equipo Laboral del mismo cliente X. <em>(Esto sería más restrictivo y cambia el modelo de datos).</em></li>
+<li>(a) <strong>No más de un ROL dentro del mismo equipo</strong> — ej. Pedro no puede ser coordinador y asesor del mismo equipo Fiscal del cliente X. <em>(Esto es lo que ya teníamos asumido.)</em></li>
+<li>(b) <strong>No en más de un EQUIPO, punto</strong> — ej. Pedro no puede ser asesor del equipo Fiscal del cliente X <strong>y a la vez</strong> asesor del equipo Laboral del mismo cliente X. <em>(Más restrictivo: cambia el modelo de datos.)</em></li>
 </ul>
-<p>¿Cuál de las dos? La respuesta afecta a un constraint de base de datos que tenemos que añadir antes de codificar nada.</p>
-<h2>2 · Validación bloqueante: composición mínima vs suma 100%</h2>
-<p>Confirmaste que el botón <strong>Guardar</strong> debe estar bloqueado mientras falten roles obligatorios (1 responsable + 1+ asesor). Necesitamos saber si <strong>el mismo bloqueo aplica también cuando la suma de asesores+técnicos ≠ 100%</strong>, o si en ese caso vale con el banner amarillo advisory (que es lo que muestra el diseño).</p>
-<ul>
-<li>(a) Bloquear guardado también si suma ≠ 100% — coherente y estricto.</li>
-<li>(b) Sólo bloquear por composición mínima, dejar el 100% como advisory — lo que el diseño actual ya muestra (banner amarillo + permite guardar a medias).</li>
-</ul>
-<h2>3 · Nombres de equipo (Libros, Cuota, Larsa, Costa)</h2>
-<p>Nos dijiste que ignoráramos esos nombres porque no representan regla de negocio. <strong>¿Eso significa que los equipos no tienen nombre en absoluto, o que sí lo tienen pero es texto libre del responsable?</strong> El diseño actual muestra los equipos con etiqueta (<em>"Equipo Libros"</em>, etc.), así que algún campo nombre parece haber. Solo necesitamos saber si:</p>
-<ul>
-<li>(a) No hay nombre — los equipos se identifican por su composición y fechas.</li>
-<li>(b) Hay un campo <code>nombre</code> libre que el responsable rellena — sin reglas de validación más allá de unicidad por cliente+departamento.</li>
-</ul>
-<h2>4 · Bajas largas: cómo escalar exactamente</h2>
-<p>Dijiste que la prioridad es reasignar a otro asesor y, si no hay, escalar hacia coordinador o responsable. ¿Cómo prefieres que funcione el escalado?</p>
-<ul>
-<li>(a) <strong>Manual</strong>: cuando un asesor causa baja sin sucesor, el sistema avisa al coordinador (o responsable si no hay coord) y este decide qué hacer.</li>
-<li>(b) <strong>Automático</strong>: el sistema reasigna las tareas directamente al coordinador (si existe) o al responsable.</li>
-<li>(c) <strong>Híbrido</strong>: automático con una ventana de "X días para que un humano lo cambie" antes de cerrar.</li>
-</ul>
-<hr/>
-<p>Con estas 4 respuestas podemos arrancar el diseño técnico. Las demás cosas que quedaron pendientes (qué rol hace cada tarea, TaxDown, vista de anomalías) no bloquean este sprint — las tratamos en otro momento.</p>
+<p><strong>Importante en relación con la regla del 100% por departamento que confirmaste</strong>: si la respuesta es (a), un mismo asesor PODRÍA estar en dos equipos del mismo departamento (ej. Pedro Asesor en Equipo 1 Fiscal al 25% + Pedro Asesor en Equipo 2 Fiscal al 25% → suma 50% suya, dentro del 100% Fiscal). Si la respuesta es (b), eso queda prohibido y cada equipo del departamento tiene asesores disjuntos.</p>
+<p>¿(a) o (b)?</p>
 <p>Gracias 🙌</p>
+<hr/>
+<h2>Resueltas ya (no preguntar más)</h2>
+<ul>
+<li><strong>Suma 100% por departamento, dos buckets</strong>: Asesores Fiscal 100% + Técnicos Fiscal 100%, agregando entre todos los equipos del departamento. Confirmado con frame <code>08-multi-equipo/01</code>.</li>
+<li><strong>Validación bloqueante</strong>: solo composición mínima (1 responsable + 1+ asesor por equipo) bloquea Guardar. La suma 100% se queda como advisory.</li>
+<li><strong>Nombres de equipo</strong>: descartados de scope. No hay campo <code>name</code> en BD. UI muestra <code>Equipo 1</code>, <code>Equipo 2</code> por orden.</li>
+<li><strong>Bajas largas</strong>: gestión estándar (fecha fin + sustitución manteniendo el 100% por departamento). No se construye entidad de suplencia temporal.</li>
+</ul>
 </div>
 <div class="section" id="po-meeting-results">
   <div class="section-label"><span class="icon">📄</span> Po Meeting Results</div>
