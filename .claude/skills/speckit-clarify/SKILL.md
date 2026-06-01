@@ -69,7 +69,17 @@ Execution steps:
    - If JSON parsing fails, abort and instruct user to re-run `/speckit-specify` or verify feature branch environment.
    - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
-2. Load the current spec file. Perform a structured ambiguity & coverage scan using this taxonomy. For each category, mark status: Clear / Partial / Missing. Produce an internal coverage map used for prioritization (do not output raw map unless no questions will be asked).
+2. Load the current spec file.
+
+   **Pre-scan: read existing designs if present.**
+   - Look for `FEATURE_DIR/designs/` containing `*.png` or `*.jpg` files (recursively).
+   - If present:
+     - Read `FEATURE_DIR/designs/INDEX.md` if it exists — it is the legend mapping each frame to its user journey.
+     - List every frame sorted by path. Use the `Read` tool (multimodal) to open every frame whose journey matches a user story you will be scanning. **Designs are source of truth on UI matters when they conflict with spec prose.**
+     - As you read frames, note any UI element (button, badge, validation banner, modal layout, empty state, workflow step) that is absent from or contradicted by the spec — these become candidate clarification questions under the new **Design Conformance** category below.
+   - If no `designs/` exists or is empty, skip silently and continue without the Design Conformance category.
+
+   Perform a structured ambiguity & coverage scan using this taxonomy. For each category, mark status: Clear / Partial / Missing. Produce an internal coverage map used for prioritization (do not output raw map unless no questions will be asked).
 
    Functional Scope & Behavior:
    - Core user goals & success criteria
@@ -120,6 +130,12 @@ Execution steps:
    Misc / Placeholders:
    - TODO markers / unresolved decisions
    - Ambiguous adjectives ("robust", "intuitive") lacking quantification
+
+   Design Conformance (only if `designs/` was read in the pre-scan):
+   - UI elements visible in frames (buttons, badges, status pills) without corresponding FR or Key Entity field
+   - Validation banners or progress indicators implying rules the spec does not state
+   - Workflow steps shown in frames that the spec contradicts or omits (e.g. commit button missing from designs, checkbox in modal vs separate action)
+   - Tab structure, modal layouts, or multi-entity patterns (e.g. multiple active teams) that contradict spec invariants
 
    For each category with Partial or Missing status, add a candidate question opportunity unless:
    - Clarification would not materially change implementation or validation strategy

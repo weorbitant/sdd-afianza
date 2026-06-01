@@ -50,6 +50,7 @@ Workspace-wide guidance lives in `.claude/rules/`. Files without `paths:` frontm
 | `atlassian.md`          | always         | Jira cloudId + hostname trap |
 | `po-communication.md`   | always         | How to draft PO questions in Jira |
 | `mcps.md`               | always         | Active MCPs and RTK token optimization |
+| `polyrepo-cross-service.md` | always     | Verificar en código antes de especular sobre flujos AMQP cross-service |
 | `speckit-workflow.md`   | `specs/**`, `.specify/**` | Recommended `/speckit-*` flow + active commands |
 | `speckit-extensions.md` | `.specify/extensions/**` | Crear/editar extensiones, bug del CLI |
 
