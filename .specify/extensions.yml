@@ -1,6 +1,5 @@
 installed:
   - atlassian-sync
-  - challenge
   - figma-export
   - git-pr
   - md-html-export

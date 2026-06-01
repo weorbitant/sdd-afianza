@@ -350,9 +350,9 @@ Frames exportados desde Figma — Portal Asesor / Ficha de cliente:
 
 ## Decisiones de la sesión PO
 
-Tabla única de preguntas para la PO y decisiones tomadas. Reemplaza los antiguos bloques "Open Questions" + "Nuevas — Challenge funcional" + ficheros `po-*.md` (eliminados).
+Tabla única de preguntas para la PO y decisiones tomadas. Reemplaza los antiguos bloques "Open Questions" + revisión funcional + ficheros `po-*.md` (eliminados).
 
-Para evidencia detallada de cada decisión y discusión histórica ver `## Clarifications` más abajo, y `challenge-report.md` para los hallazgos del challenge funcional + técnico.
+Para evidencia detallada de cada decisión y discusión histórica ver `## Clarifications` más abajo, y `challenge-report.md` para los hallazgos técnicos T1-T10 de la revisión 2026-06-01.
 
 ### ✅ Resueltas (13)
 

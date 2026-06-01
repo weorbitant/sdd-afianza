@@ -236,13 +236,13 @@ The block is idempotent (re-running produces the same state) and non-destructive
 **Date**: 2026-06-01
 **Supersedes**: N/A
 **Superseded by**: N/A
-**Origin**: Challenge technical 2026-06-01, T5 (feasibility-F5)
+**Origin**: Revisión técnica 2026-06-01, T5 (feasibility-F5)
 
 ## Context
 
 FR-022 introduce optimistic concurrency en `ClientTeam` y `ClientAssignment` para resolver C2 de la sesión PO (último editor pisa silenciosamente al primero). La propuesta inicial del plan usaba `updatedAt` (timestamp con sub-second precision) comparado vía header `If-Match` para detectar conflictos.
 
-El technical challenge (T5) detectó que:
+La revisión técnica (T5) detectó que:
 - `updatedAt` se actualiza vía `onUpdate: () => new Date()` en MikroORM.
 - Dos writes en el mismo milisegundo pueden producir el mismo `updatedAt` y bypassear el check.
 - No hay rationale documentado para preferir timestamp sobre version integer monotónico.
@@ -291,7 +291,7 @@ Usar **columna `version: integer`** dedicada para optimistic concurrency en `Cli
 **Date**: 2026-06-01
 **Supersedes**: N/A
 **Superseded by**: N/A
-**Origin**: Challenge technical 2026-06-01, T7 (feasibility-F7)
+**Origin**: Revisión técnica 2026-06-01, T7 (feasibility-F7)
 
 ## Context
 

@@ -80,7 +80,7 @@ Una spec está "plan-ready" cuando supera los 8 criterios siguientes. Cada crite
 
 **Fail (❌)**: la spec menciona ≥2 servicios pero no lista eventos AMQP ni contratos de integración.
 
-**Remediación**: `/speckit-challenge functional` — el `business-logic-reviewer` detecta este gap explícitamente.
+**Remediación**: `/speckit-clarify` — el `business-logic-reviewer` detecta este gap explícitamente.
 
 ---
 
@@ -98,7 +98,7 @@ Una spec está "plan-ready" cuando supera los 8 criterios siguientes. Cada crite
 
 **Fail (❌)**: no hay NFRs declarados **y** la feature toca auth o datos personales.
 
-**Remediación**: `/speckit-clarify` o `/speckit-challenge functional`.
+**Remediación**: `/speckit-clarify`.
 
 ---
 
@@ -146,7 +146,7 @@ Una spec está "plan-ready" cuando supera los 8 criterios siguientes. Cada crite
 
 **Fail (❌)**: 0 edge cases listados.
 
-**Remediación**: `/speckit-challenge functional` — el `business-logic-reviewer` cubre edge cases como bucket explícito.
+**Remediación**: `/speckit-clarify` — el `business-logic-reviewer` cubre edge cases como bucket explícito.
 
 ---
 

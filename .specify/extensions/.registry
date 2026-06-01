@@ -58,20 +58,6 @@
       "registered_skills": [],
       "installed_at": "2026-05-26T09:00:00.000000+00:00"
     },
-    "challenge": {
-      "version": "0.6.0",
-      "source": "local",
-      "manifest_hash": "sha256:f752727cde4c960c163031e8c69e1db7e99a2446a588ac81e0d1585be7f40c0c",
-      "enabled": true,
-      "priority": 10,
-      "registered_commands": {
-        "claude": [
-          "speckit.challenge"
-        ]
-      },
-      "registered_skills": [],
-      "installed_at": "2026-05-28T14:30:00.000000+00:00"
-    },
     "ready": {
       "version": "0.1.0",
       "source": "local",

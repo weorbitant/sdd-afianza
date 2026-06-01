@@ -92,11 +92,10 @@
   <a href="#spec">📋 Specification</a>
   <a href="#plan">🏗️ Technical Plan</a>
   <a href="#tasks">✅ Tasks</a>
-  <a href="#challenge-report">📄 Challenge Report</a>
   <a href="#decisions">📄 Decisions</a>
 </nav>
 <div class="page">
-<div class="cover" id="index"><h1>Asignaciones Múltiples en Ficha de Cliente</h1><div class="meta"><span>🔗 <a href="https://afianza.atlassian.net/browse/DEVPT-518" target="_blank">DEVPT-518</a></span><span>📌 Draft</span><span>🗓 Updated 2026-05-26</span></div><div class="index-group-title">Core</div><div class="index-grid"><a class="index-card" href="#spec"><span class="card-icon">📋</span><span class="card-label">Specification</span><span class="card-sub">Requirements &amp; user stories</span></a><a class="index-card" href="#plan"><span class="card-icon">🏗️</span><span class="card-label">Technical Plan</span><span class="card-sub">Architecture &amp; design</span></a><a class="index-card" href="#tasks"><span class="card-icon">✅</span><span class="card-label">Tasks</span><span class="card-sub">Implementation plan</span></a><a class="index-card" href="#challenge-report"><span class="card-icon">📄</span><span class="card-label">Challenge Report</span><span class="card-sub"></span></a><a class="index-card" href="#decisions"><span class="card-icon">📄</span><span class="card-label">Decisions</span><span class="card-sub"></span></a><a class="index-card" href="#designs-index"><span class="card-icon">🎨</span><span class="card-label">Designs · Index</span><span class="card-sub">Designs</span></a></div></div>
+<div class="cover" id="index"><h1>Asignaciones Múltiples en Ficha de Cliente</h1><div class="meta"><span>🔗 <a href="https://afianza.atlassian.net/browse/DEVPT-518" target="_blank">DEVPT-518</a></span><span>📌 Draft</span><span>🗓 Updated 2026-05-26</span></div><div class="index-group-title">Core</div><div class="index-grid"><a class="index-card" href="#spec"><span class="card-icon">📋</span><span class="card-label">Specification</span><span class="card-sub">Requirements &amp; user stories</span></a><a class="index-card" href="#plan"><span class="card-icon">🏗️</span><span class="card-label">Technical Plan</span><span class="card-sub">Architecture &amp; design</span></a><a class="index-card" href="#tasks"><span class="card-icon">✅</span><span class="card-label">Tasks</span><span class="card-sub">Implementation plan</span></a><a class="index-card" href="#decisions"><span class="card-icon">📄</span><span class="card-label">Decisions</span><span class="card-sub"></span></a><a class="index-card" href="#designs-index"><span class="card-icon">🎨</span><span class="card-label">Designs · Index</span><span class="card-sub">Designs</span></a></div></div>
 <div class="section" id="spec">
   <div class="section-label"><span class="icon">📋</span> Specification</div>
   <h1>Feature Specification: Asignaciones Múltiples en Ficha de Cliente</h1>
@@ -385,8 +384,8 @@
 <blockquote><p>Fuente: <a href="https://www.figma.com/design/ra1egztv3K3yBTrWbHVacy">Portal Asesor - Mis clientes</a> · Página: Mis clientes · 2026-05-25</p></blockquote>
 <hr/>
 <h2>Decisiones de la sesión PO</h2>
-<p>Tabla única de preguntas para la PO y decisiones tomadas. Reemplaza los antiguos bloques "Open Questions" + "Nuevas — Challenge funcional" + ficheros <code>po-*.md</code> (eliminados).</p>
-<p>Para evidencia detallada de cada decisión y discusión histórica ver <code>## Clarifications</code> más abajo, y <code>challenge-report.md</code> para los hallazgos del challenge funcional + técnico.</p>
+<p>Tabla única de preguntas para la PO y decisiones tomadas. Reemplaza los antiguos bloques "Open Questions" + revisión funcional + ficheros <code>po-*.md</code> (eliminados).</p>
+<p>Para evidencia detallada de cada decisión y discusión histórica ver <code>## Clarifications</code> más abajo, y <code>challenge-report.md</code> para los hallazgos técnicos T1-T10 de la revisión 2026-06-01.</p>
 <h3>✅ Resueltas (13)</h3>
 <table>
 <tr><th>#</th><th>Tema</th><th>Decisión PO</th></tr>
@@ -688,8 +687,8 @@
 <tr><td>IV · Event-driven</td><td>✅ Sin HTTP cross-service nuevo.</td></tr>
 <tr><td>V · Simplicity</td><td>✅ Sin nuevas abstracciones.</td></tr>
 </table>
-<h2>Technical Challenge resolutions (2026-06-01)</h2>
-<p><code>/speckit-challenge technical</code> detectó 6 BLOCKERs + 2 ADRs. Todos abordados antes de <code>/speckit-tasks</code>:</p>
+<h2>Resoluciones técnicas (revisión 2026-06-01) (2026-06-01)</h2>
+<p>La revisión técnica del 2026-06-01 detectó 6 BLOCKERs + 2 ADRs. Todos abordados antes de <code>/speckit-tasks</code>:</p>
 <table>
 <tr><th>ID</th><th>Finding</th><th>Resolución</th></tr>
 <tr><td>T1</td><td>Onboarding <code>upsert</code> vs nuevo partial unique</td><td><code>applyFromClientOnboarding</code> cierra fila activa existente antes de insertar (pseudo-código + test de regresión en <code>data-model.md &amp;gt; Onboarding bridge</code>)</td></tr>
@@ -1528,141 +1527,6 @@ Task: "T032 PercentageSumIndicator"</code></pre>
 <li>Migración masiva legacy (FR-013) dentro de US1 — los datos 1-a-1 son válidos por construcción y se convierten en equipos implícitos al desplegar.</li>
 </ul>
 </div>
-<div class="section" id="challenge-report">
-  <div class="section-label"><span class="icon">📄</span> Challenge Report</div>
-  <h1>Anexo técnico — DEVPT-518 (post-PO)</h1>
-<blockquote><p>Las decisiones de negocio (D1-D11, G1-G2) que generaba este report han sido aplicadas</p></blockquote>
-<blockquote><p>al spec.md (sección <code>## Decisiones de la sesión PO</code>). Aquí queda solo el anexo técnico</p></blockquote>
-<blockquote><p>con los findings de <code>feasibility-reviewer</code> (T1-T10) y la trazabilidad de IDs para</p></blockquote>
-<blockquote><p>auditoría futura.</p></blockquote>
-<h2>Anexo técnico — para el equipo</h2>
-<p>Esta sección no es para el PO.</p>
-<h3>Resumen por severidad</h3>
-<table>
-<tr><th>Severidad</th><th>Cuántos</th></tr>
-<tr><td>BLOCKER</td><td>6</td></tr>
-<tr><td>ADR</td><td>2</td></tr>
-<tr><td>QUESTION-PO</td><td>12</td></tr>
-<tr><td>BUSINESS-GAP</td><td>2</td></tr>
-<tr><td>NIT</td><td>0</td></tr>
-</table>
-<h3>Hallazgos técnicos</h3>
-<p>Generados por <code>/speckit-challenge technical</code> (2026-06-01). 10 findings de <code>feasibility-reviewer</code>. 5 BLOCKERs <strong>bloquean <code>/speckit-tasks</code></strong> hasta resolverse.</p>
-<h4>T1 — BLOCKER — constraint-enforcement</h4>
-<p><strong>Afecta a</strong>: cross-cutting <strong>Location</strong>: <code>data-model.md#clientassignment</code> <strong>Reviewer ID</strong>: <code>feasibility-F1</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"NUEVO partial unique: (client_id, employee_id) WHERE date_to IS NULL ... una persona puede tener máximo UNA asignación activa al mismo cliente"</p></blockquote>
-<p><strong>Gap</strong>: El nuevo partial unique colisiona con <code>applyFromClientOnboarding</code>, que usa <code>em.upsert(ClientAssignment, ...)</code> con la business key existente <code>(client, employee, role, department, dateFrom)</code>. El onboarding puede emitir legítimamente una segunda fila activa para el mismo <code>(client, employee)</code> cuando cambia el rol — el partial unique lanzará excepción y FR-017 empezará a fallar en el momento que aterrice la migración M1, antes de que D10 se resuelva.</p>
-<p><strong>Suggestion</strong>: O bloquear el partial unique detrás de la resolución de D10, o cambiar el onboarding para que cierre la fila activa existente (poner <code>date_to</code>) antes de insertar la nueva, dentro de la misma transacción. Documentar el camino elegido en un ADR + añadir test de regresión en <code>client-subscriber.spec.ts</code>.</p>
-<hr/>
-<h4>T2 — BLOCKER — constraint-enforcement</h4>
-<p><strong>Afecta a</strong>: US1, US2 <strong>Location</strong>: <code>data-model.md#clientassignment</code> <strong>Reviewer ID</strong>: <code>feasibility-F2</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"isPrimaryAdvisor = true solo permitido si role = asesor (CHECK BD ayuda pero validación servicio da mensaje claro)"</p></blockquote>
-<p><strong>Gap</strong>: El texto dice que un CHECK de BD "ayuda" pero NO está declarado en la migración M1. Igual para <code>causes_baja</code> solo significativo cuando <code>date_to IS NOT NULL</code>. Un bug en el servicio o una migración futura puede poner <code>is_primary_advisor=true</code> en una fila coordinador/técnico, y el partial unique <code>(client_id, department) WHERE is_primary_advisor=true AND date_to IS NULL</code> tratará silenciosamente esa fila incorrecta como la principal, rompiendo el sync de jira-adapter (FR-020).</p>
-<p><strong>Suggestion</strong>: Añadir <code>CHECK (is_primary_advisor = false OR role = 'asesor')</code> y <code>CHECK (causes_baja = false OR date_to IS NOT NULL)</code> en la migración M1 + decoradores MikroORM.</p>
-<hr/>
-<h4>T3 — BLOCKER — entity-granularity</h4>
-<p><strong>Afecta a</strong>: US4 <strong>Location</strong>: <code>spec.md:L199-L203</code> <strong>Reviewer ID</strong>: <code>feasibility-F3</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"Si un asesor causa baja en la empresa ... el sistema reasigna automáticamente sus tareas abiertas al asesor sucesor definido para ese cliente. Si no hay sucesor definido, el sistema bloquea el cierre"</p></blockquote>
-<p><strong>Gap</strong>: FR-010 promete bloquear el cierre cuando no hay "sucesor definido para ese cliente", pero NO hay entidad, columna ni relación en data-model.md que almacene qué empleado es el sucesor designado para un cliente. El contrato PATCH/DELETE acepta <code>successorId</code> en el body pero no dice dónde vive el sucesor "por defecto" — implicando que debe inferirse de filas existentes, pero D9 (inferencia temporal) no está formalizada en el esquema.</p>
-<p><strong>Suggestion</strong>: O añadir columna <code>successor_employee_id</code> en <code>ClientAssignment</code> (o tabla <code>client_succession</code> separada) + definir cómo se popula, o reescribir FR-010 para que SIEMPRE requiera <code>successorId</code> en el payload de cierre. El esquema actual no puede aplicar el bloqueo prometido.</p>
-<hr/>
-<h4>T4 — BLOCKER — constraint-enforcement</h4>
-<p><strong>Afecta a</strong>: US1, cross-cutting <strong>Location</strong>: <code>contracts/client-teams-api.md#POST-close</code> <strong>Reviewer ID</strong>: <code>feasibility-F4</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"Setea endDate en el team y en todos sus ClientAssignment activos ... Publica evento AMQP ... para cada miembro cerrado"</p></blockquote>
-<p><strong>Gap</strong>: Cerrar un team muta la fila del team + N filas de asignaciones + emite N eventos AMQP. El plan y el contrato no especifican los límites transaccionales. Per Constitution III (MikroORM UoW), esto DEBE ser un <code>em.transactional</code>, y la semántica de AMQP publish-after-commit DEBE definirse — si no, D-005 (PENDING outbox/retry) se filtra a esta historia y el team puede quedar cerrado en BD mientras los consumers nunca ven el cascade.</p>
-<p><strong>Suggestion</strong>: Declarar explícitamente en plan.md (o sección lifecycle de data-model.md) que el cierre de team corre dentro de un <code>em.transactional</code>, con AMQP publish post-commit. Linkear el gap a D-005 — la historia no es implementable hasta resolver ese PENDING.</p>
-<hr/>
-<h4>T5 — ADR — concurrency</h4>
-<p><strong>Afecta a</strong>: cross-cutting <strong>Location</strong>: <code>plan.md:L33</code> <strong>Reviewer ID</strong>: <code>feasibility-F5</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"Optimistic concurrency vía updatedAt en ClientTeam y ClientAssignment (FR-022) — HTTP 409 al conflicto"</p></blockquote>
-<p><strong>Gap</strong>: <code>updatedAt</code> es un <code>timestamp</code> con granularidad sub-segundo, auto-actualizado por <code>onUpdate: () =&amp;gt; new Date()</code> en MikroORM. Dos writes en el mismo milisegundo producen el mismo <code>updatedAt</code> y bypassan el check optimista. No hay columna <code>@Version</code> ni rationale documentado para elegir timestamp en lugar de version integer monotónico.</p>
-<p><strong>Suggestion</strong>: Promover a ADR — o cambiar a columna <code>version</code> integer (<code>@Property({ version: true })</code> en MikroORM 6) o documentar por qué <code>updatedAt</code> con <code>clock_timestamp()</code> es aceptable para este workload, y alinear el contrato <code>If-Match</code> con la representación elegida.</p>
-<hr/>
-<h4>T6 — BLOCKER — lifecycle</h4>
-<p><strong>Afecta a</strong>: US1, cross-cutting <strong>Location</strong>: <code>data-model.md#clientteam</code> <strong>Reviewer ID</strong>: <code>feasibility-F6</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"Partial unique opcional: (client_id, department, is_primary) WHERE is_primary = true AND end_date IS NULL — máximo un team principal activo por (cliente, departamento)"</p></blockquote>
-<p><strong>Gap</strong>: FR-020 manda jira-adapter sincronizar "solo la asignación del equipo principal del cliente y del asesor principal". El esquema enforced at-most-one primary team pero NO at-least-one. Un cliente con 2+ teams Fiscal activos e <code>is_primary=false</code> en todos es un estado válido donde jira-adapter no tiene fila que escribir, rompiendo FR-020 silenciosamente.</p>
-<p><strong>Suggestion</strong>: O (a) requerir <code>isPrimary=true</code> en creación cuando no hay otro primary (auto-promote primer team), o (b) documentar el contrato de que jira-adapter cae al team más antiguo activo cuando no hay <code>is_primary=true</code>. Capturar como invariante del servicio + test de regresión.</p>
-<hr/>
-<h4>T7 — ADR — implicit-decision</h4>
-<p><strong>Afecta a</strong>: cross-cutting <strong>Location</strong>: <code>data-model.md#migrations</code> <strong>Reviewer ID</strong>: <code>feasibility-F7</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"Migration M2 — pd-service-data-factory ... ADD COLUMN team_id uuid NULL ... No FK constraint: cross-service team_id is logical only"</p></blockquote>
-<p><strong>Gap</strong>: Elegir "FK lógica solo" para <code>team_id</code> en data-factory merece un ADR. La alternativa (no <code>team_id</code>, derivar primary solo via jira-adapter) no está descartada en <code>decisions.md</code> ni <code>research.md</code>. Sin ADR, futuros developers no sabrán si tratar <code>team_id</code> huérfano (team borrado/cerrado en pgi-api) como corrupción o como esperado.</p>
-<p><strong>Suggestion</strong>: Añadir ADR (e.g., ADR-0011) documentando la decisión cross-service <code>team_id</code>: nullable, sin FK, tratado como opaque correlation id, + cómo data-factory maneja team ids desconocidos (ignore vs warn).</p>
-<hr/>
-<h4>T8 — BLOCKER — concurrency</h4>
-<p><strong>Afecta a</strong>: US2, cross-cutting <strong>Location</strong>: <code>data-model.md#departmentbucketstatus</code> <strong>Reviewer ID</strong>: <code>feasibility-F8</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"globalStatus: 'active' | 'incomplete'; // active iff asesores=100 + tecnicos in {100, not-applicable} + hasPrimary"</p></blockquote>
-<p><strong>Gap</strong>: FR-014 publica el evento AMQP SOLO cuando el bucket transiciona a <code>active</code>. El bucket se calcula agregando TODAS las asignaciones activas across teams del (client, department). Dos PATCH /members concurrentes en distintos teams del mismo client+department, ambos leyendo status=incomplete y ambos sumando 100, harán race: ambos pueden creer que dispararon la transición y publicar eventos duplicados, o ninguno publicar (read-modify-write hazard). El plan no especifica isolation ni row-level locking.</p>
-<p><strong>Suggestion</strong>: Especificar en plan.md la estrategia de locking (e.g., <code>SELECT ... FOR UPDATE</code> en el row padre <code>client</code>, o transacción serializable wrapping recompute + publish). Sin esto FR-014 no puede garantizar "exactly one transition event" semantics.</p>
-<hr/>
-<h4>T9 — QUESTION-PO — lifecycle</h4>
-<p><strong>Afecta a</strong>: US1 <strong>Location</strong>: <code>spec.md:L235-L242</code> <strong>Reviewer ID</strong>: <code>feasibility-F9</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"Los equipos existentes en un departamento permanecen activos aunque luego se den de baja todos los servicios contratados de ese departamento — la regla bloquea creación, no invalida existentes (a confirmar con PO — ver OQ-008)"</p></blockquote>
-<p><strong>Gap</strong>: OQ-008 sigue marcada 'a confirmar con PO' dentro de FR-017. El data-model no tiene campo para marcar team como 'huérfano por terminación de servicio' ni hook al desactivar el último <code>ProvidedService</code> del departamento. El comportamiento divergirá silenciosamente de cualquier respuesta PO futura.</p>
-<p><strong>Suggestion</strong>: O cerrar OQ-008 con PO antes de implementar (default recomendado: teams existentes permanecen activos, sin cambio de esquema) o añadir columna <code>orphaned_at</code> + listener en deactivación de <code>ProvidedService</code>. Documentar el default elegido en <code>decisions.md</code> para no bloquear implementación.</p>
-<hr/>
-<h4>T10 — BLOCKER — constraint-enforcement</h4>
-<p><strong>Afecta a</strong>: cross-cutting <strong>Location</strong>: <code>data-model.md#migrations</code> <strong>Reviewer ID</strong>: <code>feasibility-F10</code></p>
-<p><strong>Evidence</strong>:</p>
-<blockquote><p>"Backfill script (separate, idempotent — ejecutado post-deploy) ... UPDATE client_assignment ca SET is_primary_advisor = true"</p></blockquote>
-<p><strong>Gap</strong>: Migration M1 crea el partial unique <code>client_assignment_primary_advisor_unique</code> ANTES de que el backfill corra. Durante el gap entre la migración y la ejecución del backfill, el índice existe pero ninguna fila tiene <code>is_primary_advisor=true</code> — significando que el invariante de FR-020 ('exactamente un asesor principal activo por client+department') se viola para TODO cliente+department legacy. Cualquier evento AMQP disparado en esa ventana (o cualquier lectura por jira-adapter) no ve principal.</p>
-<p><strong>Suggestion</strong>: O (a) correr el backfill dentro de la misma transacción de la migración MikroORM (per D-003, la migración legacy ya es una MikroORM migration — aplicar esta regla consistentemente) o (b) diferir creación del partial unique a una segunda migración después del backfill. El orden actual es unsafe.</p>
-<h3>Trazabilidad de IDs</h3>
-<table>
-<tr><th>ID PO</th><th>Reviewer ID</th><th>Severity</th><th>Location</th></tr>
-<tr><td>D1</td><td>business-B1</td><td>QUESTION-PO</td><td>spec.md#FR-003</td></tr>
-<tr><td>D2</td><td>business-B2</td><td>QUESTION-PO</td><td>spec.md#FR-001</td></tr>
-<tr><td>D3</td><td>business-B3</td><td>QUESTION-PO</td><td>spec.md (ABSENCE)</td></tr>
-<tr><td>D4</td><td>business-B4</td><td>QUESTION-PO</td><td>spec.md#FR-003</td></tr>
-<tr><td>D5</td><td>business-B5</td><td>QUESTION-PO</td><td>spec.md (ABSENCE)</td></tr>
-<tr><td>D6</td><td>business-B6</td><td>QUESTION-PO</td><td>spec.md#FR-005</td></tr>
-<tr><td>D7</td><td>business-B7</td><td>QUESTION-PO</td><td>spec.md#user-story-3</td></tr>
-<tr><td>D8</td><td>business-B8</td><td>QUESTION-PO</td><td>spec.md#FR-017</td></tr>
-<tr><td>D9</td><td>business-B11</td><td>QUESTION-PO</td><td>spec.md (ABSENCE)</td></tr>
-<tr><td>D10</td><td>human-flag-2026-06-01</td><td>QUESTION-PO</td><td>spec.md#clarifications-2026-06-01 (ABSENCE — flujo onboarding no documentado)</td></tr>
-<tr><td>D11</td><td>human-flag-2026-06-01</td><td>QUESTION-PO</td><td>obligations-api/task.ts (campo único <code>advisor</code>); spec.md#FR-010 (no cubre por-rol)</td></tr>
-<tr><td>G1</td><td>business-B9</td><td>BUSINESS-GAP</td><td>spec.md#FR-002</td></tr>
-<tr><td>G2</td><td>business-B10</td><td>BUSINESS-GAP</td><td>spec.md#FR-009</td></tr>
-<tr><td>T1</td><td>feasibility-F1</td><td>BLOCKER</td><td>data-model.md#clientassignment</td></tr>
-<tr><td>T2</td><td>feasibility-F2</td><td>BLOCKER</td><td>data-model.md#clientassignment</td></tr>
-<tr><td>T3</td><td>feasibility-F3</td><td>BLOCKER</td><td>spec.md:L199-L203</td></tr>
-<tr><td>T4</td><td>feasibility-F4</td><td>BLOCKER</td><td>contracts/client-teams-api.md#POST-close</td></tr>
-<tr><td>T5</td><td>feasibility-F5</td><td>ADR</td><td>plan.md:L33</td></tr>
-<tr><td>T6</td><td>feasibility-F6</td><td>BLOCKER</td><td>data-model.md#clientteam</td></tr>
-<tr><td>T7</td><td>feasibility-F7</td><td>ADR</td><td>data-model.md#migrations</td></tr>
-<tr><td>T8</td><td>feasibility-F8</td><td>BLOCKER</td><td>data-model.md#departmentbucketstatus</td></tr>
-<tr><td>T9</td><td>feasibility-F9</td><td>QUESTION-PO</td><td>spec.md:L235-L242</td></tr>
-<tr><td>T10</td><td>feasibility-F10</td><td>BLOCKER</td><td>data-model.md#migrations</td></tr>
-</table>
-<h3>Reviewers fallidos</h3>
-<ul>
-<li><strong><code>business-logic-reviewer</code> (bucket 9 — delivery sequence)</strong> en la pasada técnica 2026-06-01: el reviewer devolvió 9 findings en formato incorrecto (estructura <code>{title, evidence, impact, recommendation, severity, bucket}</code> en vez del JSON V2 esperado con <code>id, category, affectedStories, location, evidence, gap, suggestion</code>). Todos descartados por el orchestrator per regla de validación. <strong>Contenido valioso perdido</strong> que conviene recuperar manualmente o re-ejecutar el reviewer con prompt más estricto:</li>
-<li>US4 depende de event extensions que aterrizan con US1 (split migration risk en data-factory)</li>
-<li>Tasks.md solo cubre US1 pero la migración M1 + AMQP afecta cross-service — riesgo de drift</li>
-<li>T018 publisher envía nuevos campos sin task que verifique que consumers los toleran</li>
-<li>Backfill SQL post-deploy no está en runbook → todos los clientes existentes saldrían con banner "incompleto" día 1</li>
-<li>T006 mezcla DDL + DML en una migración → rollback parcial imposible</li>
-<li>Frontend (T029-T039) basado en contracts ya desactualizados (commit-team.use-case quitado por decisión PO 2026-05-29)</li>
-<li>Onboarding regression test no está en tasks.md a pesar de ser constraint declarada</li>
-<li>lib-core-definitions enum bump no coordinado entre los 4 servicios</li>
-</ul>
-<h3>Próximos pasos (para el equipo)</h3>
-<ul>
-<li><strong>Decisiones (D1..D9)</strong>: el orchestrator ofrecerá publicarlas como Open Questions en <code>spec.md</code>. Después, <code>/speckit-atlassian-sync-push</code> las sube como comments individuales a la Epic.</li>
-<li><strong>Aclaraciones (G1, G2)</strong>: editar <code>spec.md</code> para añadir el FR/AC usando <code>suggestion</code> como punto de partida. No requieren input del PO.</li>
-<li>Bloqueantes para empezar US1: D1, D2, D6. Resolverlas antes de iniciar implementación.</li>
-</ul>
-</div>
 <div class="section" id="decisions">
   <div class="section-label"><span class="icon">📄</span> Decisions</div>
   <h1>Decisiones técnicas (ADRs) — DEVPT-518</h1>
@@ -1811,10 +1675,10 @@ Task: "T032 PercentageSumIndicator"</code></pre>
 </ul>
 <hr/>
 <h2>0010-optimistic-concurrency-version-column</h2>
-<p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-06-01 <strong>Supersedes</strong>: N/A <strong>Superseded by</strong>: N/A <strong>Origin</strong>: Challenge technical 2026-06-01, T5 (feasibility-F5)</p>
+<p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-06-01 <strong>Supersedes</strong>: N/A <strong>Superseded by</strong>: N/A <strong>Origin</strong>: Revisión técnica 2026-06-01, T5 (feasibility-F5)</p>
 <h2>Context</h2>
 <p>FR-022 introduce optimistic concurrency en <code>ClientTeam</code> y <code>ClientAssignment</code> para resolver C2 de la sesión PO (último editor pisa silenciosamente al primero). La propuesta inicial del plan usaba <code>updatedAt</code> (timestamp con sub-second precision) comparado vía header <code>If-Match</code> para detectar conflictos.</p>
-<p>El technical challenge (T5) detectó que:</p>
+<p>La revisión técnica (T5) detectó que:</p>
 <ul>
 <li><code>updatedAt</code> se actualiza vía <code>onUpdate: () =&amp;gt; new Date()</code> en MikroORM.</li>
 <li>Dos writes en el mismo milisegundo pueden producir el mismo <code>updatedAt</code> y bypassear el check.</li>
@@ -1844,7 +1708,7 @@ Task: "T032 PercentageSumIndicator"</code></pre>
 </ul>
 <hr/>
 <h2>0011-cross-service-team-id-logical-fk</h2>
-<p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-06-01 <strong>Supersedes</strong>: N/A <strong>Superseded by</strong>: N/A <strong>Origin</strong>: Challenge technical 2026-06-01, T7 (feasibility-F7)</p>
+<p><strong>Status</strong>: Accepted <strong>Date</strong>: 2026-06-01 <strong>Supersedes</strong>: N/A <strong>Superseded by</strong>: N/A <strong>Origin</strong>: Revisión técnica 2026-06-01, T7 (feasibility-F7)</p>
 <h2>Context</h2>
 <p>La feature DEVPT-518 introduce <code>ClientTeam</code> en <code>pgi-service-pgi-api</code>. El modelo <code>ClientAssignment</code> en <code>pd-service-data-factory</code> necesita reflejar el <code>team_id</code> para que los informes de rentabilidad puedan agregar por equipo (FR-014 + FR-018, FR-019).</p>
 <p>Decisión a documentar: cómo se modela ese <code>team_id</code> en data-factory cuando la fuente de verdad (<code>ClientTeam</code>) vive en pgi-api, otro servicio.</p>
@@ -1955,6 +1819,6 @@ Task: "T032 PercentageSumIndicator"</code></pre>
 <h2>Off-topic (<code>_off-topic/</code>)</h2>
 <p>6 frames de páginas no-US1: "PortalAsesor - Mis clientes" (listing externo) y 5 "PortalAsesor - Servicios contratados". Conservados por contexto pero no entran en el alcance de US1.</p>
 </div>
-<div class="footer">Generated by Spec Kit &middot; Afianza &middot; 2026-06-01</div>
+<div class="footer">Generated by Spec Kit &middot; Afianza &middot; 2026-06-02</div>
 </div>
 </body></html>

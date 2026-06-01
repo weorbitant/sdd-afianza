@@ -4,7 +4,7 @@ workflow:
   name: "Feature Planning"
   version: "1.2.0"
   author: "afianza-local"
-  description: "Plan → HTML preview → challenge (technical) → tasks → analyze → HTML preview. Produces implementation-ready artifacts."
+  description: "Plan → HTML preview → tasks → analyze → HTML preview. Produces implementation-ready artifacts."
 
 requires:
   speckit_version: ">=0.7.2"
@@ -41,22 +41,6 @@ steps:
   - id: review-plan
     type: gate
     message: "Revisa el plan técnico en HTML. ¿El enfoque y la arquitectura son correctos?"
-    options: [approve, reject]
-    on_reject: abort
-
-  - id: challenge-technical
-    command: speckit.challenge
-    integration: "{{ inputs.integration }}"
-    input:
-      args: "technical"
-
-  - id: review-challenge-technical
-    type: gate
-    message: |
-      Revisa challenge-report.md (sección Anexo técnico — bucket 9 delivery sequence).
-      ¿Hay BLOCKER o riesgos de secuencia que resolver antes de generar tasks?
-      - 'approve' → sin bloqueantes, continuar a /speckit-tasks
-      - 'reject'  → corregir plan.md / data-model.md y re-ejecutar
     options: [approve, reject]
     on_reject: abort
 

@@ -33,8 +33,6 @@ No arguments. The rubric version applied is whatever is in `.specify/quality-rub
   ↓
 /speckit-clarify
   ↓
-/speckit-challenge functional
-  ↓
 /speckit-atlassian-sync-push      (optional, if PO input needed)
   ↓
 /speckit-ready                    ← GATE: are we ready to plan?
@@ -108,14 +106,12 @@ Otherwise, group the failing criteria (❌ first, then ⚠️) by remediation co
 
 1. `/speckit-discover` (if any criterion suggests upstream gaps in problem/users/metrics).
 2. `/speckit-clarify` (for AC concretion, NFR gaps, scope boundaries).
-3. `/speckit-challenge functional` (for cross-service, edge cases, business-logic gaps).
 4. `/speckit-atlassian-sync-push` (only if there are open QUESTION-PO needing external input).
 
 For each command in the action plan, list which criteria it addresses, e.g.:
 
 ```
-1. /speckit-challenge functional   → resolves C4-cross-service, C8-edge-cases
-2. /speckit-clarify                → resolves C2-testable-ac (AC of US-3), C5-nfrs
+1. /speckit-clarify                → resolves C2-testable-ac (AC of US-3), C5-nfrs
 3. /speckit-ready                  → re-evaluate
 ```
 

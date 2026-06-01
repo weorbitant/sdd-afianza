@@ -1,6 +1,6 @@
 ---
 name: speckit-ready
-description: "Evaluates the active feature's spec.md against the project quality rubric (.specify/quality-rubric.md) and produces readiness-report.md with a global verdict (READY / READY-WITH-RISKS / NOT-READY) plus per-criterion findings, evidence and a prioritized action plan pointing at the right remediation command (/speckit-discover, /speckit-clarify, /speckit-challenge functional, /speckit-atlassian-sync-push). Read-only: only writes readiness-report.md, never touches spec.md. Advisory — does not block /speckit-plan, but flags low-quality specs before technical planning."
+description: "Evaluates the active feature's spec.md against the project quality rubric (.specify/quality-rubric.md) and produces readiness-report.md with a global verdict (READY / READY-WITH-RISKS / NOT-READY) plus per-criterion findings, evidence and a prioritized action plan pointing at the right remediation command (/speckit-discover, /speckit-clarify, /speckit-atlassian-sync-push). Read-only: only writes readiness-report.md, never touches spec.md. Advisory — does not block /speckit-plan, but flags low-quality specs before technical planning."
 argument-hint: ""
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
@@ -38,8 +38,6 @@ No arguments. The rubric version applied is whatever is in `.specify/quality-rub
 /speckit-specify
   ↓
 /speckit-clarify
-  ↓
-/speckit-challenge functional
   ↓
 /speckit-atlassian-sync-push      (optional, if PO input needed)
   ↓
@@ -113,16 +111,14 @@ If verdict is READY, skip this step (no action plan needed).
 Otherwise, group the failing criteria (❌ first, then ⚠️) by remediation command. Order commands by where they fit in the refinement flow:
 
 1. `/speckit-discover` (if any criterion suggests upstream gaps in problem/users/metrics).
-2. `/speckit-clarify` (for AC concretion, NFR gaps, scope boundaries).
-3. `/speckit-challenge functional` (for cross-service, edge cases, business-logic gaps).
-4. `/speckit-atlassian-sync-push` (only if there are open QUESTION-PO needing external input).
+2. `/speckit-clarify` (for AC concretion, NFR gaps, scope boundaries, cross-service, edge cases, business-logic gaps).
+3. `/speckit-atlassian-sync-push` (only if there are open QUESTION-PO needing external input).
 
 For each command in the action plan, list which criteria it addresses, e.g.:
 
 ```
-1. /speckit-challenge functional   → resolves C4-cross-service, C8-edge-cases
-2. /speckit-clarify                → resolves C2-testable-ac (AC of US-3), C5-nfrs
-3. /speckit-ready                  → re-evaluate
+1. /speckit-clarify                → resolves C4-cross-service, C8-edge-cases, C2-testable-ac (AC of US-3), C5-nfrs
+2. /speckit-ready                  → re-evaluate
 ```
 
 Always use the full ID (`C<N>-<slug>`) in findings, action plan, and references — never just `C<N>`.

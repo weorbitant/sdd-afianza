@@ -2,9 +2,9 @@ schema_version: "1.0"
 workflow:
   id: "refinement"
   name: "Feature Refinement"
-  version: "1.3.0"
+  version: "1.4.0"
   author: "afianza-local"
-  description: "Fetch Jira Epic → designs → spec → clarify → challenge (functional) → checklist → HTML preview → push Stories to Jira → bootstrap decisions.md."
+  description: "Fetch Jira Epic → designs → spec → clarify → checklist → HTML preview → push Stories to Jira → bootstrap decisions.md."
 
 requires:
   speckit_version: ">=0.7.2"
@@ -68,32 +68,6 @@ steps:
         type: gate
         message: "¿Quedan preguntas abiertas sin resolver? Selecciona 'yes' para volver a clarificar."
         options: [yes, no]
-
-  - id: challenge-functional
-    command: speckit.challenge
-    integration: "{{ inputs.integration }}"
-    input:
-      args: "functional"
-
-  - id: review-challenge
-    type: gate
-    message: |
-      Revisa challenge-report.md. Las decisiones D* deberían quedar reflejadas en spec.md > Open Questions
-      (acepta el prompt de la skill o cherry-pick manual antes de continuar).
-      - 'approve' → Open Questions actualizadas, continuar
-      - 'reject'  → faltan decisiones por capturar; el workflow se detiene
-    options: [approve, reject]
-    on_reject: abort
-
-  - id: planning-readiness-gate
-    type: gate
-    message: |
-      Antes de generar el checklist, comprueba la tabla "Open Questions" en spec.md.
-      ¿Hay decisiones marcadas como bloqueantes para el data model o la arquitectura que aún no tienen respuesta?
-      - 'ready'   → no hay bloqueantes críticos sin resolver, continuar al checklist
-      - 'blocked' → hay decisiones estructurales pendientes; el workflow se detiene para escalarlas
-    options: [ready, blocked]
-    on_blocked: abort
 
   - id: checklist
     command: speckit.checklist

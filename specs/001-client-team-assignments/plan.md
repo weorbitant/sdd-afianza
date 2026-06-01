@@ -217,9 +217,9 @@ Plan generará una `tasks.md` ordenada por user story con secciones por servicio
 | IV · Event-driven | ✅ Sin HTTP cross-service nuevo. |
 | V · Simplicity | ✅ Sin nuevas abstracciones. |
 
-## Technical Challenge resolutions (2026-06-01)
+## Resoluciones técnicas (revisión 2026-06-01) (2026-06-01)
 
-`/speckit-challenge technical` detectó 6 BLOCKERs + 2 ADRs. Todos abordados antes de `/speckit-tasks`:
+La revisión técnica del 2026-06-01 detectó 6 BLOCKERs + 2 ADRs. Todos abordados antes de `/speckit-tasks`:
 
 | ID | Finding | Resolución |
 |----|---------|------------|

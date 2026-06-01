@@ -84,7 +84,7 @@ For each remaining PNG, invoke the `Read` tool. Multimodal Read renders the imag
 - Which user journey it belongs to (based on which workflow step it represents).
 - Any UI elements not yet covered by the spec (badges, checkboxes, sliders, banners…).
 
-Take notes as you go — these notes feed the renaming step and surface **design-conformance findings** for `/speckit-challenge functional`.
+Take notes as you go — these notes feed the renaming step and surface design-conformance gaps that `/speckit-clarify` will pick up.
 
 ### Step 6 — Create journey folders and rename
 
@@ -115,7 +115,7 @@ Write `designs/INDEX.md` with:
 
 1. **Header** — source file URL, page, export date, total frame count.
 2. **Per-journey section** — for each folder, a markdown table `Archivo | Qué muestra` with one row per frame. Use 🔑 emoji to mark frames that reveal a **design-conformance finding** (UI element absent from the spec).
-3. **Consolidated findings** — a final table listing each finding with: evidence frame path, spec/ADR affected, severity. This is the input for `/speckit-challenge functional` bucket 10 (Design conformance).
+3. **Consolidated findings** — a final table listing each finding with: evidence frame path, spec/ADR affected, severity. `/speckit-clarify` reads these as design-conformance gaps when refining the spec.
 4. **Off-topic** — short paragraph naming what's in `_off-topic/` and why.
 
 ## Output
@@ -127,7 +127,7 @@ Write `designs/INDEX.md` with:
   - Off-topic frames moved to _off-topic/: 6
   - INDEX.md generated with N design-conformance findings flagged
 
-Next: invoke /speckit-challenge functional to surface the findings as Open Questions.
+Next: invoke /speckit-clarify (or continue the refinement workflow) — the findings in INDEX.md will surface as design-conformance gaps.
 ```
 
 ## Error Handling
