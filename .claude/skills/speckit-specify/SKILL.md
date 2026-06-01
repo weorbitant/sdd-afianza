@@ -118,7 +118,7 @@ Given that feature description, do this:
        - Look for `SPECIFY_FEATURE_DIRECTORY/designs/` (it may exist if `/speckit-figma-export-fetch` was run before `/speckit-specify`, or if frames were placed manually).
        - If the directory exists and contains any `*.png` or `*.jpg` files (recursively):
          - If `SPECIFY_FEATURE_DIRECTORY/designs/INDEX.md` exists, read it first — it is the legend mapping frames to user journeys.
-         - List every PNG/JPG sorted by path. Use the `Read` tool (multimodal) to open the frames you deem most informative — prioritize those whose journey/folder name matches concepts in the user description.
+         - List every PNG/JPG sorted by path. Use the `Read` tool (multimodal) to **open every frame** — do not skip any. The legend in `INDEX.md` orders the reading (by journey), but every frame must be opened. If a frame is genuinely off-topic (lives under `_off-topic/` or the legend says so), you may skip it — but state explicitly which frames were skipped and why in the Assumptions section.
          - **Designs are source of truth on UI matters.** When a frame shows a button, badge, validation, workflow step, or empty state that the natural-language description does not mention, **incorporate it into the spec** as an FR, AC, or Key Entity attribute. When the description and a frame contradict (e.g. description says "single team per client" but frames show multiple teams), let the design win and flag the resolved conflict in the Assumptions section so the user can confirm.
          - Skip silently if no designs are present — this is not an error at the specify stage.
     2. Extract key concepts from description **and from designs (if present)**
