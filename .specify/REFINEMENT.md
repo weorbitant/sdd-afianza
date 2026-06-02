@@ -49,19 +49,16 @@ specs/001-feature-name/
 
 ```
 1. PO creates Epic in Jira (e.g. DEVPT-518)
-2. /speckit-workflow-refinement DEVPT-518
-   ├── fetch-epic
-   ├── /speckit-specify    → spec.md with User Stories
-   ├── /speckit-clarify    → loop until no blocking questions
-   ├── /speckit-checklist  → quality checklists/
-   ├── HTML preview        → review
-   └── jira-push           → creates Jira Stories (NOT subtasks)
-                              + Open Questions as Epic comment
-3. /speckit-plan + /speckit-tasks (feature-level, once)
-4. Create decisions.md from the template the first time you need it:
+2. /speckit-atlassian-sync-fetch DEVPT-518   → contexto Epic
+3. /speckit-figma-export-browser              → exporta diseños a designs/
+4. /speckit-specify                           → spec.md (lee diseños como fuente de verdad)
+5. /speckit-clarify                           → resuelve dudas
+6. /speckit-atlassian-sync-push               → crea Stories + Open Questions en Jira (NO subtasks)
+7. /speckit-plan + /speckit-tasks             → plan técnico + tareas (viven en repo)
+8. Crear decisions.md la primera vez que haga falta:
    cp .specify/templates/refinement/decisions.template.md specs/<feature>/decisions.md
-5. /speckit-implement story by story.
-   Record each technical decision in decisions.md tagged with the Jira story key.
+9. /speckit-implement story by story.
+   Cada decisión técnica → decisions.md taggeada con la Jira story key.
 ```
 
 Per-story refinement notes are NOT a separate file. If a dev has open questions before implementing a story:
