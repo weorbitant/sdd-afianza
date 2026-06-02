@@ -3,7 +3,6 @@ installed:
   - figma-export
   - git-pr
   - md-html-export
-  - ready
 settings:
   auto_execute_hooks: true
 hooks:
