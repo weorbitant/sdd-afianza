@@ -123,6 +123,48 @@
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
 
+## Compliance & Data Considerations *(mandatory — Afianza preset)*
+
+<!--
+  ACTION REQUIRED. Toda feature de Afianza debe responder a estas 4 preguntas.
+  Si una sección no aplica, escribe explícitamente "N/A — <razón>". No la borres.
+  Esto deja rastro feature a feature de superficie de datos, auth e integraciones,
+  útil para revisiones internas y futuras auditorías (ISO 27001, RGPD, contratos enterprise).
+-->
+
+### 1. Personal data treated (PII / RGPD)
+
+- **Datos personales que entran/salen** (campos concretos, no abstracciones): [e.g. NIF, email, nombre, domicilio fiscal]
+- **Categoría RGPD**: [básica / identificativa / fiscal / financiera / categoría especial Art. 9]
+- **Base legal del tratamiento**: [contrato / obligación legal / interés legítimo / consentimiento]
+- **Retención**: [cuánto tiempo se guarda y por qué — e.g. "obligación fiscal AEAT: 4 años"]
+- **Acceso**: [quién puede leer estos datos — rol/scope]
+
+### 2. Auth surface
+
+- **¿La feature emite, valida o consume tokens?**: [sí/no]
+- **Si sí — IDP**: [Entra ID externo (CIAM) / Entra ID interno / IDP adapter]
+- **Scopes/claims nuevos o modificados**: [listar — N/A si no toca]
+- **Rutas/endpoints que cambian de público a autenticado (o viceversa)**: [listar]
+
+### 3. Datos cruzando servicios (RabbitMQ)
+
+- **Mensajes que publica esta feature**: [routing key + payload resumido — N/A si no publica]
+- **Mensajes que consume**: [routing key + servicio origen — N/A si no consume]
+- **¿Algún payload incluye PII o datos fiscales?**: [sí/no — si sí, justificar por qué no se referencia por ID]
+
+### 4. Integraciones externas tocadas
+
+<!-- Marca con [x] las que aplican y describe brevemente qué se llama -->
+
+- [ ] **AEAT** — [endpoints/operaciones]
+- [ ] **Sage** — [endpoints/operaciones]
+- [ ] **Microsoft Graph / Azure AD** — [scopes/recursos]
+- [ ] **HubSpot** — [endpoints]
+- [ ] **Jira** — [proyectos/issue types]
+- [ ] **Otra**: [especificar]
+- [ ] **Ninguna**
+
 ## Assumptions
 
 <!--

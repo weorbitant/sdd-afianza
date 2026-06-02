@@ -19,7 +19,10 @@ TPL = """\
     body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.7;color:#1a1a2e;background:#f8f9fc;margin:0;padding:0}}
 
     /* ── Top nav ── */
-    nav{{position:sticky;top:0;z-index:100;background:#0f172a;border-bottom:1px solid #1e293b;padding:.55rem 2rem;display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center}}
+    nav{{position:sticky;top:0;z-index:100;background:#0f172a;border-bottom:1px solid #1e293b;padding:.5rem 1.5rem;display:flex;gap:.9rem;flex-wrap:nowrap;align-items:center;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#475569 transparent}}
+    nav::-webkit-scrollbar{{height:6px}}
+    nav::-webkit-scrollbar-thumb{{background:#475569;border-radius:3px}}
+    nav::-webkit-scrollbar-track{{background:transparent}}
     nav a{{color:#94a3b8;text-decoration:none;font-size:.8rem;font-weight:500;white-space:nowrap;padding:.2rem .4rem;border-radius:4px;transition:background .15s,color .15s}}
     nav a:hover{{color:#f1f5f9;background:#1e293b}}
     nav a.active{{color:#60a5fa;background:#1e3a5f}}
@@ -380,7 +383,12 @@ def main():
                 f'  {body}\n'
                 f'</div>'
             )
-            nav_items.append(f'<a href="#{anchor}">{icon} {esc(label)}</a>')
+            # Only top-level docs go in the sticky navbar; subdirectory items
+            # (decisions/, contracts/, checklists/, designs/) are reachable
+            # via the Index card grid at the top of the page — keeps the
+            # navbar usable when there are many docs.
+            if rel.parent == Path('.'):
+                nav_items.append(f'<a href="#{anchor}">{icon} {esc(label)}</a>')
             print(f'  OK {p}')
         except Exception as e:
             print(f'  FAIL {p}: {e}')

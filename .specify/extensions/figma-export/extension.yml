@@ -3,22 +3,23 @@ schema_version: "1.0"
 extension:
   id: figma-export
   name: "Figma Frame Export"
-  version: "1.0.0"
-  description: "Downloads Figma frames as PNG images into the feature designs/ folder using the Figma REST API"
+  version: "2.0.0"
+  description: "Downloads Figma frames as PNG images into the feature designs/ folder via browser-driven bulk export. Replaces the REST API path (removed in v2.0.0 — Figma's API rate limit is too aggressive for full file exports)."
   author: afianza-local
   license: MIT
 
 requires:
   speckit_version: ">=0.8.0"
   tools:
-    - name: python3
+    - name: claude-in-chrome
       required: true
+      note: "Browser MCP extension must be connected to a Chromium-based browser with an authenticated Figma session."
 
 provides:
   commands:
-    - name: speckit.figma-export.fetch
-      file: commands/speckit.figma-export.fetch.md
-      description: "Download frames from a Figma file URL into specs/<feature>/designs/"
+    - name: speckit.figma-export.browser
+      file: commands/speckit.figma-export.browser.md
+      description: "Browser-driven bulk export of all frames + semantic rename & organize by user journey."
 
 tags:
   - figma

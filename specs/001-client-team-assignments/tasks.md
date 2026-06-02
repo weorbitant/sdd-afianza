@@ -1,268 +1,196 @@
-# Tasks: Asignaciones Múltiples en Ficha de Cliente
+---
+description: "Tasks for US1 — Crear y gestionar el equipo de un cliente"
+---
 
-**Input**: Design documents from `specs/001-client-team-assignments/`
+# Tasks: US1 · Crear y gestionar el equipo de un cliente
 
-**Branch**: `001-client-team-assignments` | **Date**: 2026-05-25
+**Feature**: [001-client-team-assignments](./spec.md) | **Jira**: [DEVPT-573](https://afianza-ac.atlassian.net/browse/DEVPT-573)
 
-**Services**: `pgi-service-pgi-api` (backend), `pgi-app-pgi-web` (frontend), `pd-service-obligations-api` (AMQP)
+**Scope**: Solo US1 (P1). US2/US3/US4 fuera de scope — se generarán en iteraciones posteriores.
 
-## Format: `[ID] [P?] [Story?] Description`
+**Prerequisites**: plan.md, spec.md (US1 + clarifications 2026-05-28), data-model.md, contracts/client-teams.md, contracts/client-assignments-history.md, research.md
 
-- **[P]**: Paralelizable — ficheros distintos, sin dependencia de tarea incompleta
-- **[Story]**: Historia de usuario a la que pertenece (US1–US4)
-- Sin label de story → Setup o Fundacional
+**Tests**: Obligatorios (Principio II de la constitución — integration tests con `@testcontainers/postgresql`, sin mocking del EntityManager).
+
+## Format: `[ID] [P?] [Story] Description with file path`
+
+- **[P]**: Paralelizable (ficheros distintos, sin dependencias pendientes)
+- **[US1]**: Tarea perteneciente a User Story 1
+
+## Path Conventions (web app polyrepo)
+
+- Backend: `asesores/pgi-service-pgi-api/`
+- Frontend: `asesores/pgi-app-pgi-web/`
 
 ---
 
-## Phase 1: Setup
+## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Verificar que el snapshot de MikroORM está limpio antes de tocar entidades. Obligatorio antes de cualquier edición de entidades.
+**Purpose**: Preparar el repo y el entorno antes de tocar código.
 
-- [ ] T001 Verificar snapshot limpio en pgi-service-pgi-api: ejecutar `npx mikro-orm migration:check` desde `asesores/pgi-service-pgi-api/` y confirmar "No changes required"
-- [ ] T002 [P] Verificar snapshot limpio en pd-service-obligations-api: ejecutar `npx mikro-orm migration:check` desde `plataforma-del-dato/pd-service-obligations-api/` y confirmar "No changes required"
-
-**Checkpoint**: Los dos snapshots están sincronizados. Se puede empezar a editar entidades.
-
----
-
-## Phase 2: Fundacional (bloqueante para todas las historias)
-
-**Purpose**: Entidades, migración y configuración base que necesitan todas las historias de usuario.
-
-**⚠️ CRÍTICO**: Ninguna historia de usuario puede empezar hasta completar esta fase.
-
-- [ ] T003 Crear entidad `ClientTeam` (id, client FK, department, startDate, endDate nullable, createdBy, createdAt, updatedAt) en `asesores/pgi-service-pgi-api/src/domain/models/client-team.ts`
-- [ ] T004 Extender entidad `ClientAssignment` añadiendo columna `percentage` (smallint, NOT NULL, DEFAULT 100, CHECK 1–100) y `team` (nullable FK → ClientTeam) en `asesores/pgi-service-pgi-api/src/domain/models/client-assignment.ts`
-- [ ] T005 Crear migración MikroORM (`npm run migrations:create`) en `asesores/pgi-service-pgi-api/src/migrations/` — añadir manualmente el índice parcial: `CREATE UNIQUE INDEX idx_client_team_active ON client_team (client_id, department) WHERE end_date IS NULL`; verificar que `npx mikro-orm migration:create --dump` devuelve "No changes required"
-- [ ] T006 [P] Registrar `ClientTeam` en la lista de entidades de MikroORM y añadir `ClientTeamsService` y `ClientTeamsController` como providers vacíos en `asesores/pgi-service-pgi-api/src/app.module.ts`
-- [ ] T007 [P] Añadir publicación `backoffice-api.v1.task-reassignment.requested` (routingKey: `backoffice-api.v1.task-reassignment.requested`) al config de RabbitMQ en `asesores/pgi-service-pgi-api/src/config/default.config.ts`
-- [ ] T008 [P] Extender `toClientAssignmentDto` y `ClientAssignmentDto` con campos `percentage` (number) y `teamId` (string | null) en `asesores/pgi-service-pgi-api/src/application/rest/client-assignments/dto/client-assignment-dto.ts`
-- [ ] T009 [P] Extender modelo de dominio frontend `ClientAssignment` con `percentage` y `teamId` en `asesores/pgi-app-pgi-web/src/features/client-assignments/domain/models/client-assignment.model.ts` y su DTO en `asesores/pgi-app-pgi-web/src/features/client-assignments/infrastructure/dto/client-assignment-dto.ts`
-- [ ] T010 [P] Crear estructura de carpetas vacía para el nuevo feature module `client-teams` (domain/, application/use-cases/, infrastructure/, presentation/components/) en `asesores/pgi-app-pgi-web/src/features/client-teams/`
-
-**Checkpoint**: Migración aplicada, entidades compilando, feature module esqueleto listo. Historias de usuario pueden empezar en paralelo.
+- [x] T001 Crear rama `feat/001-client-team-assignments` desde `main` (workspace root)
+- [x] T002 [P] Verificar snapshot limpio de MikroORM antes de tocar entidades: `cd asesores/pgi-service-pgi-api && npx mikro-orm migration:check` (debe mostrar "No changes required")
+- [x] T003 [P] Arrancar infra local: `cd asesores/pgi-service-pgi-api && npm run infra:up` (PostgreSQL + RabbitMQ)
 
 ---
 
-## Phase 3: User Story 1 — Crear y gestionar el equipo (Priority: P1) 🎯 MVP
+## Phase 2: Foundational (Blocking Prerequisites)
 
-**Goal**: Un responsable puede crear el equipo de un cliente (responsable + coordinador opcional + ≥1 asesor + técnicos opcionales), guardarlo y verlo activo en la ficha del cliente.
+**Purpose**: Esquema de datos y migración legacy. Bloquea toda la implementación.
 
-**Independent Test**: Abrir ficha de un cliente sin equipo → crear equipo con un asesor al 100% → guardar → verificar equipo activo visible en la UI y respondiendo en `GET /v1/client-teams/:clientId/department/FISCAL`.
+**⚠️ CRITICAL**: Ningún trabajo de US1 puede comenzar hasta que esta fase termine.
 
-### Backend
+- [x] T004 [US1] Crear entity `ClientTeam` en `asesores/pgi-service-pgi-api/src/domain/models/client-team.ts` (campos: id uuid, client FK, department enum, startDate date, endDate date nullable, createdBy varchar, createdAt/updatedAt timestamptz, índice parcial único `(client_id, department) WHERE end_date IS NULL`)
+- [x] T005 [US1] Extender entity `ClientAssignment` en `asesores/pgi-service-pgi-api/src/domain/models/client-assignment.ts` (añadir `percentage: number` smallint NOT NULL DEFAULT 100 CHECK 1–100; `team?: ClientTeam` FK nullable)
+- [x] T006 [US1] Generar migración con `cd asesores/pgi-service-pgi-api && npx mikro-orm migration:create` y verificar que cubre T004+T005. Editar la migración para añadir manualmente: (a) índice parcial único `idx_client_team_active`, (b) bloque de migración de datos legacy (ver plan.md → "Migración de datos legacy") en `asesores/pgi-service-pgi-api/src/migrations/Migration<timestamp>_add_client_team.ts`
+- [x] T007 [US1] Verificar que `npx mikro-orm migration:create --dump` devuelve "No changes required" tras T006 (idempotencia del snapshot)
+- [x] T008 [US1] Aplicar migración en local: `cd asesores/pgi-service-pgi-api && npm run migrations:up`
 
-- [ ] T011 [US1] Crear `ClientTeamsService` con métodos `createTeam()` (valida first-of-month, valida no active team existe, `em.fork()` + `em.create()` + `em.persistAndFlush()`), `getTeamsByClient()` (`disableIdentityMap: true`), `getActiveSummary()` y helper `validateMonthBoundary(date)` en `asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.ts`
-- [ ] T012 [P] [US1] Crear DTOs `CreateTeamParamsDto` (startDate: Date, @IsDateString + @IsNotEmpty) y `ClientTeamDto` (id, clientId, department, startDate, endDate, isActive, createdBy, createdAt) en `asesores/pgi-service-pgi-api/src/application/rest/client-teams/dto/`
-- [ ] T013 [US1] Crear `ClientTeamsController` con endpoints: `GET /:clientId/department/:department` (lista equipos), `POST /:clientId/department/:department` (crea equipo), `GET /:clientId/department/:department/active-summary` en `asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.ts` — auth: `CLIENT_ASSIGNMENT_VIEW` / `CLIENT_ASSIGNMENT_EDIT`
-- [ ] T014 [US1] Añadir método `addMember()` a `ClientAssignmentsService`: recibe teamId, employeeId, role, percentage, dateFrom; valida equipo activo; valida RESPONSABLE/COORDINADOR max 1; valida COORDINADOR ≠ RESPONSABLE; `em.fork()` + `em.create()`; publica `client_assignment_updated` en `asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts`
-- [ ] T015 [US1] Añadir DTOs `AddMemberParamsDto` (employeeId, role, percentage, dateFrom) y endpoints `POST /:clientId/:teamId/members` y `DELETE /:clientId/:teamId/members/:assignmentId` a `ClientAssignmentsController` en `asesores/pgi-service-pgi-api/src/application/rest/client-assignments/client-assignments.controller.ts` — guard: `CLIENT_ASSIGNMENT_EDIT` + dept-specific
-- [ ] T016 [US1] Añadir método `removeMember()` a `ClientAssignmentsService`: fija `dateTo = endOfCurrentMonth()`, valida que queden ≥1 asesor activo tras la eliminación; publica `client_assignment_updated` en `asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts`
-- [ ] T017 [P] [US1] Escribir test de integración (testcontainers): crear equipo → añadir asesor → verificar GET lista el equipo y miembro; intentar crear segundo equipo activo → verificar 409 en `asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.spec.ts`
-
-### Frontend
-
-- [ ] T018 [P] [US1] Crear modelo de dominio `ClientTeam` y interface `ClientTeamsRepository` en `asesores/pgi-app-pgi-web/src/features/client-teams/domain/`
-- [ ] T019 [P] [US1] Crear `ClientTeamDto`, mapper `fromClientTeamDto()` y `ClientTeamsRepositoryImpl` (httpClient calls a `/v1/client-teams/`) en `asesores/pgi-app-pgi-web/src/features/client-teams/infrastructure/`
-- [ ] T020 [US1] Crear use-cases `get-client-teams`, `create-team`, `add-member`, `remove-member` con `composition-root.ts` en `asesores/pgi-app-pgi-web/src/features/client-teams/application/use-cases/`
-- [ ] T021 [P] [US1] Crear componente `TeamHeader` (muestra startDate formateada, createdBy, badge activo/cerrado) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-header.tsx`
-- [ ] T022 [P] [US1] Crear componente `TeamMemberRow` (nombre empleado, role badge, campo % readonly en US1, botón eliminar con guard de permiso) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-member-row.tsx`
-- [ ] T023 [US1] Crear componente `TeamSection` (fetches team via useQuery, renderiza TeamHeader + TeamMemberRow list + botón "Añadir miembro" + botón "Crear equipo" si no hay equipo activo) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.tsx`
-- [ ] T024 [US1] Crear `TeamMemberForm` dialog (TanStack Form: employee autocomplete, role select, dateFrom date picker, campo % — Zod: todos requeridos, % 1–100) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-form/team-member-form.tsx`
-- [ ] T025 [US1] Integrar `TeamSection` en el tab "Asignaciones" de la ficha del cliente en `asesores/pgi-app-pgi-web/src/features/clients/presentation/components/client-profile-tabs/`
-
-**Checkpoint**: Un responsable puede crear un equipo, añadir asesores y verlo en la ficha. MVP funcionalmente completo.
+**Checkpoint**: Esquema en BD + datos legacy migrados a equipos implícitos. La capa de dominio puede arrancar.
 
 ---
 
-## Phase 4: User Story 2 — Distribución de carga por porcentaje (Priority: P2)
+## Phase 3: User Story 1 — Crear y gestionar el equipo de un cliente (Priority: P1) 🎯 MVP
 
-**Goal**: El responsable puede ajustar el % de carga de cada miembro y el sistema valida en tiempo real que asesores sumen 100% y técnicos sumen 100% (si los hay) antes de permitir guardar.
+**Goal**: Un responsable puede abrir la ficha de un cliente, crear/gestionar el equipo (asignar coordinador opcional, ≥1 asesor, técnicos), asignar porcentajes (default 100%) y confirmar el equipo con validación del 100% por rol. Asesores y técnicos ven el equipo en solo lectura.
 
-**Independent Test**: Equipo existente con 1 asesor al 100% → añadir segundo asesor al 40% sin ajustar el primero → sistema muestra advertencia y bloquea el guardado. Ajustar a 60%+40% → permite guardar.
+**Independent Test**: Abrir la ficha de un cliente sin equipo → crear equipo con 1 asesor al 100% → commit → equipo activo visible. Cubre AC-1 a AC-4 del spec.
 
-### Backend
+### DTOs y errores compartidos
 
-- [ ] T026 [US2] Añadir `validatePercentageSum(teamId, role, newPercentage?, excludeAssignmentId?)` a `ClientTeamsService`: consulta asesores activos del equipo, suma porcentajes, devuelve error estructurado si ≠ 100 en `asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.ts`
-- [ ] T027 [US2] Llamar a `validatePercentageSum()` desde `ClientAssignmentsService.addMember()` y `removeMember()` (solo para roles ASESOR y TECNICO) en `asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts`
-- [ ] T028 [US2] Crear `PatchPercentageParamsDto` (percentage: number, effectiveFrom: Date) y añadir endpoint `PATCH /:clientId/:teamId/members/:assignmentId` a `ClientAssignmentsController` — servicio: cierra asignación actual (dateTo = effectiveFrom - 1d) y crea nueva con nuevo % en `asesores/pgi-service-pgi-api/src/application/rest/client-assignments/`
-- [ ] T029 [P] [US2] Añadir endpoint `POST /:clientId/:teamId/validate` a `ClientTeamsController` (llama `validatePercentageSum` por grupo de rol, devuelve `{ valid, violations[] }`) en `asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.ts`
-- [ ] T030 [P] [US2] Escribir test de integración: 2 asesores al 60%+50% → 400 `PERCENTAGE_VALIDATION_FAILED`; al 60%+40% → 201; 1 técnico al 80% → 400 en `asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.spec.ts`
+- [x] T009 [P] [US1] Crear DTOs de creación/listado/resumen de equipo en `asesores/pgi-service-pgi-api/src/application/rest/client-teams/dto/` (`create-team-dto.ts`, `team-response-dto.ts`, `active-team-summary-dto.ts`)
+- [x] T010 [P] [US1] Crear DTOs de miembros en `asesores/pgi-service-pgi-api/src/application/rest/client-teams/dto/` (`add-member-dto.ts`, `update-percentage-dto.ts`, `member-response-dto.ts`, `validation-result-dto.ts`)
+- [x] T011 [P] [US1] Crear códigos de error de dominio en `asesores/pgi-service-pgi-api/src/domain/constants/client-team-errors.ts` (ACTIVE_TEAM_EXISTS, DATE_NOT_MONTH_BOUNDARY, PERCENTAGE_VALIDATION_FAILED, PERCENTAGE_OUT_OF_RANGE, ROLE_ALREADY_FILLED, ROLE_CONFLICT, MIN_ASESOR_REQUIRED, TEAM_CLOSED)
 
-### Frontend
+### Domain service — `ClientTeamsService`
 
-- [ ] T031 [P] [US2] Crear componente `PercentageSumIndicator` (recibe role + assignments[], muestra suma actual, verde si =100, rojo si ≠100, con tooltip de distribución) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/percentage-sum-indicator.tsx`
-- [ ] T032 [US2] Añadir campo % editable a `TeamMemberRow` y validación Zod cross-field (sum de asesores = 100, sum de técnicos = 100 si los hay) en `TeamMemberForm` en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/`
-- [ ] T033 [US2] Integrar `PercentageSumIndicator` en `TeamSection` y deshabilitar botón "Guardar" cuando la suma sea ≠ 100% para algún grupo en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.tsx`
-- [ ] T034 [P] [US2] Crear use-case `update-member-percentage` en `asesores/pgi-app-pgi-web/src/features/client-teams/application/use-cases/update-member-percentage.use-case.ts`
+- [x] T012 [US1] Crear `ClientTeamsService` con métodos `createTeam`, `listByClient`, `getActiveSummary`, `findById` en `asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.ts` (usa `em.fork()` para writes; lanza `ACTIVE_TEAM_EXISTS` si ya hay equipo activo para `client+dept`). Depende de T004
+- [x] T013 [US1] Helper `validateMonthBoundary(date, mode: 'start' | 'end')` extraído como función pura en `asesores/pgi-service-pgi-api/src/domain/services/client-teams/helpers/validate-month-boundary.helper.ts` (+ `.spec.ts` colocado, 7 tests pasando) y cableado en `createTeam`. Sigue la regla `domain-layer.md` de helpers en `helpers/`.
+- [x] T014 [US1] Añadir método `addMember(teamId, dto)` en `ClientTeamsService` que crea un `ClientAssignment` con `team_id`, sin validar la suma del 100% (modelo borrador). Valida rol único responsable/coordinador (lanza `ROLE_ALREADY_FILLED` / `ROLE_CONFLICT`), TEAM_CLOSED si team.endDate, rango 1–100 (`PERCENTAGE_OUT_OF_RANGE`), y month-boundary en dateFrom/dateTo. Depende de T005
+- [x] T015 [US1] Añadir método `updateMemberPercentage(assignmentId, dto)` en `ClientTeamsService` (transaccional: cierra fila vieja con `dateTo = effectiveFrom - 1d`, crea fila nueva con nuevo `percentage`; valida rango + boundary; TEAM_CLOSED; 404 si no existe). TDD: 6 tests.
+- [x] T016 [US1] Añadir método `removeMember(assignmentId, { effectiveTo? })` en `ClientTeamsService` — soft delete (set `dateTo`); valida boundary 'end'; default último día del mes actual; TEAM_CLOSED + 404; no valida suma ni min-asesor (modelo borrador, ADR-0007). Contrato DELETE actualizado para reflejar esto. TDD: 6 tests.
+- [x] T017 [US1] Añadir método `validateTeam(teamId): ValidationResultDto` en `ClientTeamsService` — informativo, no lanza ni publica. Filtra miembros activos (`dateTo` null o > now), suma ASESOR+TECNICO (excluye RESPONSABLE/COORDINADOR), comprueba ≥1 asesor activo. TDD: 7 tests.
+- [ ] T018 [US1] Añadir método `commitTeam(teamId)` en `ClientTeamsService` que invoca `validateTeam`, lanza `PERCENTAGE_VALIDATION_FAILED` / `MIN_ASESOR_REQUIRED` si falla, marca el equipo como confirmado y publica `backoffice-api.v1.client-assignment.updated` (un evento por miembro activo, incluyendo `percentage`)
+- [ ] T019 [US1] Extender `ClientAssignmentsService` en `asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts` para incluir `percentage` y `teamId` en las respuestas existentes
 
-**Checkpoint**: Editar % con suma incorrecta bloquea el guardado. Guardar con suma correcta persiste correctamente.
+### Controllers + permisos
 
----
+- [ ] T020 [US1] Crear `ClientTeamsController` con los endpoints del contrato en `asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.ts`: `GET/POST /v1/client-teams/:clientId/department/:dept`, `GET/POST /v1/client-teams/:clientId/:teamId/members`, `PATCH/DELETE /v1/client-teams/:clientId/:teamId/members/:id`, `POST /v1/client-teams/:clientId/:teamId/validate`, `POST /v1/client-teams/:clientId/:teamId/commit`, `GET /v1/client-teams/:clientId/department/:dept/active-summary`. Guards: `CLIENT_ASSIGNMENT_VIEW` (lectura) y `CLIENT_ASSIGNMENT_EDIT + CLIENT_ASSIGNMENTS_{DEPT}_EDIT` (escritura). Depende de T012–T018
+- [ ] T021 [US1] Registrar `ClientTeamsController` y `ClientTeamsService` como providers en `asesores/pgi-service-pgi-api/src/app.module.ts` (sin nuevo módulo — todo en `AppModule` por constitución I)
+- [ ] T022 [US1] Extender `ClientAssignmentsController` en `asesores/pgi-service-pgi-api/src/application/rest/client-assignments/client-assignments.controller.ts` para devolver `percentage` y `teamId` en `GET /v1/client-assignments/:clientId/department/:dept`. Depende de T019
 
-## Phase 5: User Story 3 — Histórico de cambios de asignación (Priority: P3)
+### Tests (testcontainers — colocados junto al service/controller)
 
-**Goal**: Vista de solo lectura con todos los cambios de asignación (altas, bajas, cambios de %) — accesible para todos los perfiles con acceso a la ficha.
+> Convención del repo: los tests con testcontainers viven junto al fichero que prueban (`*.service.spec.ts` en `domain/services/<feature>/`, `*.controller.spec.ts` en `application/rest/<feature>/`). No hay `test/integration/`.
 
-**Independent Test**: Crear equipo → cambiar % de un asesor → acceder al histórico → verificar dos entradas: original (con dateTo) y nueva (sin dateTo).
+- [x] T023 [P] [US1] Tests de creación de equipo en `asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.spec.ts` — bloque "createTeam" (cubre AC-1: 1 asesor 100% → activo; AC-4: segundo equipo activo mismo cliente+dept → `ACTIVE_TEAM_EXISTS`; `DATE_NOT_MONTH_BOUNDARY` cuando startDate no es primer día de mes). 18 tests verdes incluyendo `addMember`, `findById`, `listByClient`, `getActiveSummary`.
+- [ ] T024 [P] [US1] Tests de gestión de miembros en el mismo `client-teams.service.spec.ts` — `addMember` ya cubierto en T023; pendiente `updatePercentage` (T015) y `removeMember` (T016) — añadir cuando se implementen esos métodos.
+- [ ] T025 [P] [US1] Tests de validación y commit en el mismo `client-teams.service.spec.ts` — bloques "validateTeam / commitTeam" (cubre AC-2: suma total (asesores + técnicos) ≠ 100 → `PERCENTAGE_VALIDATION_FAILED` al commit; commit ok con 60% asesor + 40% técnico → publica `backoffice-api.v1.client-assignment.updated` con `percentage`; ≥1 asesor obligatorio en commit; responsable/coordinador NO entran en la suma)
+- [ ] T026 [P] [US1] Tests de controller + permisos en `asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.spec.ts` con Supertest + mocks de servicio (cubre AC-3: asesor/técnico → GET ok, POST/PATCH/DELETE → 403; DTO validation → 400)
+- [ ] T027 [P] [US1] Tests de migración legacy en `asesores/pgi-service-pgi-api/src/migrations/Migration20260528122459.spec.ts` (semilla con asignaciones legacy 1-a-1 → aplicar migración → verifica que cada client+dept tiene un `ClientTeam` activo y que `client_assignment.team_id` apunta a él; idempotencia: ejecutar 2 veces produce el mismo estado)
+- [ ] T028 [P] [US1] Tests del endpoint de history extendido en `asesores/pgi-service-pgi-api/src/application/rest/client-assignments/client-assignments.controller.spec.ts` (GET devuelve `percentage` y `teamId`)
 
-### Backend
+### Frontend — Tab Asignaciones en la ficha
 
-- [ ] T035 [US3] Añadir método `getAssignmentHistory(clientId, department, filters?)` a `ClientAssignmentsService` (retorna todas las filas incluyendo las con dateTo, ordenadas por dateFrom DESC; `disableIdentityMap: true`) en `asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts`
-- [ ] T036 [US3] Añadir endpoint `GET /v1/client-assignments/:clientId/department/:department/history` (query params: role?, employeeId?) a `ClientAssignmentsController` — auth: `CLIENT_ASSIGNMENT_VIEW` en `asesores/pgi-service-pgi-api/src/application/rest/client-assignments/client-assignments.controller.ts`
-- [ ] T037 [P] [US3] Escribir test de integración: crear equipo → cambiar % → verificar history devuelve 2 entradas con dateFrom/dateTo correctos en `asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.spec.ts`
+> Convención del repo: cada feature usa Clean Architecture en 4 capas (`domain/`, `infrastructure/`, `application/use-cases/`, `presentation/`). Filenames en kebab-case con sufijos `.model.ts`, `.repository.ts`, `-dto.ts`, `.use-case.ts`. Patrón espejado de `features/client-assignments/`.
 
-### Frontend
+- [ ] T029 [P] [US1] Crear modelos e interfaces de dominio en `asesores/pgi-app-pgi-web/src/features/client-teams/domain/models/client-team.model.ts`, `domain/models/team-member.model.ts` y `domain/interfaces/client-team-payloads.d.ts` (ClientTeam, TeamMember, payloads de create/add/update/commit)
+- [ ] T030 [P] [US1] Crear interface de repositorio + implementación HTTP en `asesores/pgi-app-pgi-web/src/features/client-teams/domain/repositories/client-teams.repository.ts` (interface) y `infrastructure/client-teams.repository-impl.ts` (axios calls a los endpoints del contrato) + DTOs en `infrastructure/dto/client-team-dto.ts`, `member-dto.ts`, `active-team-summary-dto.ts`, `validation-result-dto.ts`
+- [ ] T031 [P] [US1] Crear use-cases en `asesores/pgi-app-pgi-web/src/features/client-teams/application/use-cases/` (`create-team.use-case.ts`, `add-member.use-case.ts`, `update-percentage.use-case.ts`, `remove-member.use-case.ts`, `validate-team.use-case.ts`, `commit-team.use-case.ts`, `get-active-team-summary.use-case.ts`, `composition-root.ts`, `index.ts`) + schema Zod cross-field en `presentation/utils/team-validation.schema.ts` (suma total ASESOR+TECNICO = 100; rango 1–100; ≥1 asesor; responsable/coordinador excluidos)
+- [ ] T032 [P] [US1] Crear componente en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/percentage-sum-indicator/percentage-sum-indicator.tsx` (recibe `sum`; verde si 100, rojo si ≠100, texto "Equipo: X/100%")
+- [ ] T033 [US1] Crear componente en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-member-form/team-member-form.tsx` (TanStack Form field array; selector empleado + rol + percentage + dateFrom; submit añade miembro al borrador). Depende de T029, T030, T031
+- [ ] T034 [US1] Crear componente en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-member-list/team-member-list.tsx` (tabla con miembros activos, acciones eliminar/editar % en modo edición). Depende de T029, T030
+- [ ] T035 [US1] Crear componente contenedor en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.tsx` (resumen, lista de miembros, formulario, botones "Guardar borrador" y "Confirmar equipo" → llama a `commit-team.use-case`; modo readonly para asesor/técnico). Depende de T032, T033, T034
+- [ ] T036 [US1] Añadir tab `Asignaciones` en `asesores/pgi-app-pgi-web/src/features/clients/presentation/components/client-profile-tabs/client-profile-tabs.tsx` apuntando a `TeamSection` con gating de permisos: visible siempre, edición según `CLIENT_ASSIGNMENT_EDIT`.
 
-- [ ] T038 [P] [US3] Crear use-case `get-assignment-history` y añadir a composition-root en `asesores/pgi-app-pgi-web/src/features/client-teams/application/use-cases/`
-- [ ] T039 [P] [US3] Crear componente `TeamHistoryAccordion` (tabla con columnas: Empleado, Rol, %, Período "Jun 2026 – Ago 2026", colapsable) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-history/team-history-accordion.tsx`
-- [ ] T040 [US3] Integrar `TeamHistoryAccordion` en `TeamSection` debajo de los miembros activos (todos los perfiles pueden verlo — sin guard de edición) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.tsx`
+### Frontend tests (Vitest)
 
-**Checkpoint**: El histórico muestra todos los períodos con fechas y porcentajes correctos para cualquier usuario con acceso a la ficha.
+- [ ] T037 [P] [US1] Tests en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/percentage-sum-indicator/percentage-sum-indicator.test.tsx` (verde/rojo según suma)
+- [ ] T038 [P] [US1] Tests en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-member-form/team-member-form.test.tsx` (validación Zod, submit deshabilitado fuera de rango, suma calculada correctamente)
+- [ ] T039 [P] [US1] Tests en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.test.tsx` (AC-3: asesor/técnico → no ve botones de edición; AC-1: flujo completo crear → añadir asesor → commit)
 
----
-
-## Phase 6: User Story 4 — Cierre de equipo y reasignación de tareas (Priority: P4)
-
-**Goal**: El responsable puede cerrar un equipo fijando una fecha de fin que se propaga a todos sus miembros. Puede reasignar tareas manualmente entre miembros en cualquier momento.
-
-**Independent Test**: Equipo activo sin tareas pendientes → responsable fija fecha de cierre → todos los miembros reciben dateTo → equipo pasa a inactivo en el histórico.
-
-### Backend — pgi-service-pgi-api
-
-- [ ] T041 [US4] Añadir método `closeTeam(teamId, endDate, user)` a `ClientTeamsService`: valida endDate = last-of-month, valida equipo activo, `em.fork()` + `em.transactional()` para fijar `endDate` en `ClientTeam` y `dateTo = endDate` en todos los miembros activos; publica `client_assignment_updated` por cada miembro en `asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.ts`
-- [ ] T042 [US4] Crear `CloseTeamParamsDto` (endDate: Date) y añadir endpoint `PUT /:clientId/:teamId/close` a `ClientTeamsController` — guard: `CLIENT_ASSIGNMENT_EDIT` en `asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.ts`
-- [ ] T043 [US4] Añadir método `publishTaskReassignment(clientId, dept, fromEmployeeId, toEmployeeId, taskIds, requestedBy)` a `ClientAssignmentsService` (publica evento `backoffice-api.v1.task-reassignment.requested` vía rabbitMQService) en `asesores/pgi-service-pgi-api/src/domain/services/client-assignments/client-assignments.service.ts`
-- [ ] T044 [US4] Crear `ReassignTasksParamsDto` (fromEmployeeId, toEmployeeId, taskIds?: string[]) y añadir endpoint `POST /:clientId/:teamId/reassign-tasks` → devuelve 202 Accepted en `asesores/pgi-service-pgi-api/src/application/rest/client-teams/client-teams.controller.ts`
-- [ ] T045 [P] [US4] Escribir test de integración: closeTeam → verificar team.endDate set, todos los miembros con dateTo, evento published; intentar editar equipo cerrado → verificar 409 en `asesores/pgi-service-pgi-api/src/domain/services/client-teams/client-teams.service.spec.ts`
-
-### Backend — pd-service-obligations-api
-
-- [ ] T046 [P] [US4] Añadir método `reassignTasksBetweenAdvisors(clientId, dept, fromEmployeeId, toEmployeeId, taskIds?)` a `TasksService`: actualiza `task.advisor` para tareas PENDING del `fromEmployeeId` (filtrando por `taskIds` si se proporcionan); `em.fork()`; idempotente (reasignar tarea ya reasignada es no-op) en `plataforma-del-dato/pd-service-obligations-api/src/domain/services/tasks/tasks.service.ts`
-- [ ] T047 [US4] Crear `TaskReassignmentSubscriber` (AMQP consumer de `obligations-api:task-reassignment:process`, llama a `tasksService.reassignTasksBetweenAdvisors()`; `em.fork()` en el handler) en `plataforma-del-dato/pd-service-obligations-api/src/application/amqp/task-reassignment-subscriber/task-reassignment.subscriber.ts`
-- [ ] T048 [US4] Registrar `TaskReassignmentSubscriber` en AppModule y añadir queue `obligations-api:task-reassignment:process` a las definiciones de RabbitMQ en `plataforma-del-dato/pd-service-obligations-api/src/app.module.ts` y `infra/rabbitmq/definitions.json`
-
-### Frontend
-
-- [ ] T049 [P] [US4] Crear `CloseTeamDialog` (date picker para endDate con validación last-of-month, mensaje de confirmación con lista de miembros afectados, botón confirmar) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/close-team-dialog/close-team-dialog.tsx`
-- [ ] T050 [P] [US4] Crear `TaskReassignmentDialog` (fromEmployee select, toEmployee select filtrado a miembros activos del equipo, lista de tareas opcional, confirmar → llama reassign-tasks use-case → 202) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/task-reassignment-dialog/task-reassignment-dialog.tsx`
-- [ ] T051 [US4] Crear use-cases `close-team` y `reassign-tasks` en `asesores/pgi-app-pgi-web/src/features/client-teams/application/use-cases/`
-- [ ] T052 [US4] Integrar `CloseTeamDialog` y `TaskReassignmentDialog` en `TeamSection` (solo visibles con permiso `CLIENT_ASSIGNMENT_EDIT`; botón "Cerrar equipo" en el header, botón "Reasignar tareas" en cada miembro) en `asesores/pgi-app-pgi-web/src/features/client-teams/presentation/components/team-section/team-section.tsx`
-
-**Checkpoint**: Cierre de equipo funcional end-to-end; reasignación manual de tareas llega a obligations-api vía RabbitMQ.
+**Checkpoint**: US1 funcional end-to-end. Tests pasando. Listo para PR.
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 4: Polish & Cross-Cutting Concerns
 
-- [ ] T053 [P] Ejecutar `npm run lint:fix && npm run build` en `asesores/pgi-service-pgi-api/` y corregir errores
-- [ ] T054 [P] Ejecutar `npm run build` en `asesores/pgi-app-pgi-web/` (TypeScript check + Vite build) y corregir errores
-- [ ] T055 [P] Ejecutar `npm run lint:fix && npm run build` en `plataforma-del-dato/pd-service-obligations-api/` y corregir errores
-- [ ] T056 Ejecutar smoke tests del `quickstart.md` end-to-end: crear equipo → añadir miembros → validar % → cerrar equipo → verificar histórico
+- [ ] T040 [P] Ejecutar `quickstart.md` contra entorno local y verificar los smoke tests del paso 3
+- [ ] T041 [P] Pre-push gate backend: `cd asesores/pgi-service-pgi-api && npm run lint && npm run build && npm test`
+- [ ] T042 [P] Pre-push gate frontend: `cd asesores/pgi-app-pgi-web && npm run build && npx vitest run src/features/client-teams/presentation/components`
+- [ ] T043 Verificar el evento `backoffice-api.v1.client-assignment.updated` en RabbitMQ Management (localhost:15672) tras un commit: payload debe incluir `percentage`
 
 ---
 
 ## Dependencies & Execution Order
 
-### Dependencias entre fases
+### Phase Dependencies
 
-```mermaid
-graph TD
-    P1[Phase 1 · Setup] --> P2[Phase 2 · Fundacional]
-    P2 --> P3[Phase 3 · US1 🎯 MVP]
-    P3 --> P4[Phase 4 · US2]
-    P4 --> P5[Phase 5 · US3]
-    P5 --> P6[Phase 6 · US4]
-    P2 -.-> P7[Phase 7 · Polish]
-    P6 --> P7
+- **Phase 1 (Setup)**: Sin dependencias.
+- **Phase 2 (Foundational)**: Depende de Phase 1. **Bloquea US1 hasta T008.**
+- **Phase 3 (US1)**: Depende de Phase 2.
+- **Phase 4 (Polish)**: Depende de Phase 3.
 
-    style P2 fill:#fef3c7,stroke:#f59e0b
-    style P3 fill:#dcfce7,stroke:#16a34a
-    style P7 fill:#f1f5f9,stroke:#94a3b8
-```
+### Within US1 (Phase 3)
 
-### Dependencias dentro de cada historia
+- DTOs y errores (T009–T011) [P entre sí] → `ClientTeamsService` métodos (T012–T018) → Controllers (T020–T022)
+- Tests de integración (T023–T028) pueden escribirse en paralelo a la implementación del controller y servicio que cubren, pero deben pasar antes del PR
+- Frontend (T029–T039) depende solo del contrato — puede empezar en paralelo a backend (mock de respuestas con MSW si quieres avanzar)
 
-```mermaid
-graph LR
-    subgraph US1 Backend
-        T011[T011 ClientTeamsService] --> T013[T013 Controller]
-        T014[T014 addMember] --> T015[T015 Endpoints]
-    end
-    subgraph US1 Frontend
-        T018[T018 Domain] --> T020[T020 Use-cases]
-        T019[T019 Infra] --> T020
-        T021[T021 TeamHeader] --> T023[T023 TeamSection]
-        T022[T022 MemberRow] --> T023
-        T020 --> T023
-        T023 --> T025[T025 Ficha]
-    end
-    subgraph US2
-        T026[T026 validatePercentageSum] --> T027[T027 addMember integration]
-        T031[T031 PercentageSumIndicator] --> T033[T033 TeamSection]
-    end
-    subgraph US4
-        T041[T041 closeTeam service] --> T042[T042 close endpoint]
-        T046[T046 reassignTasks service] --> T047[T047 AMQP subscriber]
-        T049[T049 CloseTeamDialog] --> T052[T052 TeamSection]
-        T050[T050 ReassignDialog] --> T052
-    end
-```
+### Parallel Opportunities
 
-### Oportunidades de paralelismo entre historias
-
-Con dos desarrolladores desde Phase 3:
-- **Dev A** — backend: T011 → T013 → T014 → T015 → T016
-- **Dev B** — frontend: T018 → T019 → T020 → T021 → T022 → T023
+- **Setup** (T002, T003) — paralelo
+- **Foundational entities**: T004 y T005 NO son paralelos porque comparten la migración (T006 los necesita ambos)
+- **DTOs/errors** (T009, T010, T011) — paralelos
+- **Service methods individuales** (T012–T018) — comparten fichero, serializar
+- **Integration tests** (T023–T028) — ficheros distintos, paralelos
+- **Frontend types/api/schema/indicator** (T029–T032) — ficheros distintos, paralelos
+- **Frontend tests** (T037–T039) — paralelos
 
 ---
 
-## Parallel Example: User Story 1
+## Parallel Example: US1 — primer wave de DTOs + tipos + tests
 
 ```bash
-# Lanzar en paralelo (ficheros distintos, sin dependencias):
-Task T012 — DTOs CreateTeamParamsDto + ClientTeamDto
-Task T018 — ClientTeam domain model + repository interface (frontend)
-Task T019 — ClientTeamDto + RepositoryImpl (frontend)
-Task T021 — TeamHeader component
-Task T022 — TeamMemberRow component
-Task T017 — Test de integración createTeam + addMember
+# Backend wave A (paralelo)
+Task: "T009 DTOs de team"
+Task: "T010 DTOs de miembros"
+Task: "T011 Códigos de error"
+Task: "T023 Test creación de equipo"
+Task: "T024 Test gestión de miembros"
 
-# Luego (requieren los anteriores):
-Task T011 — ClientTeamsService (requiere entidad de Phase 2)
-Task T013 — ClientTeamsController (requiere T011 + T012)
-Task T020 — use-cases (requiere T018 + T019)
-Task T023 — TeamSection (requiere T020 + T021 + T022)
-Task T025 — integración en ficha (requiere T023)
+# Frontend wave A (paralelo)
+Task: "T029 Tipos de dominio"
+Task: "T030 Hooks TanStack Query"
+Task: "T031 Schema Zod"
+Task: "T032 PercentageSumIndicator"
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP (solo US1 — Phase 1 + 2 + 3)
+### MVP (US1 únicamente)
 
-1. Completar **Phase 1**: Verificar snapshots
-2. Completar **Phase 2**: Entidades + migración (bloquea todo) — ~1 día
-3. Completar **Phase 3**: Backend + frontend US1 — ~2–3 días
-4. **STOP y VALIDAR**: Crear equipo, añadir miembros, ver en ficha → funcional
-5. Deploy/demo si está listo
+1. **Phase 1 + 2** → esquema + migración legacy listos
+2. **Phase 3 backend** → entidades, service, controllers, tests → API funcional
+3. **Phase 3 frontend** → tab Asignaciones contra backend real
+4. **Phase 4** → quickstart + gates → PR
 
-### Entrega incremental
+### Despliegue progresivo
 
-1. Setup + Fundacional → Base lista
-2. US1 → Crear y gestionar equipo → **Demo MVP**
-3. US2 → Validación de % → **Demo con validación**
-4. US3 → Histórico → **Demo completo sin cierre**
-5. US4 → Cierre + reasignación → **Feature completa**
+1. Merge a `main` (incluye migración → aplica a clientes existentes auto-equipo)
+2. Verificación post-deploy en staging
+3. Demo a PO
 
 ---
 
 ## Notes
 
-- Siempre leer el CLAUDE.md de cada servicio antes de editar su código
-- Nunca usar `@EnsureRequestContext()` en los nuevos subscribers AMQP de obligations-api
-- `em.fork()` antes de cualquier write; `disableIdentityMap: true` en reads
-- Commit por cada tarea o grupo lógico: `feat(client-teams): T011 create ClientTeamsService`
-- Ejecutar `npx mikro-orm migration:create --dump` después de T005 para confirmar que no hay drift
-- Los tests de integración arrancan testcontainers automáticamente (~10s primer arranque)
+- Constitución II: los tests de integración usan `@testcontainers/postgresql` con `postgres:17-alpine`. Primer arranque ~10s.
+- Constitución III: writes con `em.fork()`, reads con `disableIdentityMap: true`. Nunca `@EnsureRequestContext()`.
+- Constitución IV: el commit publica vía `this.rabbitMQService.publish(...)` — sin HTTP entre servicios.
+- Constitución V: sin nuevos módulos NestJS; providers en `AppModule`.
+- El responsable se representa como `ClientAssignment` con `role: responsable` (clarificación 2026-05-28). Su % es 100% implícito y no entra en la validación de suma.
+- Modelo borrador + commit (clarificación 2026-05-28): solo `POST /commit` valida y publica eventos.
+- Migración masiva legacy (FR-013) dentro de US1 — los datos 1-a-1 son válidos por construcción y se convierten en equipos implícitos al desplegar.
