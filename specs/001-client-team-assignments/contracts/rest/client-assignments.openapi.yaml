@@ -1,0 +1,572 @@
+openapi: 3.1.0
+info:
+  title: pgi-api · Client Team Assignments
+  description: |
+    Endpoints REST de pgi-api para gestionar el equipo de un cliente como
+    tramos temporales de asignaciones (`ClientTeamAssignment`) y para consultar
+    el log de cambios (`ClientTeamAssignmentChange`).
+
+    **Scope**: cubre US-01 (alta inicial), US-02 (edición mes en curso), US-03
+    (cambios futuros), US-05 (log de cambios). US-04 (onboarding AMQP) no entra
+    en este contract REST porque su entrada es vía RabbitMQ (ver
+    `contracts/amqp/`).
+
+    **Convenciones aplicadas** (alineadas a pgi-api):
+    - Path versioning: `@Controller({ path, version: '1' })` → `/api/v1/...`.
+    - URLs como recursos puros, sin verbos en path (ningún `/transitions`,
+      `/operations`, `/history`, `/bulk-delete`). La operación atómica
+      multi-miembro se modela como `PUT` sobre la colección filtrada.
+    - Response de lista: `{ data: T[], total: number, ...extras }`.
+    - Response de creación: `{ id }`. Updates devuelven 204.
+    - Errores: `NestJS exception filters` → `{ statusCode, message, error }`.
+    - Auth: `@PermissionsRequired(BackofficePermissions.CLIENT_ASSIGNMENT_*)`.
+    - Optimistic concurrency: campo `version` en body. Conflicto = 409.
+
+  version: 0.4.0-us01-us02-us05
+
+servers:
+  - url: https://pgi-api.afianza.internal/api/v1
+    description: Production
+  - url: https://pgi-api.staging.afianza.internal/api/v1
+    description: Staging
+  - url: http://localhost:3010/api/v1
+    description: Local
+
+security:
+  - azureAdJwt: []
+
+tags:
+  - name: team-assignments
+    description: |
+      Tramos temporales de asignación de un empleado a un cliente. Entity de
+      dominio `ClientTeamAssignment`.
+  - name: team-assignment-changes
+    description: |
+      Log de cambios sobre las asignaciones (US-05). Read-only. Entity de
+      dominio `ClientTeamAssignmentChange`.
+
+paths:
+
+  /clients/{clientId}/team-assignments:
+    parameters:
+      - $ref: '#/components/parameters/ClientIdPath'
+
+    get:
+      tags: [team-assignments]
+      summary: Listar asignaciones vigentes a una fecha
+      description: |
+        Devuelve los tramos vivos en `date` filtrados por `department`. `date`
+        por defecto = hoy; acepta cualquier fecha (pasada o futura) — la misma
+        URL sirve la vista vigente y la vista a fecha pasada que pide US-01
+        criterio 6.
+
+        Cada miembro lleva `inClientSince` (campo derivado server-side, ver
+        spec.md §4). Incluye además del listado los campos `coverage`,
+        `mainAsesorPresent` y `status` para que el FE renderice el banner
+        "equipo incompleto" sin un segundo request.
+
+        Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_VIEW`.
+      operationId: listClientTeamAssignments
+      parameters:
+        - name: department
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Department'
+        - name: date
+          in: query
+          required: false
+          description: Fecha de consulta (default hoy).
+          schema:
+            type: string
+            format: date
+            example: "2026-06-15"
+      responses:
+        '200':
+          description: Lista vigente con datos derivados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAssignmentsResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    post:
+      tags: [team-assignments]
+      summary: Crear una asignación
+      description: |
+        Crea un tramo. El backend auto-crea el `ClientTeam` agrupador si no
+        existía, normaliza `dateFrom` al primer día del mes, rechaza con 422 si
+        el cliente no tiene `ProvidedService` activo (FR-012), valida la regla
+        de `isMain` (FR-011), y tras commit publica
+        `pgi-api.v1.client-team-assignment.opened` + inserta una fila en
+        `client_team_assignment_change` con `action='opened'`.
+
+        Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`.
+      operationId: createClientTeamAssignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssignmentRequest'
+      responses:
+        '201':
+          description: Asignación creada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+    put:
+      tags: [team-assignments]
+      summary: Reemplazar la composición del equipo desde una fecha
+      description: |
+        **Operación atómica multi-miembro** (US-02 + US-03). PUT sobre la
+        colección filtrada por `department` + `dateFrom`. Significa "el equipo
+        del cliente en este departamento a partir de esta fecha es éste".
+
+        El backend hace el diff contra el estado vigente en `dateFrom` y
+        resuelve dentro de **una sola transacción** con `SELECT … FOR UPDATE`
+        (FR-024):
+        - **Miembros que ya estaban con los mismos atributos**: sin cambios.
+        - **Miembros nuevos o con atributos distintos**: open tramo nuevo desde
+          `dateFrom`.
+        - **Miembros que ya no aparecen**: close del tramo anterior con
+          `dateTo = dateFrom - 1 día`.
+        - **FR-007 (mes en curso)**: si un tramo creado en el mes en curso
+          desaparece, se voida (`date_to = date_from - 1 día`) en vez de
+          cerrarse para que no quede como tramo histórico de 1 día.
+        - **FR-006-bis (cambios futuros)**: si hay tramos futuros
+          pre-existentes para una persona+rol, el nuevo tramo se "encaja" hasta
+          el día anterior al siguiente tramo futuro.
+
+        Cada mutación inserta una fila en `client_team_assignment_change` con
+        la `action` correspondiente.
+
+        Idempotente: enviar el mismo body dos veces produce el mismo estado.
+
+        Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`.
+      operationId: replaceClientTeamAssignments
+      parameters:
+        - name: department
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Department'
+        - name: dateFrom
+          in: query
+          required: true
+          description: |
+            Día de corte. El backend valida que sea primer día de mes
+            (mes en curso o futuro). Si cae en mes pasado → 422.
+          schema:
+            type: string
+            format: date
+            example: "2026-06-01"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceTeamRequest'
+      responses:
+        '204': { description: Estado aplicado. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /clients/{clientId}/team-assignments/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ClientIdPath'
+      - $ref: '#/components/parameters/AssignmentIdPath'
+
+    get:
+      tags: [team-assignments]
+      summary: Recuperar una asignación
+      description: Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_VIEW`.
+      operationId: getClientTeamAssignment
+      responses:
+        '200':
+          description: Detalle de la asignación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [team-assignments]
+      summary: Modificar metadato de un tramo vivo
+      description: |
+        Cambios sobre un único tramo sin afectar a otros miembros:
+        - **Cambiar `isMain`**: envía `isMain` nuevo + `version`. El backend
+          valida unicidad de main (FR-011) e inserta change con
+          `action='main_changed'`.
+        - **Cerrar el tramo** (salida sin sustituto): envía `dateTo` + `version`.
+          El backend valida que `dateTo` >= primer día del mes en curso e
+          inserta change con `action='closed'`.
+
+        Cambios de `percentage` o `role` van por `PUT` sobre la colección (porque
+        crean un tramo nuevo, no mutan in-place el existente).
+
+        Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`.
+      operationId: updateClientTeamAssignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssignmentRequest'
+      responses:
+        '204': { description: Cambio aplicado. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+    delete:
+      tags: [team-assignments]
+      summary: Eliminar un tramo creado por error en el mes en curso (void)
+      description: |
+        **Void de FR-007**. Solo aplica a tramos cuyo `date_from = primer día
+        del mes en curso`. Internamente no es DELETE físico — el backend ejecuta
+        `UPDATE date_to = date_from - 1 día` para dejar la fila auditable pero
+        invisible. Inserta change con `action='voided'`.
+
+        Si se intenta sobre un tramo de un mes anterior, responde 422.
+
+        Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`.
+      operationId: voidClientTeamAssignment
+      responses:
+        '204': { description: Tramo voided. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /clients/{clientId}/team-assignment-changes:
+    parameters:
+      - $ref: '#/components/parameters/ClientIdPath'
+
+    get:
+      tags: [team-assignment-changes]
+      summary: Log de cambios sobre el equipo (US-05)
+      description: |
+        Devuelve los cambios registrados en `client_team_assignment_change`
+        para un cliente y departamento, en orden cronológico descendente. Si no
+        se pasan `from`/`to`, devuelve los últimos 90 días.
+
+        Cada item incluye los valores `*_before` y `*_after` solo cuando
+        aplica (según `action`).
+
+        Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_VIEW`.
+      operationId: listClientTeamAssignmentChanges
+      parameters:
+        - name: department
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Department'
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Log paginado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListChangesResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+
+  parameters:
+    ClientIdPath:
+      name: clientId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AssignmentIdPath:
+      name: id
+      in: path
+      required: true
+      description: ID de la asignación (`client_team_assignment.id`).
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Department:
+      type: string
+      enum: [fiscal, laboral]
+
+    Role:
+      type: string
+      enum: [responsable, coordinador, asesor, tecnico]
+
+    Action:
+      type: string
+      enum:
+        - opened
+        - closed
+        - percentage_changed
+        - role_changed
+        - main_changed
+        - voided
+
+    EmployeeRef:
+      type: object
+      required: [id, displayName, email]
+      properties:
+        id:    { type: string, format: uuid }
+        displayName: { type: string }
+        email: { type: string, format: email }
+
+    CreateAssignmentRequest:
+      type: object
+      required: [department, employeeId, role, dateFrom]
+      additionalProperties: false
+      properties:
+        department: { $ref: '#/components/schemas/Department' }
+        employeeId: { type: string, format: uuid }
+        role:       { $ref: '#/components/schemas/Role' }
+        percentage:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 100
+        isMain:
+          type: boolean
+          default: false
+          description: Solo válido si `role=asesor`.
+        dateFrom:
+          type: string
+          format: date
+          description: |
+            Backend valida que sea primer día de mes (mes en curso o futuro).
+            Mes pasado → 422.
+
+    UpdateAssignmentRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      description: |
+        Al menos uno de `isMain` o `dateTo` debe estar presente. Validación
+        cruzada en el servicio.
+      properties:
+        isMain:
+          type: boolean
+          description: Solo válido si la asignación tiene `role=asesor`.
+        dateTo:
+          type: string
+          format: date
+          description: |
+            Cierra el tramo. Backend valida que sea ≥ primer día del mes en
+            curso y se normaliza a último día del mes correspondiente.
+        version:
+          type: integer
+
+    ReplaceTeamRequest:
+      type: object
+      required: [members]
+      additionalProperties: false
+      description: |
+        Estado deseado del equipo en `(clientId, department)` a partir de
+        `dateFrom`. El backend hace diff y resuelve close/open atómicamente.
+      properties:
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/ReplaceTeamMember' }
+
+    ReplaceTeamMember:
+      type: object
+      required: [employeeId, role, percentage, isMain]
+      additionalProperties: false
+      properties:
+        employeeId: { type: string, format: uuid }
+        role:       { $ref: '#/components/schemas/Role' }
+        percentage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        isMain:     { type: boolean }
+
+    CreatedResponse:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+
+    Assignment:
+      type: object
+      required:
+        - id
+        - clientTeamId
+        - clientId
+        - department
+        - employee
+        - role
+        - percentage
+        - dateFrom
+        - dateTo
+        - isMain
+        - inClientSince
+        - version
+      properties:
+        id:           { type: string, format: uuid }
+        clientTeamId: { type: string, format: uuid }
+        clientId:     { type: string, format: uuid }
+        department:   { $ref: '#/components/schemas/Department' }
+        employee:     { $ref: '#/components/schemas/EmployeeRef' }
+        role:         { $ref: '#/components/schemas/Role' }
+        percentage:   { type: integer }
+        dateFrom:     { type: string, format: date }
+        dateTo:
+          type: string
+          format: date
+          nullable: true
+        isMain:       { type: boolean }
+        inClientSince:
+          type: string
+          format: date
+          description: Campo derivado server-side — antigüedad continua del empleado en el cliente.
+        version:      { type: integer }
+
+    ListAssignmentsResponse:
+      type: object
+      required: [data, total, coverage, mainAsesorPresent, status]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Assignment' }
+        total:
+          type: integer
+        coverage:
+          type: object
+          required: [asesores, tecnicos]
+          properties:
+            asesores: { type: integer }
+            tecnicos:
+              type: integer
+              nullable: true
+        mainAsesorPresent: { type: boolean }
+        status:
+          type: string
+          enum: [complete, incomplete]
+
+    AssignmentChange:
+      type: object
+      required: [id, clientTeamAssignmentId, action, createdAt, createdBy]
+      properties:
+        id:                       { type: string, format: uuid }
+        clientTeamAssignmentId:   { type: string, format: uuid }
+        action:                   { $ref: '#/components/schemas/Action' }
+        employeeIdBefore:         { type: string, format: uuid, nullable: true }
+        employeeIdAfter:          { type: string, format: uuid, nullable: true }
+        roleBefore:               { $ref: '#/components/schemas/Role', nullable: true }
+        roleAfter:                { $ref: '#/components/schemas/Role', nullable: true }
+        percentageBefore:         { type: integer, nullable: true }
+        percentageAfter:          { type: integer, nullable: true }
+        isMainBefore:             { type: boolean, nullable: true }
+        isMainAfter:              { type: boolean, nullable: true }
+        dateFromBefore:           { type: string, format: date, nullable: true }
+        dateFromAfter:            { type: string, format: date, nullable: true }
+        dateToBefore:             { type: string, format: date, nullable: true }
+        dateToAfter:              { type: string, format: date, nullable: true }
+        createdAt:                { type: string, format: date-time }
+        updatedAt:                { type: string, format: date-time, nullable: true }
+        createdBy:                { type: string }
+        updatedBy:                { type: string, nullable: true }
+
+    ListChangesResponse:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/AssignmentChange' }
+        total: { type: integer }
+
+    NestException:
+      type: object
+      required: [statusCode, message, error]
+      properties:
+        statusCode: { type: integer }
+        message:
+          oneOf:
+            - type: string
+            - type: array
+              items: { type: string }
+        error: { type: string }
+
+  responses:
+    BadRequest:
+      description: Body o query malformado.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/NestException' }
+    Unauthorized:
+      description: Token Azure AD ausente o inválido.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/NestException' }
+    Forbidden:
+      description: Falta permiso `CLIENT_ASSIGNMENT_VIEW/EDIT`.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/NestException' }
+    NotFound:
+      description: Cliente, asignación o empleado no existe.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/NestException' }
+    Conflict:
+      description: Version conflict, duplicado de main, etc.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/NestException' }
+    UnprocessableEntity:
+      description: |
+        Reglas de negocio violadas: `dateFrom` en mes pasado (FR-003),
+        cliente sin `ProvidedService` (FR-012), `isMain=true` con `role≠asesor`,
+        void sobre tramo de mes anterior, etc.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/NestException' }
+
+  securitySchemes:
+    azureAdJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

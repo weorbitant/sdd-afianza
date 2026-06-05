@@ -84,14 +84,14 @@ Equipo válido al 100%. **No hay barras de Asesores 100% / Técnicos 100% en est
 | # | Evidencia visual | Spec / ADR afectado |
 |---|---|---|
 | 1 | Sin botón "Confirmar equipo" en ningún frame. Toast *"Asignaciones creadas correctamente"* tras cada add (frame `05/01`). | ADR-0007 (draft + commit) ⚠️ inválido |
-| 2 | Barras separadas `Asesores 100%` + `Técnicos 100%` en legacy frames 16-17. En rediseño actual desaparecen pero el copy del empty state sigue diciendo *"la suma de % de carga entre asesores y técnicos debe alcanzar el 100%"* — single bucket. | ADR-0008 / dos cubos no resuelto definitivamente — confirmar con PO |
+| 2 | Barras separadas `Asesores 100%` + `Técnicos 100%` en legacy frames 16-17. En rediseño actual desaparecen pero el copy del empty state sigue diciendo *"la suma de % de carga entre asesores y técnicos debe alcanzar el 100%"* — single cobertura. | ADR-0008 / dos cubos no resuelto definitivamente — confirmar con PO |
 | 3 | Checkbox **"Marcar como asesor principal"** en modal + badge `P` / `Principal` en lista. | Falta campo `is_primary` en data-model + FR nueva |
 | 4 | Frames `08/01`, `08/03`: Equipo 1 + Equipo 2 ambos activos en Fiscal con `hasta 05/2027 Activo`. | ADR-0003 (one active team per client+dept) ⚠️ inválido |
 | 5 | Slider `Porcentaje de dedicación` 0-100 + stats `Ya asignado` / `Disponible` / `Total tras añadir`. | UI spec ausente — añadir FR |
 | 6 | Checkbox **"Marcar fecha fin de equipo"** dentro del modal de añadir asignación (no en endpoint separado). | UX no documentada — afecta a US4 (cierre de equipo) |
 | 7 | Equipos con NOMBRES propios (Libros, Cuota, Larsa, Costa). | Falta campo `name` en `ClientTeam` |
 | 8 | Calendario `Fecha inicio` solo permite seleccionar MES (no día). | Confirma granularidad mes (ya en spec) ✓ |
-| 9 | "Coordinador" no muestra slider de porcentaje en modal — solo Asesor y Técnico. | Confirma single-bucket excluye management roles ✓ ADR-0008 parcial |
+| 9 | "Coordinador" no muestra slider de porcentaje en modal — solo Asesor y Técnico. | Confirma que la cobertura excluye roles de gestión ✓ ADR-0008 parcial |
 | 10 | Tab activa es "Datos de cliente" en algunos frames y "Mis tareas" en otros. La sección "Asignaciones actuales" aparece en ambas. | Posible inconsistencia — ¿es una nueva tab "Asignaciones" o se integra en "Datos de cliente"? |
 
 ## Off-topic (`_off-topic/`)

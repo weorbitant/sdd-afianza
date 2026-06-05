@@ -1,471 +1,558 @@
-# Feature Specification: Asignaciones Múltiples en Ficha de Cliente
+# Spec — Client Team Assignments (DEVPT-518, v2)
 
-**Feature Branch**: `001-client-team-assignments`
-
-**Epic**: [DEVPT-518](https://afianza.atlassian.net/browse/DEVPT-518) — PGI - Asignaciones con porcentajes en Fiscal y Laboral
-
-**Created**: 2026-05-25
-
-**Updated**: 2026-05-26
-
+**Feature**: 001-client-team-assignments
+**Created**: 2026-06-04 (reescritura completa — versión anterior en `_archive/`)
 **Status**: Draft
+**Owner**: Alfonso Domenech
+**Jira**: DEVPT-518 (sin tocar comentarios hasta validar esta versión)
 
-**Input**: Asignaciones múltiples — equipos por cliente con distribución de carga porcentual, histórico, y reasignación de tareas.
-
----
-
-## User Scenarios & Testing *(mandatory)*
-
-### User Story 1 — Crear y gestionar el equipo de un cliente (Priority: P1)
-
-Un responsable accede a la ficha de un cliente y constituye su equipo: asigna un coordinador (opcional),
-uno o más asesores y cero o más técnicos. Cada miembro entra con una fecha de inicio y un porcentaje de
-carga (por defecto 100%). El sistema valida que los asesores sumen 100% y los técnicos sumen 100% dentro
-del departamento antes de guardar.
-
-**Why this priority**: Es el bloque fundacional. Sin poder crear equipos no hay ninguna otra funcionalidad
-posible. Además, el día a día de los responsables depende directamente de poder ver y editar quién está
-asignado a cada cliente.
-
-**Independent Test**: Un responsable puede abrir la ficha de un cliente sin equipo, crear el equipo
-añadiendo al menos un asesor, guardar y ver el equipo activo reflejado en la UI — todo ello sin tocar
-ninguna otra funcionalidad.
-
-**Acceptance Scenarios**:
-
-1. **Given** un cliente sin equipo asignado,
-   **When** el responsable añade un asesor con porcentaje 100% y guarda,
-   **Then** el equipo queda activo y visible en la ficha del cliente.
-
-2. **Given** un equipo con un asesor al 60% y un técnico al 40% (total = 100%),
-   **When** el responsable intenta cambiar el técnico al 50% (total quedaría 110%),
-   **Then** al confirmar el equipo el sistema rechaza el commit con el mensaje "Los miembros del equipo deben sumar 100%".
-
-3. **Given** un equipo ya existente,
-   **When** un usuario sin permiso `CLIENT_ASSIGNMENT_EDIT` (asesor, técnico u otro perfil de solo lectura) accede a la ficha,
-   **Then** puede ver el equipo pero no puede editar ningún miembro (botones de edición y commit ocultos en frontend; endpoints de escritura devuelven 403 en backend).
-
-4. **Given** que un cliente ya tiene un equipo activo en el Departamento A,
-   **When** un responsable intenta crear un segundo equipo activo para ese mismo cliente en el Departamento A,
-   **Then** el sistema rechaza la operación con el mensaje "Ya existe un equipo activo para este cliente en este departamento".
+> **Filosofía**: composición del equipo de un cliente como **historial de asignaciones temporales**. El "equipo" que ve el usuario es una **vista proyectada a una fecha**. No hay edición destructiva: todo cambio (alta, baja, reemplazo, cambio de %, redistribución) se materializa como cierre + apertura de tramos.
 
 ---
 
-### User Story 2 — Distribución de carga por porcentaje (Priority: P2)
+## 1. Resumen ejecutivo
 
-El responsable o coordinador puede ajustar el porcentaje de carga de cada miembro del equipo
-(asesores y técnicos). El sistema valida en tiempo real que la suma de **todos los miembros**
-(excluyendo responsable y coordinador) dentro del cliente+departamento sea exactamente 100%
-antes de permitir confirmar el equipo.
+Los responsables y coordinadores del backoffice de Afianza componen, para cada cliente y departamento (fiscal/laboral), el equipo de personas que lo gestiona: responsable, coordinador opcional, asesores, técnicos. Hoy ese equipo se edita "en caliente" en una tabla 1-a-1; no hay tramos temporales reales, los cambios de % o de persona machacan filas vivas y no se puede reconstruir quién operaba el cliente en una fecha concreta.
 
-**Why this priority**: La distribución de carga es la razón de negocio principal de la feature:
-rentabilidad y visibilidad de quién absorbe qué parte del cliente.
+Esta feature reemplaza ese modelo por uno **temporal**: cada asignación es un tramo con `dateFrom` y `dateTo` opcional. Cambiar % o persona implica cerrar el tramo actual y abrir uno nuevo en la fecha efectiva del cambio. La UI muestra el equipo vigente hoy (o a una fecha pedida) calculado a partir de los tramos activos en ese momento. Los cambios futuros se pueden registrar con `dateFrom` posterior a hoy sin alterar el estado vigente. El histórico es consultable.
 
-**Independent Test**: Puede verificarse únicamente modificando porcentajes en un equipo existente y
-comprobando que el sistema acepta o rechaza según la regla del 100%.
-
-**Acceptance Scenarios**:
-
-1. **Given** un equipo con un solo asesor al 100%,
-   **When** el responsable añade un segundo asesor al 40% sin ajustar el primero,
-   **Then** el sistema muestra advertencia "La suma del equipo es 140%: ajusta antes de confirmar".
-
-2. **Given** un equipo con un asesor al 60% y un técnico al 40% (total = 100%),
-   **When** el responsable cambia los porcentajes a 50% y 50% y confirma,
-   **Then** el cambio se persiste correctamente.
-
-3. **Given** un equipo con un asesor al 80%,
-   **When** se añade un técnico al 10% (total = 90%),
-   **Then** el sistema rechaza el commit porque el equipo no llega al 100%.
+La reasignación de tareas abiertas a obligations (cuando un asesor sale del equipo de un cliente) ocurre **automáticamente** vía evento AMQP: pgi-api notifica close/open de asignaciones, obligations recalcula a quién corresponden las tareas según la fecha de vencimiento y el asesor vigente. Sin flags ni endpoints especiales para "baja".
 
 ---
 
-### User Story 3 — Histórico de cambios de asignación (Priority: P3)
+## 2. Decisiones que conservamos de la v1 (ya cerradas)
 
-Existe una vista de histórico en la ficha de cliente que muestra todos los cambios de asignación:
-quién entró, quién salió, qué porcentaje tenía y en qué período estuvo activo. La vista es de solo
-lectura y accesible para todos los perfiles con acceso a la ficha.
-
-**Why this priority**: Imprescindible para auditoría, trazabilidad y resolución de disputas sobre
-rentabilidad histórica. No bloquea la operativa diaria, pero es requisito de negocio no negociable.
-
-**Independent Test**: Puede verificarse creando un equipo, modificando un porcentaje y comprobando
-que el histórico registra ambos estados con sus fechas.
-
-**Acceptance Scenarios**:
-
-1. **Given** un equipo en el que se cambió el porcentaje de un asesor el día 10,
-   **When** cualquier usuario accede al histórico,
-   **Then** ve dos entradas: la original (con fecha inicio y fecha fin = día 9) y la nueva (con fecha
-   inicio = día 10 y sin fecha fin).
-
-2. **Given** un miembro que fue eliminado del equipo,
-   **When** se consulta el histórico,
-   **Then** aparece con fecha inicio y fecha fin y no aparece en la vista activa.
-
----
-
-### User Story 4 — Cierre de equipo (Priority: P4)
-
-El responsable puede cerrar el equipo de un cliente fijando una fecha de fin global que aplica a todos
-sus miembros activos. El cierre no borra datos: queda registrado en el histórico. Las tareas y
-obligaciones activas pendientes del equipo siguen la lógica definida en FR-010: el asesor que continúa
-en la empresa conserva y cierra sus propias tareas; el asesor que causa baja tiene sus tareas reasignadas
-automáticamente al sucesor. El responsable o coordinador puede además reasignar tareas concretas de
-forma manual en cualquier momento.
-
-**Why this priority**: Necesario para ciclos de vida completos (altas y bajas de clientes, cambios
-organizativos), pero no bloquea el uso cotidiano de la feature.
-
-**Independent Test**: Un responsable puede cerrar un equipo sin miembros con tareas pendientes y
-comprobar que el equipo queda inactivo y registrado en el histórico.
-
-**Acceptance Scenarios**:
-
-1. **Given** un equipo activo sin tareas pendientes,
-   **When** el responsable fija la fecha de cierre y confirma,
-   **Then** todos los miembros reciben esa fecha como fecha fin y el equipo pasa a inactivo.
-
-2. **Given** un asesor activo que sigue en la empresa y tiene tareas abiertas,
-   **When** se define un nuevo asesor para el siguiente período,
-   **Then** el asesor original conserva sus tareas abiertas y las cierra él mismo; las nuevas
-   tareas/obligaciones del nuevo período se asignan al nuevo asesor.
-
-3. **Given** un asesor que causa baja en la empresa y tiene tareas abiertas pendientes,
-   **When** el responsable cierra su asignación con `causesBaja: true`,
-   **Then** sus tareas abiertas se reasignan automáticamente al asesor sucesor definido para ese
-   cliente en el siguiente período.
-
-4. **Given** un responsable o coordinador que necesita anticipar o controlar una reasignación
-   puntual de tareas (sin que el asesor haya causado baja),
-   **When** utiliza la opción de reasignación manual,
-   **Then** puede seleccionar tareas concretas y reasignarlas a otro miembro del equipo,
-   quedando trazabilidad del cambio (quién tenía la tarea, a quién se transfirió y en qué fecha).
-
----
-
-### Edge Cases
-
-- ¿Qué ocurre si se intenta asignar a una persona que ya forma parte de un equipo activo en otro
-  cliente del mismo departamento? → El sistema DEBE permitirlo (un asesor puede trabajar en varios
-  clientes); la validación del 100% es por cliente+departamento, no por persona.
-- ¿Qué ocurre si el responsable intenta dejar el equipo sin ningún asesor? → El sistema DEBE rechazarlo
-  (requisito mínimo: 1..n asesores).
-- ¿Puede un coordinador añadirse a sí mismo como asesor? → No: los roles son excluyentes dentro del
-  mismo equipo.
-- ¿Qué ocurre si se intenta crear un equipo con fecha de inicio en el pasado? → Se permite, pero se
-  registra la fecha real de creación en el histórico (audit trail).
-- ¿Puede el responsable crear un nuevo equipo el mismo día en que se cierra el anterior? → **Sí** — los períodos contiguos son válidos. El patrón estándar es: equipo anterior con `endDate` = último día del mes M, nuevo equipo con `startDate` = primer día del mes M+1. No existe restricción mínima de tiempo entre el cierre y la apertura de un nuevo equipo en el mismo cliente+departamento.
-
----
-
-## Requirements *(mandatory)*
-
-### Functional Requirements
-
-- **FR-001**: El sistema DEBE permitir a un responsable crear un equipo para un cliente, designando
-  opcionalmente un coordinador, al menos un asesor y cero o más técnicos. *(El flujo exacto de
-  creación — desde la ficha del cliente o desde una pantalla de equipos — depende de la decisión
-  Modelo A vs Modelo B; ver Key Entities.)*
-- **FR-002**: Cada miembro del equipo DEBE tener una fecha de inicio, un porcentaje de carga
-  (por defecto 100%) y opcionalmente una fecha de fin.
-- **FR-003**: El sistema DEBE validar la suma de porcentajes **por bucket de rol** y **por departamento del cliente** (no por equipo individual). Hay **dos buckets independientes**: (i) **asesores** del departamento (suma de % de TODOS los asesores activos en TODOS los equipos del cliente en ese departamento = 100%), y (ii) **técnicos** del departamento (suma de % de TODOS los técnicos activos en TODOS los equipos del cliente en ese departamento = 100%). El responsable y el coordinador NO entran en la suma — son roles de gestión con 100% implícito. **Ejemplo**: 2 equipos Fiscal para un cliente, con 4 asesores totales (2 en Eq1, 2 en Eq2) cada uno al 25% → suma asesores Fiscal = 100% ✓. Lo mismo con técnicos por separado.
-
-  La validación se evalúa tras cada operación de miembro (`POST/PATCH/DELETE /members`). El cliente+departamento está en estado `active` si y solo si: (a) la suma de asesores del departamento = 100% **y** (b) la suma de técnicos del departamento = 100% (con la salvedad: si NO hay técnicos en ningún equipo del departamento, el bucket de técnicos se considera "no aplicable" y no bloquea) **y** (c) existe exactamente un `TeamMember` con `role: asesor` e `isPrimary: true` por departamento. En caso contrario está en estado `incomplete`. El sistema persiste cada operación inmediatamente; muestra banner advisory cuando alguno de los dos buckets ≠ 100% (no bloquea el guardado del miembro). La publicación a Plataforma del Dato se suprime mientras esté en `incomplete`. La validación bloqueante de **composición mínima** (1 responsable + 1+ asesor por equipo) es independiente y SÍ deshabilita el botón Guardar (decisión PO 2026-06-01).
-- **FR-004**: Solo los perfiles **responsable** y **coordinador** DEBEN poder crear, modificar o cerrar
-  asignaciones. Los asesores y técnicos tienen acceso de solo lectura.
-- **FR-005**: Un **cliente** PUEDE tener varios equipos activos por departamento (modelo multi-equipo confirmado por los diseños `08-multi-equipo/*` — ver Clarifications 2026-05-29). Los equipos NO tienen `name` persistido en BD (decisión PO 2026-06-01 — los nombres tipo `Libros`/`Cuota`/`Larsa`/`Costa` de los frames no representan regla de negocio). Para identificar visualmente en UI cuando hay varios equipos del mismo departamento se usa orden de creación (`Equipo 1`, `Equipo 2`) calculado en frontend, sin persistir. La unicidad activa se mantiene a nivel `(client_id, department, id)` — un cliente puede tener N equipos activos en el mismo departamento. La **validación del 100% se aplica por cliente+departamento** (suma de % asesores y técnicos por separado, agregada entre todos los equipos del departamento — ver FR-003 actualizado). La restricción es sobre el cliente, no sobre el empleado que ejerce de responsable.
-- **FR-006**: Un responsable NO PUEDE pertenecer a más de un departamento.
-  *(Restricción organizativa preexistente del modelo de empleados — gestionada en la creación
-  del empleado, no validada en esta feature. Documentada aquí para que el equipo de asignaciones
-  pueda asumirla con confianza al consultar el departamento del responsable.)*
-- **FR-007**: El sistema DEBE mostrar el estado actual de las asignaciones en la ficha del cliente
-  (quién está activo, con qué porcentaje y desde cuándo).
-- **FR-008**: El sistema DEBE mantener un histórico inmutable de todos los cambios de asignación
-  (altas, bajas, cambios de porcentaje), con fecha de inicio y fin de cada período.
-- **FR-009**: El sistema DEBE permitir cerrar un equipo fijando una fecha de fin que se propaga a
-  todos sus miembros activos. **UX del cierre** (alineada con el diseño `03-fecha-fin-equipo/*`):
-  el responsable activa un checkbox **"Marcar fecha fin de equipo"** dentro del modal de añadir
-  asignación e introduce la fecha. Al pulsar "Guardar" con el checkbox activo, el sistema DEBE
-  mostrar un diálogo de confirmación obligatorio (*"Estás a punto de cerrar este equipo el
-  DD/MM/YYYY. Esta acción no se puede deshacer. ¿Confirmas?"*) — solo al confirmar se aplica el
-  cierre. El cierre es **permanente e irreversible**: no se puede reabrir ni modificar la fecha de
-  fin una vez confirmada. Para reanudar la atención al cliente en el mismo departamento se DEBE
-  crear un nuevo equipo (con un nombre distinto — ver FR-005) y una nueva fecha de inicio.
-- **FR-010**: Las tareas existentes NUNCA se cancelan. La asignación de tareas sigue esta lógica:
-  - Las **nuevas tareas y obligaciones** se asignan al miembro activo en el período correspondiente.
-  - Si un asesor **sigue en la empresa** tras un cambio de asignación, conserva y cierra sus tareas
-    abiertas; las nuevas tareas del siguiente período van al nuevo asignado.
-  - Si un asesor **causa baja en la empresa**, el responsable o coordinador indica `causesBaja: true`
-    al cerrar su asignación; el sistema reasigna **automáticamente** sus tareas abiertas al asesor
-    sucesor definido para ese cliente. Si no hay sucesor definido, el sistema **bloquea el cierre**
-    y exige designar un sucesor antes de confirmar (comportamiento provisional — pendiente de
-    validación con PO).
-  - El sistema DEBE ofrecer una **opción manual de reasignación** para que responsable o coordinador
-    puedan transferir tareas concretas en cualquier momento (p. ej., anticipar una sustitución o
-    gestionar casos especiales).
-  - Toda reasignación DEBE quedar registrada con trazabilidad: quién tenía la tarea, a quién se
-    transfirió y en qué fecha.
-- **FR-011**: No puede existir ningún período sin cobertura (gap) para un cliente con equipo activo:
-  el sistema DEBE rechazar cualquier cambio que deje al cliente sin al menos un asesor activo.
-- **FR-012**: La granularidad de las fechas de asignación es **híbrida**: se almacena la fecha exacta
-  (tipo `date`), pero el servicio valida que `dateFrom` sea siempre el primer día del mes y `dateTo`
-  el último. Los porcentajes y la rentabilidad se calculan a granularidad mensual. Esta decisión no
-  requiere cambio de esquema y permite mayor precisión en el histórico de auditoría.
-  **UX**: la UI solo permite al responsable seleccionar **mes** (no día concreto); el servicio
-  asume día 1 al alta y último día del mes al cierre (ver Clarifications 2026-05-29).
-- **FR-013**: El sistema DEBE migrar automáticamente todas las asignaciones 1-a-1 existentes al modelo
-  de porcentajes, asignando un 100% a cada miembro único en su rol y departamento. La migración DEBE
-  ser idempotente, no destructiva y ejecutarse en una única pasada sin afectar a los registros de
-  histórico existentes.
-- **FR-014**: El sistema DEBE sincronizar los datos de asignación (empleado, rol, porcentaje, período)
-  con la **Plataforma del Dato** publicando un **evento en el bus de mensajería interno** (RabbitMQ,
-  exchange `internal`) **únicamente cuando el equipo esté en estado `active`** (FR-003). Se publica
-  evento en: (a) la transición `incomplete → active`, (b) cualquier cambio de miembro que mantenga
-  el equipo en `active`, y (c) la transición `active → closed` (FR-009). Cambios en equipos
-  `incomplete` NO disparan evento. La Plataforma del Dato consume el evento y actualiza sus informes
-  de rentabilidad y cuadros de mando. La propagación DEBE completarse en menos de 5 minutos desde el
-  cambio que produjo el evento.
-- **FR-015**: En el **MVP**, únicamente la **ficha de cliente** DEBE actualizarse para reflejar la lista
-  completa de miembros del equipo activo con sus porcentajes. Las pantallas "Mis Clientes", buscador
-  global del PGI y los informes internos quedan fuera del alcance de esta iteración y se abordarán
-  en una fase posterior. El seguimiento por asesor/técnico en Plataforma del Dato (informes externos)
-  queda cubierto por FR-014 vía sincronización.
-- **FR-016**: Un empleado MUST pertenecer como máximo a **un único equipo activo por cliente** (decisión PO 2026-06-01: opción B). Esto significa: (a) no más de un rol dentro del mismo equipo, y (b) **tampoco en dos equipos distintos del mismo cliente, ni siquiera en departamentos distintos**. Ej: Pedro no puede ser Asesor del equipo Fiscal y Asesor del equipo Laboral del mismo cliente X simultáneamente. Si una persona necesita cambiar de equipo o rol → cerrar la asignación actual con `dateTo` y abrir una nueva con `dateFrom`, sin solape activo. Esta regla aplica **por cliente**, no en absoluto: un asesor sí puede estar activo en equipos de varios clientes (eso es operativa normal).
-- **FR-017**: El sistema MUST permitir crear o activar un `ClientTeam` para un cliente en un
-  departamento **solo si** el cliente tiene al menos un `ProvidedService` activo cuya `family` mapee a
-  ese departamento (mapping: `family=fiscal` → Fiscal, `family=laboral` → Laboral). La UI MUST ocultar
-  el CTA `+ Añadir equipo` en los departamentos sin servicios contratados activos; el backend MUST
-  rechazar la creación con error de validación (defensa en profundidad). Los equipos existentes en un
-  departamento permanecen activos aunque luego se den de baja todos los servicios contratados de ese
-  departamento — la regla bloquea **creación**, no invalida **existentes** (a confirmar con PO — ver
-  OQ-008).
-- **FR-018**: El mensaje AMQP `client-assignment` publicado por `pgi-service-pgi-api` (consumido por
-  `pd-service-jira-adapter` y `pd-service-data-factory` — verificado en código) MUST ampliarse para
-  incluir `teamId`, `teamName` y `percentage` además de los campos actuales (`clientId`, `employeeId`,
-  `role`, `department`, `dateFrom`, `dateTo`). Los consumers deben actualizarse para deserializar y
-  persistir los nuevos campos.
-- **FR-019**: El modelo `ClientAssignment` en `pd-service-data-factory` (actualmente sin `team_id` ni
-  `percentage`) MUST alinearse con el modelo de `pgi-service-pgi-api`: añadir columnas `team_id`
-  (nullable FK lógica) y `percentage` (1–100). Migración inicial: `percentage=100` para todas las filas
-  existentes y `team_id=NULL` hasta que se re-publiquen desde pgi-api.
-- **FR-020**: El sync hacia Jira Assets ("Clientes" object type) realizado por `pd-service-jira-adapter`
-  MUST mantener su contrato actual de "una asignación por rol y cliente" cuando hay multi-equipo,
-  escribiendo solo la asignación del **equipo principal** del cliente y del **asesor principal**
-  (`isPrimary=true`). Las asignaciones de otros equipos NO se reflejan en Jira Assets en esta
-  iteración. *(Decisión de scope para no romper contrato existente; ampliable en futura épica.)*
-- **FR-021**: El unique constraint actual de `pgi-service-pgi-api/client_assignment` `(client, employee, role, department, dateFrom)` se MANTIENE, pero **se añade adicionalmente** un partial unique sobre `(client_id, employee_id) WHERE dateTo IS NULL` para reforzar FR-016 a nivel BD: un mismo empleado no puede tener más de una asignación activa al mismo cliente (decisión PO 2026-06-01: una persona = un equipo por cliente, incluso entre departamentos). Cualquier intento de doble asignación activa por la misma persona en el mismo cliente queda bloqueado por la BD aunque la lógica del servicio falle.
-- **FR-022**: Las operaciones de escritura sobre `ClientTeam` y `ClientAssignment` MUST aplicar control
-  de concurrencia optimista basado en `updatedAt`. El cliente envía el `updatedAt` que tenía al cargar
-  el equipo; si la BD tiene un `updatedAt` posterior, el backend rechaza con HTTP 409 y la UI muestra
-  un aviso *"El equipo ha cambiado, recarga para ver el estado más reciente"* sin perder los datos
-  introducidos.
-
-### Key Entities
-
-> ⚠️ Ver **OQ-005** en la sección Open Questions — la estructura interna de `Team` depende de una
-> decisión pendiente de PO. El resto de entidades están definidas independientemente del modelo elegido.
-
-- **Equipo** (`Team`): Agrupación de personas con un responsable, una fecha de inicio y opcionalmente
-  una fecha de cierre. Lleva un **nombre obligatorio y único** dentro del par cliente+departamento
-  (ver FR-005). Estado calculado: `incomplete` | `active` | `closed` (ver FR-003 y FR-009).
-  *(Scope: ver decisión pendiente arriba.)*
-- **Miembro del Equipo** (`TeamMember`): Persona que pertenece al equipo, con rol (responsable,
-  coordinador, asesor, técnico), porcentaje de carga, fecha de inicio y fecha de fin opcional.
-  Cuando `role = asesor`, el atributo booleano `isPrimary` indica si es el **asesor principal**
-  del equipo (exactamente uno por equipo activo — ver FR-005 y Clarifications 2026-05-29).
-- **Rol** (`Role`): Enum — responsable | coordinador | asesor | técnico. Excluyentes dentro del
-  mismo equipo.
-- **Período de Asignación** (`AssignmentPeriod`): Registro histórico de un miembro en un equipo para
-  un intervalo de tiempo determinado. Inmutable una vez cerrado.
-- **Departamento** (`Department`): Contexto organizativo dentro del cual se valida la regla del 100%.
-  Un cliente puede tener equipos en más de un departamento.
-
----
-
-## Success Criteria *(mandatory)*
-
-### Measurable Outcomes
-
-- **SC-001**: Un responsable puede constituir el equipo completo de un cliente nuevo (añadir miembros,
-  asignar porcentajes y guardar) en menos de 3 minutos.
-  *(Métrica de UX observable post-deploy — se mide con analytics/Hotjar sobre la sesión real, no
-  requiere instrumentación específica en esta feature.)*
-- **SC-002**: El sistema rechaza el 100% de los intentos de guardar con suma de porcentajes diferente
-  a 100% (por rol y departamento), sin excepción.
-- **SC-003**: Cualquier cambio de asignación queda registrado en el histórico en menos de 1 segundo
-  desde el guardado, visible inmediatamente para todos los usuarios con acceso.
-- **SC-004**: No existe ningún cliente con equipo activo que pueda quedarse sin cobertura de asesor
-  como resultado de una operación permitida por el sistema.
-- **SC-005**: Los responsables y coordinadores pueden consultar el histórico completo de asignaciones
-  de cualquier cliente al que tengan acceso, sin limitación temporal.
-- **SC-006**: El 0% de las tareas existentes se pierde o cancela como resultado de un cambio de
-  asignación o cierre de equipo.
-
----
-
-## Assumptions
-
-- Existe ya un concepto de **Departamento** en el sistema que se reutiliza (no es un nuevo concepto
-  a crear desde cero).
-- Existe ya un sistema de **Tareas** y un sistema de **Obligaciones** al que esta feature debe
-  conectarse; los detalles de esa integración se detallarán en la fase de planificación técnica.
-- Los perfiles de usuario (responsable, coordinador, asesor, técnico) ya están definidos en el
-  sistema de autenticación / control de acceso existente.
-- Un mismo empleado puede ser asesor en varios clientes simultáneamente (la restricción del 100%
-  es por cliente+departamento, no por persona).
-- La UI de la ficha de cliente ya existe y esta feature añade una nueva sección/tab; no implica
-  rediseño de la ficha completa.
-- La rentabilidad se calcula a partir de los porcentajes de asignación; el motor de cálculo de
-  rentabilidad se actualiza como parte de esta feature o en una fase posterior (a definir en planning).
-- El histórico es de solo lectura y no requiere exportación en esta fase (MVP).
-
-## Designs
-
-Frames exportados desde Figma — Portal Asesor / Ficha de cliente:
-
-![Ficha de cliente 01](designs/ficha-cliente-01.png)
-![Ficha de cliente 02](designs/ficha-cliente-02.png)
-![Ficha de cliente 03](designs/ficha-cliente-03.png)
-![Ficha de cliente 04](designs/ficha-cliente-04.png)
-![Ficha de cliente 05](designs/ficha-cliente-05.png)
-![Ficha de cliente 06](designs/ficha-cliente-06.png)
-![Ficha de cliente 07](designs/ficha-cliente-07.png)
-![Ficha de cliente 08](designs/ficha-cliente-08.png)
-![Ficha de cliente 09](designs/ficha-cliente-09.png)
-![Ficha de cliente 10](designs/ficha-cliente-10.png)
-![Ficha de cliente 11](designs/ficha-cliente-11.png)
-![Ficha de cliente 12](designs/ficha-cliente-12.png)
-![Ficha de cliente 13](designs/ficha-cliente-13.png)
-![Ficha de cliente 14](designs/ficha-cliente-14.png)
-![Ficha de cliente 15](designs/ficha-cliente-15.png)
-![Ficha de cliente 16](designs/ficha-cliente-16.png)
-![Ficha de cliente 17](designs/ficha-cliente-17.png)
-![Ficha de cliente 18](designs/ficha-cliente-18.png)
-![Ficha de cliente 19](designs/ficha-cliente-19.png)
-
-> Fuente: [Portal Asesor - Mis clientes](https://www.figma.com/design/ra1egztv3K3yBTrWbHVacy) · Página: Mis clientes · 2026-05-25
-
----
-
-## Decisiones de la sesión PO
-
-Tabla única de preguntas para la PO y decisiones tomadas. Reemplaza los antiguos bloques "Open Questions" + revisión funcional + ficheros `po-*.md` (eliminados).
-
-Para evidencia detallada de cada decisión y discusión histórica ver `## Clarifications` más abajo, y `challenge-report.md` para los hallazgos técnicos T1-T10 de la revisión 2026-06-01.
-
-### ✅ Resueltas (13)
-
-| # | Tema | Decisión PO |
+| Decisión | Origen | Sigue aplicando |
 |---|---|---|
-| 1 | Suma 100% del equipo | **Dos buckets** (asesores 100% + técnicos 100% por separado), agregando entre todos los equipos del **departamento** del cliente (no por equipo individual). PO 2026-06-01. |
-| 2 | Persistencia de miembros | Persistencia inmediata por miembro (sin borrador+commit). Toast tras cada `POST /members`. PO 2026-05-29. |
-| 3 | Asesor principal del equipo | Obligatorio, único por (cliente, departamento). Atributo `isPrimaryAdvisor` en `ClientAssignment`. PO 2026-05-29. |
-| 4 | Modelo de equipo | Modelo A — el equipo es exclusivo del cliente, no se comparte. PO 2026-05-28. |
-| 5 | Nombre del equipo | **Descartado de scope** — sin campo `name` en BD. UI muestra `Equipo 1/2` por orden de creación. PO 2026-06-01. |
-| 6 | Papelera del modal de miembros | **No borra** — pone `dateTo`. Diálogo inline pregunta `causesBaja` y sucesor (si aplica). PO 2026-06-01. |
-| 7 | Punto de entrada para crear equipo | **Solo desde ficha de cliente**. El CTA de *Mis tareas* era resto de diseño y se elimina. PO 2026-06-01. |
-| 8 | Equipos en estado `incomplete` | Banner amarillo advisory, **sin bloqueo del guardado de miembros**. El bloqueo solo aplica a composición mínima (ver #12) y a "marcar como principal" / disparar tareas auto. PO 2026-06-01. |
-| 9 | Bajas largas (médica, maternidad) | Sustitución estándar — cerrar la asignación del que se va + alta del sustituto. **NO se construye entidad "suplencia temporal"**. PO 2026-06-01. |
-| 10 | Cambio de rol del empleado (técnico → asesor) | Cerrar el rol anterior con `dateTo` + abrir uno nuevo con `dateFrom`. Sin coexistencia. PO 2026-06-01. |
-| 11 | Persona en multi-equipo | **No permitido** — una persona, un equipo por cliente, **ni siquiera entre departamentos** (opción B). Partial unique `(client_id, employee_id) WHERE date_to IS NULL`. PO 2026-06-01. |
-| 12 | Validación bloqueante de composición mínima | Botón Guardar **deshabilitado** mientras falten roles obligatorios (1 responsable + 1+ asesor). PO 2026-06-01. |
-| 13 | Edición simultánea (último editor pisa) | **Optimistic concurrency con columna `version` integer** (no `updatedAt`). Header `If-Match`, HTTP 409 al conflicto. Ver ADR-0010. Dev + ratificación PO 2026-06-01. |
+| Departamentos fiscal/laboral como dimensión obligatoria de toda asignación | v1 spec | Sí |
+| Dos coberturas independientes por rol: asesores 100% + técnicos 100%, sumando cross-team dentro de `(client, department)` | ADR-0012 | Sí |
+| Responsable y Coordinador 100% implícito (no entran en la suma de coberturas) | ADR-0012 | Sí |
+| Asesor main — exactamente 1 `is_main=true` activo por `(client, department)` | v1 spec | Sí |
+| Validación FR-017: no se puede asignar dept X si el cliente no tiene `ProvidedService` activo en `family=X` | v1 spec | Sí |
+| Multi-equipo permitido por `(client, department)`: varios `ClientTeam` activos en paralelo | PO 2026-06-01 | Sí |
+| Optimistic concurrency con `version` en `ClientTeam` y `ClientTeamAssignment` | ADR-0010 | Sí |
+| `client_assignment` legacy queda **congelada** post-deploy (no se migra, no se escribe) | ADR-0009 (reformulada) | Sí, simplificada — sin script de migración |
+| Routing key AMQP nuevo: `pgi-api.v1.client-team-assignment.*` (distinto del legacy) | er-diagram.md | Sí |
+| Tres tablas: `client_team` (agrupador), `client_team_assignment` (tramos), `client_team_assignment_change` (audit, diferida a US2) | er-diagram.md | Sí |
 
-### ⏳ Pendientes PO (6)
+## 3. Lo que cambia respecto a la v1
 
-| # | Tema | Recomendación dev | Por qué pregunta |
-|---|---|---|---|
-| 14 | Baja de asesor sin sucesor designado | Bloquear el cierre hasta que se designe sucesor | Si lanzamos sin sucesor, las tareas pendientes quedan sin asignar y nadie las atiende |
-| 15 | Plataforma del Dato no disponible al guardar | (sin propuesta dev — decisión negocio) | ¿Persistir y sync diferido, o bloquear el guardado hasta que vuelva el sistema? |
-| 16 | Equipos huérfanos por baja del último servicio contratado del dept | Dejar activos + banner persistente *"sin servicios activos en este departamento"* | Si cierras auto, retiras control al responsable. Si dejas activo, distorsiona informes. |
-| 17 | Visibilidad de porcentajes en histórico por perfil | Todos ven todo (asesores ven los % de los compañeros del cliente) | Hay sensibilidad — los % se traducen indirectamente en retribución |
-| 18 | Baja repentina de empleado en Azure AD | Cerrar asignaciones automáticamente + alertar al responsable | Hoy el sistema solo cubre bajas voluntarias con `causesBaja:true`, no la propagación desde RR.HH. |
-| 19 | Cambio de departamento del empleado (fiscal ↔ laboral) | Cerrar asignaciones del dept origen + designar sucesor antes de aplicar | Si se permite el cambio sin transición, asignaciones del dept origen quedan en estado inválido |
-
-### ⏳ Pendiente Producto (1)
-
-| # | Tema | Estado | Assumption MVP |
-|---|---|---|---|
-| 20 | Política de routing de tareas por rol (qué `ObligationCategory` ejecuta cada rol del equipo) | Producto no lo tiene definido aún | Todo al asesor principal del departamento. Cuando Producto defina mapping, se extiende `Obligation` con `roleResponsible` |
-
-### ⏳ Decisión parcial — pendiente confirmación PO (1)
-
-| # | Tema | Estado actual | Pendiente |
-|---|---|---|---|
-| 21 | Onboarding desde Jira en el nuevo modelo | MVP: `applyFromClientOnboarding` sigue creando filas con `team_id=NULL`. Test de regresión obligatorio | ¿Crear *"Equipo inicial"* auto por dept en el consumer (recomendado), o que la PO confirme dejarlo así indefinidamente? |
-
-
-## Clarifications
-
-### Session 2026-06-01 (tarde — sesión con PO, resultados)
-
-> Decisiones tomadas en la sesión de refinamiento con PO el 2026-06-01.
-> Pendientes 4 conflictos a confirmar — ver `po-followup-conflicts.md`.
-
-- Q: ¿Crear equipo desde *Mis tareas* o solo desde *ficha de cliente*? → A: **Solo desde ficha de cliente**. El CTA *"Crear equipo"* de *Mis tareas* era resto de diseño y se elimina. Cierra D2.
-- Q: ¿Qué hace la papelera junto a cada miembro? → A: **NO borra**. Pone `dateTo` para preservar histórico siempre. El detalle de UX (diálogo inline para `causesBaja` y sucesor) se aplica como FR-010 ya describía. Cierra D3 y OQ-007.
-- Q: ¿Nombres de equipo (Libros, Cuota, Larsa…)? → A: **Ignorar** — no representan regla de negocio para esta feature. Pendiente confirmación: ¿campo `name` existe o no? Ver `po-followup-conflicts.md` punto 3. Cierra parcialmente D6 y OQ-006.
-- Q: ¿Cambio de rol de un empleado (técnico → asesor)? → A: **Cerrar el rol anterior con `dateTo`** + **abrir uno nuevo con `dateFrom`**. Sin coexistencia inválida en el mismo periodo. Cierra D9.
-- Q: ¿Onboarding desde Jira crea equipos automáticamente? → A: **Sí, mantener comportamiento actual** del onboarding. **Pendiente**: confirmar si las asignaciones del onboarding ahora deben crear un *Equipo inicial* con `team_id` o seguir creando con `team_id = NULL`. Ver `po-followup-conflicts.md`. Cierra parcialmente D10.
-- Q: ¿Composición mínima del equipo? → A: **1 responsable obligatorio + 1+ asesores + 0-1 coordinador + 0-N técnicos**. Confirma FR-003 (ya estaba). UI muestra asterisco + validación visible + **botón guardar bloqueado** mientras no se cumpla la composición mínima.
-- Q: ¿Se pueden crear equipos con fecha inicio futura? → A: **Sí**. Sin restricción de rango temporal.
-- Q: ¿Una tarea puede quedar sin asignar si no hay miembro válido? → A: **No**. La tarea SIEMPRE se genera. Si no se puede asignar automáticamente, se escala. Documentar como nuevo AC en US4 / FR-010.
-- Q: ¿Los porcentajes de dedicación se usan para repartir tareas? → A: **No**. Son solo para informes de rentabilidad / atribución de ingresos. Las tareas las recibe el asesor principal independientemente del %. Esto refuerza FR-029 (ya estaba alineado).
-- Q: ¿La validación en la UI del PGI debe ser idéntica a la de Jira? → A: **Sí**. Una sola lógica de validación, aplicada en ambos lados.
-- Q: ¿Asignaciones múltiples = mover carteras entre asesores masivamente? → A: Aclarada como funcionalidad de **reasignación masiva** (varios clientes a la vez, manteniendo porcentajes y con fecha efectiva). **Confirmar si está en scope de DEVPT-518 o es feature separada**.
-- Q: ¿Persona en más de un rol/equipo simultáneo? → A: **No permitido** (confirmación PO 2026-06-01 post-meeting): opción B — una persona puede pertenecer como máximo a UN equipo de UN cliente en un momento dado, **incluso si los equipos son de departamentos distintos**. Ej: Pedro no puede ser Asesor de Fiscal del cliente X y a la vez Técnico de Laboral del mismo cliente X. Para cambiar de equipo/rol → cerrar el actual con `dateTo` y abrir uno nuevo con `dateFrom`. Esto refuerza FR-016 y **cambia FR-021** (el unique constraint que íbamos a relajar para multi-equipo ya no aplica — al contrario, hay que añadir una restricción nueva por `(client_id, employee_id) WHERE dateTo IS NULL`).
-- Q (post-sesión) · Modelo de suma 100% → A: **Dos buckets independientes (asesores 100% + técnicos 100%) y suma POR DEPARTAMENTO del cliente, NO por equipo individual**. Confirmado por la PO con el frame `08-multi-equipo/01-multi-equipo-fiscal-larsa-costa.png`: 2 equipos Fiscal con 3 asesores totales distribuidos entre ambos, todos sumando 100% en conjunto. Si hay 4 asesores en 2 equipos Fiscal, cada uno al 25% → 100%. Lo mismo con técnicos por separado. **Esto invalida ADR-0008 (single bucket por equipo)** — la decisión debe registrarse como nuevo ADR que supersede al anterior. **Cambia FR-003** (aplicado en esta misma iteración).
-- Q (post-sesión) · Bajas largas → A: **Se gestionan como cualquier baja**: fecha fin a la asignación. Si el equipo está al 100%, hay que SUSTITUIR (cerrar la asignación del que se va + abrir nueva para el sustituto, manteniendo la suma 100% por departamento). No hay flujo especial de "suplencia temporal" en esta iteración. Cierra D5.
-- Q (post-sesión) · Nombre del equipo → A: **Descartado de scope**. La PO confirmó que los nombres `Libros`/`Cuota`/`Larsa`/`Costa` de los frames no representan regla de negocio. **Acción**: documentar como assumption que el equipo NO tiene campo `name` obligatorio en MVP. Si en algún momento se necesita identificar visualmente equipos del mismo departamento, se hará por orden de creación (`Equipo 1`, `Equipo 2`) sin persistirlo en BD. Cierra D6 y OQ-006.
-
-**Pendientes después de la sesión** (no bloquean diseño técnico del MVP si asumimos defaults):
-- D5 (qué rol del equipo hace cada tarea) — Producto no lo tiene definido. Assumption MVP: todo va al asesor principal.
-- TaxDown / subcontratados — más adelante.
-- Vista de anomalías clientes con servicio sin equipo — backlog futuro.
-- Visibilidad de % en histórico por perfil (D7) — pendiente para próxima sesión PO.
-- Edición simultánea (D13 / FR-022) — confirmar con PO la propuesta dev.
-- Plataforma del Dato no disponible al guardar — pendiente sesión técnica con Paula.
+| Tema | v1 | v2 (esta spec) |
+|---|---|---|
+| Granularidad de fechas | Primer/último día del mes obligado por validación | **Normalización a primer/último día del mes en el backend**, transparente al usuario. UI puede ofrecer un día concreto, el backend lo redondea al inicio del mes pedido (y cierra el anterior el último día del mes anterior). Onboarding es excepción: conserva fecha tal cual |
+| Edición de un miembro existente | PATCH del % en la misma fila | **Cierre del tramo + apertura de uno nuevo** en la fecha efectiva |
+| Reemplazo | DELETE + POST como operaciones separadas | **Operación atómica de "reemplazo"** con una sola fecha de corte |
+| Baja del asesor (`causesBaja` + `successorId`) | Flujo dedicado con ADR-0017 | **Eliminado**. La reasignación de tareas la infiere obligations a partir de los eventos AMQP de close/open |
+| Unicidad de empleado por cliente | Partial unique `(client, employee) WHERE date_to IS NULL` (FR-021 v1) | **Sin constraint**. Misma persona puede tener Responsable + Coordinador + Asesor activos simultáneamente. Sin protección contra duplicados accidentales (decisión PO 2026-06-04 — minimizar restricciones defensivas) |
+| Antigüedad del empleado en el cliente | No existía | **Campo derivado nuevo** `inClientSince` calculado server-side (renombrado desde `tenureSince` en una iteración intermedia) |
+| Cambios futuros | No soportado explícitamente | **Soportado** — `dateFrom > today` permitido. Si ya hay un tramo futuro pre-existente para la misma persona+rol, el nuevo tramo se "encaja" entre el corte actual y ese futuro (FR-006-bis); el tramo futuro se respeta |
+| Nombre del flag de asesor principal | `is_primary_advisor` | **Renombrado a `is_main`** |
+| `clientTeam`: `startDate`/`endDate` propios | Sí (FR-022 v1) | **Eliminados** — la vida del team se infiere de sus asignaciones |
+| `client_team_assignment`: `clientId`/`department` denormalizados | Sí (para partial uniques) | **Eliminados** — se accede vía JOIN con `clientTeam`. Los partial uniques que dependían de ellos pasan a validación de servicio |
 
 ---
 
-### Session 2026-06-01 (cross-service discovery + nuevas restricciones)
+## 4. Modelo conceptual
 
-- Q: Verificación en código del polyrepo — ¿qué rutas de creación/propagación de asignaciones existen además de la UI del PGI? → A (parcial — corregida 2026-06-01 tarde, ver D10): **UI del PGI es UNA de las rutas de escritura, pero NO la única**. Existen también: (i) ruta de **entrada AMQP `client_onboarding_persisted`** consumida por `pgi-service-pgi-api/client-subscriber` que llama a `ClientAssignmentsService.applyFromClientOnboarding(...)` y crea filas en `client_assignment` automáticamente cuando se da de alta un cliente desde Jira (actor = `system:onboarding`) — flujo en producción desde mayo 2026, fix de duplicados ya implementado (DEVPT-539); (ii) pipelines AMQP de **SALIDA** que deben actualizarse — `pd-service-jira-adapter` (sync a Jira Assets) y `pd-service-data-factory` (informes). Modelos `ClientAssignment` desalineados en data-factory (sin `team_id`/`percentage`). **Nuevos FR-018..FR-021** documentan los cambios de salida; **la integración con la ruta de onboarding queda como D10 pendiente PO**.
-- Q: Restricción por servicios contratados — ¿se permite crear un equipo en un departamento donde el cliente no tiene `ProvidedService` activo? → A: **No** — la creación se bloquea en frontend (CTA oculto) y backend (validación). Apunte introducido en clarify 2026-06-01. Verificado en código: existen `ProvidedService` con `family: ServiceFamily` y `category: ServiceCategory`. **Nuevo FR-017**. Pregunta abierta sobre equipos huérpanos al darse de baja servicios → **OQ-008**.
-- Q: Un mismo empleado puede ocupar varios roles en un mismo equipo (ej. Coordinador y Asesor a la vez)? → A: **No** — un empleado, un único rol por equipo. **Nuevo FR-016**. (El mismo empleado SÍ puede estar en equipos de departamentos distintos del mismo cliente — eso está permitido por el unique constraint actual.)
-- Q: Política de concurrencia cuando dos editores tocan el mismo equipo a la vez? → A: **Optimistic concurrency con `updatedAt`**. HTTP 409 al conflicto + aviso UI. **Nuevo FR-022**.
-- Q: Nombre del equipo (`name` de FR-005) — ¿texto libre, catálogo, o derivado de `ProvidedService.category` que el equipo cubre? → A: **Pendiente de PO** — los nombres `Libros`/`Cuota` de los frames coinciden literalmente con valores reales de `ServiceCategory`, sugiriendo enlace `ClientTeam ↔ ProvidedService`. **Nuevo OQ-006** para llevar a PO.
-- Q: Comportamiento del icono papelera del modal — ¿diálogo inline o pantalla aparte para causa baja? → A: **Pendiente de PO** — las reglas de negocio ya están en FR-010, falta sólo la superficie UX. **Nuevo OQ-007** para llevar a PO.
-- Conflict flag pendiente: la decisión "dos cubos separados (asesores 100% + técnicos 100%)" tomada en una iteración paralela del 2026-06-01 mañana **queda invalidada** — la decisión madura del 2026-05-28 (un solo cubo, ratificada en ADR-0008) prevalece. Spec actual mantiene **single bucket**.
+### Schema simplificado (decidido 2026-06-04)
 
-### Session 2026-05-29 (US1 — Design Conformance)
+```
+client_team
+- id              uuid PK
+- client_id       uuid FK → client
+- department      enum (fiscal | laboral)
+- created_at, updated_at
+- created_by, updated_by    string (email | "system:onboarding")
+- version         smallint  (optimistic concurrency)
 
-- Q: ¿Permite la spec varios equipos activos por cliente+departamento (los frames `08-multi-equipo/*` muestran 'Equipo Larsa' y 'Equipo Costa' coexistiendo en Fiscal)? → A: **Sí — multi-equipo permitido**. Los diseños son fuente de verdad: FR-005 cambia de "1 equipo activo por cliente+departamento" a "N equipos activos por cliente+departamento, identificados por nombre". La validación del 100% pasa a aplicarse **por equipo**. La unicidad pasa a ser `(client, department, name)` cuando `endDate IS NULL`. Implica que el campo `name` del equipo es obligatorio (resuelto en la pregunta siguiente).
-- Q: ¿Existe el concepto de "asesor principal" del equipo (frame `02-anadir-asesor/01-modal-checkbox-asesor-principal.png` muestra checkbox 'Marcar como asesor principal' + badge `Principal`)? → A: **Sí — obligatorio, exactamente uno por equipo**. `TeamMember` incorpora el atributo booleano `isPrimary` (solo aplicable cuando `role = asesor`). En cada equipo activo debe existir **exactamente un** `TeamMember` con `role: asesor` y `isPrimary: true`. El sistema valida esta regla en la transición del equipo a estado `active` (ver pregunta siguiente). El asesor principal es el **destinatario por defecto de tareas automáticas** y el **sucesor por defecto** cuando otros asesores del equipo causan baja. **Resuelve OQ-002.**
-- Q: ¿Persistencia inmediata por miembro (toast tras cada add) o borrador+commit explícito? (frames `05-vista-equipo-incompleto/*` muestran toast inmediato y banner advisory; no hay botón "Confirmar equipo") → A: **Persistencia inmediata con estado del equipo `incomplete` / `active`**. Cada `POST/PATCH/DELETE /members` persiste al instante y devuelve toast. El equipo permanece en estado `incomplete` mientras la suma de asesores + técnicos sea distinta de 100% **o** mientras no exista un asesor con `isPrimary: true`. Transiciona automáticamente a `active` cuando ambas condiciones se cumplen, y a `incomplete` si vuelven a romperse por una edición posterior. **Solo se publican eventos a Plataforma del Dato (FR-014) cuando el equipo está en estado `active`**, incluyendo la propia transición `incomplete → active`. El endpoint `POST /commit` y el modelo borrador+commit declarados en Clarifications 2026-05-28 **quedan invalidados** — ADR-0007 debe revisarse en consecuencia.
-- Q: ¿Cómo se cierra un equipo — acción separada en la ficha o checkbox dentro del modal de añadir asignación? (frame `03-fecha-fin-equipo/01-modal-checkbox-fecha-fin-equipo.png` muestra checkbox "Marcar fecha fin de equipo" incrustado en el modal) → A: **Checkbox en el modal (como el diseño) + modal de confirmación obligatorio al guardar si está marcado**. Al pulsar "Guardar" con el checkbox activo, el sistema DEBE mostrar un diálogo: *"Estás a punto de cerrar este equipo el DD/MM/YYYY. Esta acción no se puede deshacer. ¿Confirmas?"* con opciones [Cancelar] [Sí, cerrar el equipo]. Solo al confirmar se aplica el cierre. Mantiene la irreversibilidad declarada en FR-009. **Resuelve B6** (corrección de cierre por error): no se construye mecanismo de reversión, la doble confirmación es el control suficiente.
-- Q: ¿Granularidad del selector de fecha en la UI — mes o día? (frame `01-crear-equipo/06-modal-fecha-inicio-calendario.png` muestra calendario que solo permite seleccionar mes) → A: **UI solo permite seleccionar mes**. El servicio fija `startDate` al día 1 del mes seleccionado y `endDate` al último día del mes seleccionado. Alineado con FR-012 (granularidad híbrida ya existente) y con la lógica mensual de rentabilidad. Si en el futuro algún caso exige el día exacto, se amplía el modal de forma aditiva sin cambio de esquema.
+client_team_assignment
+- id              uuid PK
+- client_team_id  uuid FK → client_team
+- employee_id     uuid FK → employee
+- role            enum (responsable | coordinador | asesor | tecnico)
+- percentage      smallint (1..100, default 100)
+- date_from       date
+- date_to         date NULL    (NULL = tramo activo)
+- is_main         boolean      (renombrado desde is_primary_advisor; solo válido si role='asesor')
+- created_at, updated_at      (auto-managed; sin created_by/updated_by — el "quién" vive en client_team_assignment_change)
+- version         smallint
 
-### Session 2026-05-28 (US1)
+client_team_assignment_change
+- id                            uuid PK
+- client_team_assignment_id     uuid FK → client_team_assignment
+- action                        enum (opened | closed | percentage_changed |
+                                       role_changed | main_changed | voided)
+- employee_id_before            uuid NULL
+- employee_id_after             uuid NULL
+- role_before                   enum NULL
+- role_after                    enum NULL
+- percentage_before             smallint NULL
+- percentage_after              smallint NULL
+- is_main_before                boolean NULL
+- is_main_after                 boolean NULL
+- date_from_before              date NULL
+- date_from_after               date NULL
+- date_to_before                date NULL
+- date_to_after                 date NULL
+- created_at                    timestamp   (auto on insert — = momento del cambio)
+- updated_at                    timestamp   (auto on update — normalmente = created_at salvo corrección posterior)
+- created_by                    string      (email | "system:onboarding" — quién hizo el cambio)
+- updated_by                    string NULL (quién corrigió el registro de audit, si aplica)
+```
 
-- Q: Rol `responsable` en el equipo — ¿cómo se materializa al crear un equipo? → A: **`ClientAssignment` con `role: responsable`** (1 fila por equipo, % implícito 100%, no entra en la validación de suma). Aparece en la lista de miembros y deja huella histórica de los cambios de responsable.
-- Q: ¿Cuándo se valida la suma del 100% por rol? → A: **Modelo borrador + commit**. Los endpoints `POST/PATCH/DELETE /members` no validan la suma — permiten construir el equipo incrementalmente. Existe un endpoint explícito `POST /commit` que valida y confirma el equipo (publica el evento RabbitMQ y marca los miembros como activos). `POST /validate` queda como herramienta informativa para el frontend.
-- Q: ¿Cómo se gestionan las asignaciones legacy con `team_id = NULL`? → A: **Migración masiva al desplegar (FR-013 dentro de US1)**. La migración recorre todos los `client + department` con asignaciones activas, crea un `ClientTeam` por cada uno con `startDate` = mínimo `dateFrom` de sus miembros y `endDate = NULL`, y asocia las asignaciones existentes (`team_id` = id del equipo creado, `percentage = 100`). La migración es idempotente y no destructiva. Cuando un responsable abra cualquier ficha post-deploy ya verá su equipo activo sin intervención manual.
-- Q: Modelo de validación del 100% — ¿dos cubos (asesores 100% + técnicos 100%) o un solo cubo del equipo? → A: **Un solo cubo**. La suma del equipo (todos los asesores + todos los técnicos) debe ser exactamente 100%. El **responsable** y el **coordinador** NO entran en la suma (son roles de gestión con 100% implícito). Ejemplo válido: 1 asesor 60% + 1 asesor 20% + 1 técnico 20% = 100%. Esto simplifica FR-003, los AC de US1/US2 y el indicador del frontend (un solo total, no uno por rol).
+Cambios respecto al modelo de la v1:
+- `clientTeam` ya **no** tiene `startDate`/`endDate` propios. La vida del team se infiere de sus asignaciones.
+- `client_team_assignments` ya **no** tiene `clientId` ni `department` denormalizados. Se acceden vía JOIN con `clientTeam`. Implica que los partial uniques que usaban esos campos (FR-021 v1, asesor main unique) no se enforce a nivel BD — pasan a validación de servicio.
+- `is_primary_advisor` se renombra a `is_main` (nombre más neutro).
 
-### Session 2026-05-26
+### Asignación (`client_team_assignments`)
+Tramo temporal: una persona, en un rol, dentro de un `clientTeam`, durante un intervalo.
 
-- Q: FR-015 — ¿Qué pantallas/módulos reflejan el equipo múltiple en el MVP? → A: **Solo la ficha de cliente.** "Mis Clientes", buscador PGI e informes internos quedan para una iteración posterior. Informes externos vía Plataforma del Dato cubiertos por FR-014.
-- Q: FR-014 — ¿Mecanismo de sincronización con Plataforma del Dato? → A: **Evento RabbitMQ (exchange `internal`)** publicado al confirmar cada cambio. Propagación garantizada en <5 minutos.
-- Q: FR-010 / CHK025 — ¿Qué ocurre al cerrar asignación con `causesBaja: true` sin sucesor? → A: **Bloquear el cierre** hasta designar sucesor *(provisional — pendiente de confirmar con PO)*.
-- Q: OQ-005 — Modelo de equipos (Modelo A vs B) → **Modelo A para MVP**: los equipos se crean directamente desde la ficha de cada cliente y son exclusivos de ese cliente. Si se necesita la misma composición en otro cliente, se crea un equipo nuevo desde su ficha. **Futuro posible (Modelo B)**: tanto la **creación del equipo** como la **asignación del equipo a uno o varios clientes** se gestionarían en una pantalla propia fuera de la ficha del cliente; la ficha del cliente quedaría como vista de consulta del equipo asignado, no como punto de gestión. El modelo de datos actual (Modelo A) no bloquea esta evolución: `ClientTeam` ya es una entidad de primera clase con FK a `client`; en el futuro bastaría con introducir una tabla pivote `team_assignment` (team_id ↔ client_id) sin alterar las columnas existentes — migración aditiva.
+### Equipo (`clientTeam`)
+Agrupador `(clientId, department)`. Multi-equipo permitido (varios `clientTeam` para el mismo `(clientId, department)`). Las validaciones de cobertura son **cross-team** dentro del par `(clientId, department)`, no por equipo individual.
 
-### Session 2026-05-25
+### Vista vigente
+Función `getActiveTeamAt(clientId, department, date)` devuelve todas las asignaciones donde `dateFrom <= date AND (dateTo IS NULL OR dateTo > date)`. Por defecto `date = today`.
 
-- Q: FR-005 — ¿La unicidad del equipo activo aplica al cliente o al empleado responsable? → A: Al **cliente** — un cliente no puede tener más de un equipo activo por departamento; la unicidad es `client_id + department WHERE end_date IS NULL`.
-- Q: FR-012 — ¿Qué granularidad de fechas se usa para los períodos de asignación? → A: **Híbrida** — fecha exacta en base de datos, convención de primer/último día de mes aplicada en el servicio; cálculo de porcentajes y rentabilidad a granularidad mensual.
-- Q: FR-009 — ¿El cierre de un equipo es reversible? → A: **No — permanente**. No se puede reabrir ni modificar `endDate` una vez confirmado. Para continuar se crea un nuevo equipo.
-- Q: FR-010 / CHK025 — ¿Qué ocurre si no hay sucesor al dar de baja a un asesor? → A: **Diferido — pendiente de decisión con PO**.
-- Q: CHK012 — ¿Se puede crear un nuevo equipo el mismo día del cierre del anterior? → A: **Sí** — períodos contiguos son válidos (`endDate` = último día del mes M, `startDate` = primer día del mes M+1). No hay restricción mínima de tiempo entre cierre y nueva apertura.
-- Q: CHK024 — ¿Cómo detecta el sistema que un asesor "causa baja en la empresa"? → A: **Campo explícito** — el endpoint de cierre de asignación incluye un parámetro `causesBaja: boolean`. Cuando `true`, el sistema activa la reasignación automática de tareas al sucesor; cuando `false` (asesor que sigue en la empresa), el asesor conserva sus tareas. Sin un `causesBaja` explícito el sistema no puede distinguir ambos casos de forma fiable.
+### Reemplazo / cambio de % / redistribución
+Vía API normal (UI backoffice):
+1. **Normalizar la fecha efectiva** a primer día del mes pedido (mes en curso o futuro). Rechazar si cae en mes pasado.
+2. **Si ya existe un tramo previo en el mismo mes** (creado por otra operación dentro del mismo mes en curso), borrarlo o convertirlo según corresponda (FR-007 — solo el último estado del mes sobrevive).
+3. Para cada miembro saliente o que cambia: `UPDATE` cerrando con `dateTo = último día del mes anterior al normalizado`.
+4. Para cada miembro entrante o que cambia: `INSERT` con `dateFrom = primer día del mes normalizado` y `dateTo = día anterior al siguiente tramo futuro pre-existente` de la misma persona+rol (FR-006-bis) o `NULL` si no hay tramo futuro previo.
+
+Todas las operaciones de un cambio ocurren en la misma transacción con `SELECT … FOR UPDATE` sobre la fila `client` para serializar transiciones (FR-024).
+
+### Onboarding
+El subscriber AMQP del routing key `client-onboarding-assignment` materializa el alta inicial del equipo de un cliente con las fechas **tal cual las recibe**. No aplica normalización, no rechaza fechas en mes pasado. Es el único camino para tener tramos cuyo `dateFrom` no sea primer día de mes.
+
+### Antigüedad (`inClientSince`)
+Campo derivado calculado al leer. Para una pareja `(clientId, employeeId)`:
+- Buscar las asignaciones de ese empleado en ese cliente ordenadas por `dateFrom` descendente.
+- Recorrer hacia atrás mientras los tramos encadenen sin hueco (`dateTo` del siguiente >= `dateFrom` del previo, considerando que tramos con la misma fecha límite son contiguos).
+- `inClientSince` = `dateFrom` del tramo más antiguo de esa cadena continua.
+- Si el empleado salió y volvió (hay un hueco), la cadena se rompe — `inClientSince` arranca del último re-ingreso.
+- Los tramos voided (`date_to < date_from`) se ignoran completamente — no rompen ni extienden cadenas.
+
+Implementado en `compute-in-client-since.helper.ts` con tests unitarios.
+
+---
+
+## 5. User Stories
+
+Cada story es un **paquete funcional testeable por un revisor no técnico**. Backend y frontend van dentro como tareas internas (ver "Notas técnicas internas" debajo de cada US — sección no se sube a Jira). El **contract OpenAPI/AMQP se cierra primero** para que el FE pueda arrancar con mocks mientras el BE implementa.
+
+Formato listo para `/speckit-atlassian-sync-push`: **Título → Contexto → Objetivo → Criterios de aceptación**. Todo lo demás (FRs cubiertos, contract, dependencias, fuera de scope, tareas internas) vive bajo un marcador HTML `<!-- internal-only -->` que el sync ignora.
+
+### MVP P1
+
+#### US-01 — Alta inicial del equipo desde la UI
+
+**Contexto**
+Hoy un cliente nuevo o un cliente migrado desde el modelo legacy no tiene equipo en el modelo nuevo. Hasta que un responsable lo dé de alta no se pueden asignar tareas correctamente ni propagar el equipo a downstream. Esta story habilita la primera carga manual desde el backoffice.
+
+**Objetivo**
+Como responsable o coordinador, quiero dar de alta el primer equipo de un cliente (responsable, coordinador opcional, asesores, técnicos) desde la ficha del cliente, para que pgi-api conozca quién opera el cliente y los flujos posteriores (tareas, integraciones) se asignen correctamente.
+
+**Criterios de aceptación**
+1. Abro un cliente cuyo equipo fiscal está vacío y veo el botón "Crear equipo fiscal".
+2. Añado responsable + coordinador + asesor (marcando este último como main). Cada miembro se persiste tras Guardar y aparece inmediatamente en la pantalla.
+3. Tras añadir el asesor main, la cobertura llega a 100% y el banner amarillo "equipo incompleto" desaparece.
+4. Si intento añadir miembros en un departamento donde el cliente no tiene `ProvidedService` activo, veo un error claro y no se persiste nada.
+5. La cobertura técnica se considera "no aplicable" mientras no añada ningún técnico — no bloquea el estado del equipo.
+6. Puedo consultar la vista vigente a una fecha pasada (selector "ver equipo a fecha…") y veo el equipo tal y como estaba ese día. Por cada miembro veo el campo `inClientSince` (fecha desde la que entró al cliente sin interrupción).
+
+<!-- internal-only -->
+**Notas técnicas internas**
+- **API contract** (cerrar primero — ver `contracts/rest/client-assignments.openapi.yaml`). URLs como recursos puros (sin verbos), shape `{ data, total, ...extras }`, NestJS exception shapes, `@PermissionsRequired`:
+  - `POST /api/v1/clients/{clientId}/team-assignments` — crea una asignación (auto-crea `ClientTeam` si no existe). Body: `{ department, employeeId, role, percentage, isMain, dateFrom }`. Response 201 con `{ id }`. Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`.
+  - `GET /api/v1/clients/{clientId}/team-assignments?department={dept}&date={date?}` — listado vigente a fecha (default hoy; acepta fechas pasadas y futuras). Response: `{ data: [...], total, coverage, mainAsesorPresent, status }`. Cada miembro lleva `inClientSince` (fecha derivada server-side, ver §4). Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_VIEW`.
+  - `GET /api/v1/clients/{clientId}/team-assignments/{id}` — recupera una asignación concreta.
+  - Errores con `NestJS exception filters` built-in → shape `{ statusCode, message, error }`. Sin `application/problem+json`, sin códigos `SCREAMING_SNAKE_CASE` (consistencia con resto de pgi-api).
+  - Optimistic concurrency vía campo `version` en body de la entity (sin `If-Match` header). Conflicto = 409 `ConflictException`.
+- **Convenciones REST aplicadas**: ver `.claude/rules/rest-api-design.md` (sección "Convenciones reales en uso"). El servicio pgi-api tiene patrones establecidos y este endpoint los respeta.
+- **FRs cubiertos**: FR-001, FR-002, FR-009, FR-010, FR-011, FR-012, FR-013, FR-015, FR-016, FR-021, FR-022, FR-024, FR-025.
+- **Fuera de scope**: editar miembros existentes (US-02), cambios futuros (US-03), log de cambios (US-05), verificar efecto en obligations (US-06).
+
+<!-- jira-links -->
+(US-01 es la base — no tiene dependencias entrantes. Otras stories enlazarán a esta como `is-blocked-by`.)
+<!-- /jira-links -->
+<!-- /internal-only -->
+
+---
+
+#### US-02 — Editar el equipo en el mes en curso
+
+**Contexto**
+Las composiciones reales de equipos cambian con frecuencia dentro del mes (alguien deja la empresa, se reasigna carga, entra un nuevo asesor para apoyar). Hoy esto se hace machacando filas vivas y perdiendo histórico. Esta story habilita la edición temporal correcta dentro del mes en curso, manteniendo el histórico intacto y normalizando las fechas para evitar cortes en mitad de mes.
+
+**Objetivo**
+Como responsable o coordinador, quiero modificar la composición del equipo dentro del mes en curso (sustituir una persona, cambiar el porcentaje de carga, redistribuir cobertura entre varios), para mantener el equipo alineado con la realidad operativa sin esperar al cambio de mes.
+
+**Criterios de aceptación**
+1. **Reemplazo simple**: en un equipo activo, sustituyo un asesor por otro al mismo porcentaje a partir de una fecha del mes en curso. El saliente queda cerrado el último día del mes anterior y el entrante activo desde el primer día del mes en curso. La cobertura no se altera.
+2. **Cambio de porcentaje**: reduzco el porcentaje de un asesor y reparto el restante a otro que entra. El asesor que se queda tiene dos tramos consecutivos sin hueco; la cobertura suma 100% y su antigüedad se preserva.
+3. **Redistribución**: un asesor sale y dos nuevos entran repartiendo su porcentaje. La cobertura sigue al 100% y queda exactamente un asesor main.
+4. **Segundo cambio en el mismo mes**: tras un cambio, hago otro distinto unos días después. El tramo del primer cambio se sobrescribe — solo el resultado final del mes queda visible en la UI; el primero se voida (queda en BD pero invisible).
+5. **Mes pasado rechazado**: si intento meter un cambio con fecha en un mes anterior al actual, me lo rechaza con mensaje "no se pueden modificar asignaciones del pasado".
+
+**Ejemplo**
+Hoy es 15 de junio. Tengo el equipo fiscal con Alfonso al 100% como asesor main. Sustituyo a Alfonso por David al 100% indicando fecha 15/06. Tras guardar veo:
+
+| Empleado | Rol | Desde | Hasta | % |
+|---|---|---|---|---|
+| Alfonso | asesor (main) | 20/05/2026 | **31/05/2026** | 100 |
+| David | asesor (main) | **01/06/2026** | — | 100 |
+
+Cobertura asesores 100%, equipo `complete`. El log de cambios (US-05) registra dos filas: `action='closed'` sobre Alfonso y `action='opened'` sobre David.
+
+<!-- internal-only -->
+**Notas técnicas internas**
+- **API contract**. URLs como recursos puros (sin verbos). Sin `effectiveDate`: el cliente envía `dateFrom` (inicio del tramo nuevo) o `dateTo` (cierre del tramo existente) según corresponda. Backend valida que `dateFrom` sea primer día de mes (FR-002).
+  - **Operación atómica multi-miembro** (reemplazo, redistribución, cambio de %): `PUT /api/v1/clients/{clientId}/team-assignments?department=fiscal&dateFrom=2026-06-01` con body `{ members: [ { employeeId, role, percentage, isMain }, ... ] }`. Significa "el equipo del cliente en ese departamento desde esa fecha es éste". Backend hace el diff contra el estado actual y resuelve cierres+aperturas dentro de una transacción con `SELECT … FOR UPDATE` (FR-024). Idempotente. Response 204.
+  - **Modificar metadato de un tramo** (cambiar `isMain` o cerrar): `PUT /api/v1/clients/{clientId}/team-assignments/{id}` con body `{ isMain?, dateTo?, version }`. Response 204.
+  - **Eliminar (void) un tramo creado por error en el mes en curso (FR-007)**: `DELETE /api/v1/clients/{clientId}/team-assignments/{id}`. Response 204. No es DELETE físico — se traduce internamente a `UPDATE date_to = date_from - 1 día` para que el tramo quede invisible a queries de vista vigente pero auditable.
+  - Permission común: `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`. Errores con `NestJS exceptions`. 409 `ConflictException` si `version` no coincide. 422 `UnprocessableEntityException` si `dateFrom` cae en mes pasado o rompe `is_main` único.
+- **FRs cubiertos**: FR-002, FR-003, FR-005, FR-007, FR-008, FR-009, FR-013, FR-014, FR-017, FR-024.
+- **Fuera de scope**: cambios con `dateFrom` futuro (US-03), reasignación de tareas en obligations (US-06).
+
+<!-- jira-links -->
+- is-blocked-by: US-01
+<!-- /jira-links -->
+<!-- /internal-only -->
+
+---
+
+#### US-04 — Alta inicial del equipo desde Onboarding (AMQP)
+
+**Contexto**
+Otros sistemas (portal del cliente, proceso comercial, integraciones externas) dan de alta clientes con su equipo inicial ya definido. Sin un canal automático, los responsables tendrían que volver a meter manualmente los datos en pgi-api, duplicando trabajo y arriesgándose a inconsistencias. Esta story habilita la materialización automática vía AMQP.
+
+**Objetivo**
+Como sistema externo (producer del evento `client-onboarding-assignment`), quiero notificar a pgi-api el equipo inicial de un cliente con las fechas que envío, para que el equipo quede materializado sin necesidad de carga manual.
+
+**Criterios de aceptación**
+1. Se publica un evento con 3 miembros y `dateFrom=20/05/2026`. El subscriber crea `clientTeam` + 3 asignaciones con esas fechas exactas. El responsable abre la ficha y ve el equipo materializado.
+2. Las fechas en BD son exactamente las recibidas en el evento (no normalizadas) — confirma la excepción al modelo de mes-en-curso.
+3. Si el evento llega malformado (campos obligatorios ausentes, department inválido), va a DLQ con error claro en logs.
+4. Si el evento llega para un cliente que ya tiene equipo activo en ese departamento, el subscriber lo rechaza y lo manda a DLQ con error claro (no machaca el equipo existente).
+
+<!-- internal-only -->
+**Notas técnicas internas**
+- **API contract**:
+  - Subscriber AMQP: routing key `client-onboarding-assignment` (nombre exacto pendiente con producer — ver OQ-005)
+  - Schema del payload documentado en `contracts/amqp/client-onboarding-assignment.schema.json`
+- **FRs cubiertos**: FR-004, FR-020.
+- **Fuera de scope**: actualizaciones de equipo vía onboarding (solo alta inicial — actualizaciones van por UI o por otra story futura).
+
+<!-- jira-links -->
+- is-blocked-by: US-01
+- relates-to: ticket del producer del evento `client-onboarding-assignment` (cross-team — pendiente identificar)
+<!-- /jira-links -->
+<!-- /internal-only -->
+
+---
+
+#### US-05 — Log de cambios sobre el equipo
+
+**Contexto**
+A medida que el modelo temporal acumula cambios, surgen consultas regulatorias o de incidentes que requieren saber **quién** hizo **qué** cambio y **cuándo** sobre el equipo de un cliente. La vista vigente y la vista a fecha pasada (cubiertas por US-01) responden "qué tramos existían" pero no "quién los cambió y en qué momento". Esta story añade el log de auditoría detallado con before/after.
+
+**Objetivo**
+Como responsable o admin, quiero consultar quién hizo qué cambio sobre las asignaciones de un cliente y cuándo (con before/after de cada cambio), para auditoría regulatoria, resolución de incidencias y revisión operativa del equipo.
+
+**Criterios de aceptación**
+1. Navego a la pestaña "Log de cambios" de un cliente. Veo todos los cambios realizados sobre el equipo en orden cronológico descendente: fecha del cambio, autor, tipo de acción (alta, cierre, cambio de %, cambio de rol, cambio de main, void) y los valores antes/después.
+2. Filtro por rango de fechas y por departamento y la lista se actualiza.
+3. Cuando un cambio fue ejecutado por el subscriber de onboarding, el autor aparece como `system:onboarding` y queda claro que no fue una acción manual.
+4. Cuando un tramo se "void" por FR-007, aparece en el log con `action='voided'` y los valores antes del void.
+5. Cada cambio tiene su propio `createdAt` y `createdBy` inmutables: si reviso un log de hace 2 meses sigo viendo quién lo hizo, aunque la persona ya no esté en la empresa.
+
+<!-- internal-only -->
+**Notas técnicas internas**
+- **Recurso aparte** (no comparte tabla con `client_team_assignment`): tabla `client_team_assignment_change` con columnas before/after y audit propio (`created_at`, `created_by`, `updated_at`, `updated_by`). Ver §4.
+- **API contract**: `GET /api/v1/clients/{clientId}/team-assignment-changes?department={dept}&from={date?}&to={date?}` — log paginado por rango (default últimos 90 días). Response `{ data, total }` donde cada item es una fila de change. Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_VIEW`.
+- **Producer del log**: cada operación de US-01/US-02/US-03/US-04 inserta filas en `client_team_assignment_change` dentro de la misma transacción que mutó `client_team_assignment` (atomicidad — no se puede perder un cambio del log).
+- **Esta US sustituye a la anterior "Vista histórica y antigüedad"**: la vista del equipo a fecha pasada y el campo `inClientSince` (antes `tenureSince`) se sirven desde el endpoint de US-01 (`GET .../team-assignments?date=`); aquí lo nuevo es el log de cambios.
+- **FRs cubiertos**: FR-019, FR-022.
+- **Fuera de scope**: edición de filas del log (es read-only — no hay endpoints de mutación).
+
+<!-- jira-links -->
+- is-blocked-by: US-01
+- is-blocked-by: US-02
+<!-- /jira-links -->
+<!-- /internal-only -->
+
+### P2
+
+#### US-03 — Programar cambios futuros con preservación de tramos
+
+**Contexto**
+Algunos cambios de equipo se conocen con antelación (un asesor sale en septiembre, una redistribución entra en enero). Sin soporte de cambios futuros, los responsables tienen que esperar al día y aplicarlos manualmente — con riesgo de olvido. Además, si ya hay cambios futuros planificados, un nuevo cambio intermedio no debe invalidarlos.
+
+**Objetivo**
+Como responsable, quiero registrar con antelación cambios de equipo que entran en vigor en un mes posterior, para planificar reemplazos, redistribuciones o cambios de % sin alterar la vista vigente hasta que llegue la fecha — y sin perder cambios futuros ya planificados.
+
+**Criterios de aceptación**
+1. Hoy es 20/06. Programo un cambio efectivo 01/09 (David sale, Juan y Paloma entran al 50%). La vista vigente "a hoy" sigue mostrando David al 100%. La vista "a 15/09" muestra Juan y Paloma.
+2. Tras el anterior, programo un cambio efectivo 01/08 (David al 75%, Juan al 25%). El cambio de septiembre queda intacto. David tiene 3 tramos consecutivos (100% → 75% → 50%), Juan tiene 2 (25% → 50%).
+3. La UI muestra un indicador "cambio programado para 01/09" sobre las asignaciones afectadas mientras estoy antes de esa fecha.
+4. Si registro un cambio efectivo 15/09 (mid-month), el backend lo normaliza a 01/09 sin que el usuario tenga que pensar en mes/día.
+5. Si intento un cambio retroactivo (fecha en mes pasado), me lo rechaza con mensaje claro.
+
+<!-- internal-only -->
+**Notas técnicas internas**
+- **API contract**: mismos endpoints que US-02 admitiendo `effectiveDate` en mes futuro. `GET …/teams?at={future-date}` para previsualizar.
+- **FRs cubiertos**: FR-002, FR-006, FR-006-bis.
+- **Fuera de scope**: edición destructiva de cambios futuros ya programados (se sobrescribe programando otro encima en el mismo mes — FR-007).
+
+<!-- jira-links -->
+- is-blocked-by: US-02
+<!-- /jira-links -->
+<!-- /internal-only -->
+
+---
+
+#### US-06 — Reasignación automática de tareas tras cambio de asesor (cross-service)
+
+**Contexto**
+Cuando un asesor sale del equipo de un cliente, las tareas abiertas asignadas a él en `pd-service-obligations-api` deberían pasar automáticamente al asesor entrante a partir de la fecha del cambio — sin intervención manual. Hoy esto no ocurre: el responsable tendría que reasignar manualmente cada tarea desde obligations. Esta story cierra el bucle cross-service.
+
+**Objetivo**
+Como responsable que cambia un asesor en el equipo, quiero que las tareas abiertas en obligations del cliente pasen automáticamente al nuevo asesor, para no perder trabajo en tránsito durante un reemplazo y no tener que tocar nada manualmente.
+
+**Criterios de aceptación**
+1. Cliente X tiene 5 tareas abiertas en obligations asignadas a David. En pgi-api cambio David por Juan en el equipo (efectivo 01/06). Abro el panel de tareas del cliente en la UI de obligations y veo las 5 tareas asignadas a Juan.
+2. Las tareas con `dueDate < 01/06` siguen asignadas a David (era trabajo suyo que tenía pendiente).
+3. Las tareas con `dueDate >= 01/06` pasan a Juan.
+4. Si Juan no existe en obligations (el empleado no está dado de alta en el otro servicio), el subscriber falla y la tarea queda como estaba — sin perder dato — y se registra el error.
+
+<!-- internal-only -->
+**Notas técnicas internas**
+- **API contract**:
+  - Publisher en pgi-api: `pgi-api.v1.client-team-assignment.opened` y `.closed` (los eventos se emiten en cualquier mutación de US-01/02/03/04 — aquí solo se confirma el payload completo).
+  - Subscriber en obligations-api: consume y aplica la regla de reasignación.
+- **FRs cubiertos**: FR-017, FR-018.
+- **Fuera de scope**: reasignación manual (no aplica), reasignación de tareas cerradas (solo abiertas), cambio de prioridad/dueDate (solo cambia el asignado).
+
+<!-- jira-links -->
+- is-blocked-by: US-02
+- relates-to: cross-service obligations-api (pendiente ticket espejo en proyecto de obligations)
+<!-- /jira-links -->
+<!-- /internal-only -->
+
+> US-07 (auditoría completa) ha sido **fusionada en US-05** (log de cambios) en la v2 del 2026-06-04. El log temporal y el log de auditoría son la misma vista; no hay dos endpoints distintos.
+
+---
+
+## 6. Requisitos funcionales
+
+### Composición y persistencia
+
+- **FR-001** — Toda asignación persiste como tramo con `dateFrom` obligatorio. `dateTo` NULL indica tramo activo a partir de `dateFrom`.
+- **FR-002** — Las operaciones vía API normal (UI backoffice) **normalizan la fecha efectiva del cambio al primer día del mes pedido**:
+  - Si `effectiveDate` cae en el mes en curso, se ajusta a primer día del mes en curso. El cierre del tramo anterior es el último día del mes anterior.
+  - Si `effectiveDate` cae en un mes futuro, se ajusta a primer día de ese mes futuro. El cierre del tramo anterior es el último día del mes anterior al pedido.
+  - El frontend puede dejar al usuario indicar un día concreto; el backend lo redondea de forma transparente. Se acepta perder la trazabilidad fina del día real del cambio dentro del mes, a cambio de evitar tramos sucios en mitad de mes.
+- **FR-003** — Cambios con `effectiveDate` en un mes anterior al mes en curso **se rechazan** con HTTP 422 `CLIENT_TEAM_ASSIGNMENT_PAST_DATE_NOT_ALLOWED`. El sistema no permite manipular el histórico vía la API normal.
+- **FR-004** — **Excepción onboarding**: las asignaciones que entran por el subscriber AMQP de onboarding (routing key `client-onboarding-assignment` o equivalente — exacto pendiente de confirmar con el producer) **conservan las fechas tal cual las recibe**, sin normalización a inicio de mes y sin restricción de mes pasado/futuro. Es el único camino para introducir tramos con fechas no-normalizadas.
+- **FR-005** — Una operación de **reemplazo** (cambio de persona, cambio de %, redistribución, o salida sin sustituto) se ejecuta como una transacción atómica que cierra los tramos salientes con `dateTo = último día del mes anterior al normalizado` y abre los entrantes con `dateFrom = primer día del mes normalizado`. La fecha normalizada actúa como punto de corte único.
+- **FR-006** — Se permite registrar asignaciones con `effectiveDate` futuro (mes posterior al actual). La vista vigente del equipo a `today` no las incluye hasta que llegue la fecha normalizada.
+- **FR-006-bis** — **Preservación de tramos futuros pre-existentes**. Cuando se registra un cambio con `effectiveDate` futuro, el nuevo tramo de cada miembro entrante o que cambia va desde la `effectiveDate` normalizada hasta el **día anterior al `dateFrom` del siguiente tramo futuro pre-existente del mismo `(clientTeamId, employeeId, role)`**, si lo hay. Si no hay tramo futuro pre-existente para esa persona+rol, el nuevo tramo queda abierto (`dateTo = NULL`). Análogamente, el tramo actual que se está cortando se cierra con `dateTo = último día del mes anterior al normalizado`. Esto permite "insertar" cambios intermedios entre el estado actual y un cambio futuro ya planificado, sin invalidar la planificación previa.
+- **FR-007** — Cuando, dentro del mes en curso, llegan **múltiples cambios sucesivos** sobre el mismo `(client, department)`, los tramos previamente creados en este mismo mes (cualquier fila con `dateFrom = primer día del mes en curso` que no exista de antes) son **machacados** por el cambio más reciente:
+  - Si el miembro sigue presente con otros atributos: `UPDATE` in-place de su fila (cambia `percentage`, `role`, `isMain`).
+  - Si el miembro ya no debe estar tras el nuevo cambio: la fila se **voida** — `UPDATE date_to = date_from - 1 día`. No hay DELETE físico. El tramo queda invisible a queries de vista vigente (ningún `date` satisface `date_from <= date AND date_to >= date` cuando `date_to < date_from`) pero la fila persiste para auditoría. En el log (`client_team_assignment_change`) se registra con `action='voided'`.
+  - Los tramos creados en meses **anteriores** al actual NO se machacan; se cierran con `dateTo` como en una operación normal.
+  Razón: el modelo no admite dos cortes en el mismo mes; solo la última intención del usuario sobrevive como tramo "vivo" en BD. El log de cambios (US-05) registra cada operación.
+- **FR-008** — La edición destructiva (UPDATE/DELETE de tramos históricos con `dateFrom` en mes anterior al actual o `dateTo` no nulo) está **prohibida** vía API normal. Solo se permite mutar tramos cuyo `dateFrom` esté en el mes en curso o tramos activos (`dateTo IS NULL`) para: (a) cerrarlos, (b) ajustar `isMain`, (c) machacar conforme a FR-007.
+
+### Validaciones
+
+- **FR-009** — Por cada `(client, department)`, la suma de `percentage` de los asesores activos a fecha `today` debe ser exactamente **100%**. Si no se cumple, el equipo está en estado `incomplete` (banner advisory en UI, no bloquea persistencia individual).
+- **FR-010** — Por cada `(client, department)`, la suma de `percentage` de los técnicos activos a fecha `today` debe ser exactamente **100%** **si existe al menos un técnico**. Si no hay ningún técnico, la cobertura técnica es "no aplicable" y no bloquea.
+- **FR-011** — `is_main=true` solo es válido cuando `role='asesor'`. Hay **exactamente uno** activo por `(client, department)` — validado a nivel de servicio (no a nivel BD, porque `client` y `department` no están denormalizados en `client_team_assignments`). CHECK constraint `is_main = false OR role = 'asesor'` sí se aplica a nivel BD.
+- **FR-012** — Antes de crear una asignación en departamento `X`, el cliente debe tener al menos un `ProvidedService` activo con `family=X`. Si no, rechazar con HTTP 422 `CLIENT_TEAM_ASSIGNMENT_NO_PROVIDED_SERVICE`.
+- **FR-013** — No se valida ninguna unicidad de tipo `(client, employee)` ni `(client, employee, role)`. La misma persona puede tener varias asignaciones activas simultáneamente con roles distintos (responsable + coordinador + asesor) o, accidentalmente, dos del mismo rol. El sistema confía en el usuario; no añade restricciones defensivas. La cobertura sumaría como corresponda en caso de duplicado.
+- **FR-014** — La transición del estado de cobertura a "completo y consistente" tras una operación de escritura dispara la publicación de eventos AMQP descritos en FR-017.
+
+### Composición mínima
+
+- **FR-015** — Un equipo se considera **completo** cuando, por `(client, department)`: (a) hay exactamente 1 responsable activo, (b) hay al menos 1 asesor activo, (c) la cobertura de asesores suma 100%, (d) si hay técnicos, su cobertura suma 100%, (e) hay 1 asesor main activo.
+- **FR-016** — Mientras un equipo esté incompleto, el sistema persiste las escrituras individuales pero **suprime** la publicación AMQP a downstream y muestra un banner advisory en UI.
+
+### Publicación AMQP y reasignación de tareas
+
+- **FR-017** — En cada `INSERT` y `UPDATE` (cierre o machaque por FR-007) de una `ClientTeamAssignment`, el servicio publica un evento AMQP con routing key `pgi-api.v1.client-team-assignment.opened` o `.closed`, payload mínimo: `assignmentId`, `clientId`, `department`, `role`, `employeeId`, `percentage`, `effectiveDate` (dateFrom o dateTo), `isMain`, `version`. Solo se publica si el equipo destino está completo (FR-015) o, si no, se difiere hasta la operación que lo complete (entonces se emite un lote con los cambios diferidos en orden cronológico).
+- **FR-018** — `pd-service-obligations-api` consume estos eventos y reasigna automáticamente las tareas abiertas según el asesor vigente en su `dueDate`. No hace falta marcar nada en pgi-api: la reasignación se infiere de las fechas.
+- **FR-019** — `pd-service-data-factory` y `pd-service-jira-adapter` consumen los mismos eventos para mantener sus copias propias del estado del equipo. Política de sync de jira-adapter pendiente con team lead (no bloquea US1).
+- **FR-020** — pgi-api consume un evento de **onboarding** con routing key `client-onboarding-assignment` (nombre exacto pendiente de confirmar con el producer). El subscriber materializa las asignaciones recibidas en `client_team_assignment` **sin aplicar la normalización de FR-002 ni la restricción de FR-003** — las fechas se conservan exactamente como llegan. Cada inserción del onboarding también dispara los eventos AMQP de FR-017 (opened) hacia downstream, igual que cualquier escritura.
+
+### Lectura
+
+- **FR-021** — Endpoint `GET /api/v1/clients/{clientId}/team-assignments?department={dept}&date={date?}` devuelve la composición vigente a la fecha indicada (default `today`; acepta fechas pasadas y futuras). Por miembro: `assignmentId`, `employee`, `role`, `percentage`, `dateFrom`, `dateTo`, `isMain`, `inClientSince`, `version`. `inClientSince` se calcula server-side recorriendo los tramos del `(clientId, employeeId)` y devolviendo el `dateFrom` de la cadena continua más reciente (huecos rompen la cadena).
+- **FR-022** — Endpoint `GET /api/v1/clients/{clientId}/team-assignment-changes?department={dept}&from={date?}&to={date?}` devuelve el log de cambios sobre el equipo en orden cronológico descendente. Cada item lleva: `id`, `action`, valores `*_before` y `*_after`, `createdAt`, `createdBy`. Paginable; default últimos 90 días si no se pasa rango.
+- **FR-023** — La cobertura agregada `{ asesores, tecnicos, status }` viaja como parte del response de `FR-021` (siblings de `data`/`total`). No hay endpoint separado.
+
+### Concurrencia
+
+- **FR-024** — Toda operación de escritura sobre asignaciones de un `(client, department)` adquiere `SELECT ... FOR UPDATE` sobre la fila `client` correspondiente antes de leer cobertura y persistir cambios. Esto serializa transiciones de completo/incompleto y garantiza "exactamente un evento AMQP por transición" (mantiene la lógica de ADR-0015).
+- **FR-025** — Las mutaciones de `ClientTeam` y `ClientTeamAssignment` usan optimistic concurrency con `version`. Cliente envía `version` actual; servidor incrementa o devuelve `409 VERSION_CONFLICT`.
+
+---
+
+## 7. Ejemplos canónicos
+
+Estos ejemplos sirven como acceptance scenarios y como base para tests e2e. Asumen que la operación llega vía API normal (UI backoffice) salvo el §7.1 que es onboarding. Las fechas reflejan la **regla de normalización** de FR-002 y la conservación de fechas de FR-004.
+
+### 7.1. Alta inicial del equipo vía onboarding (fecha original 20/05/2026)
+
+El evento de onboarding (`client-onboarding-assignment`) llega con tres asignaciones para el cliente, todas con `effectiveDate=20/05/2026`. Como es onboarding, la fecha se conserva tal cual:
+
+| empleado | rol | dateFrom | dateTo | % |
+|---|---|---|---|---|
+| Perico | coordinador | 20/05/2026 | NULL | 100 |
+| Alberto | responsable | 20/05/2026 | NULL | 100 |
+| Alfonso | asesor (primary) | 20/05/2026 | NULL | 100 |
+
+Cobertura asesores = 100% ✓. Sin técnicos → cobertura técnica N/A. Equipo `complete` → se publican tres eventos `client-team-assignment.opened`.
+
+### 7.2. Reemplazo en mes en curso (registrado 15/06/2026 — Alfonso sale, David entra)
+
+Estado antes (de §7.1):
+- Perico — coordinador — 20/05/2026 → NULL — 100
+- Alberto — responsable — 20/05/2026 → NULL — 100
+- Alfonso — asesor (main) — 20/05/2026 → NULL — 100
+
+Operación: reemplazar Alfonso por David al 100%. La fecha efectiva del cambio cae en el mes en curso (junio) → normaliza a **01/06/2026**. Cierre de Alfonso: **31/05/2026** (último día del mes anterior).
+
+| empleado | rol | dateFrom | dateTo | % |
+|---|---|---|---|---|
+| Perico | coordinador | 20/05/2026 | NULL | 100 |
+| Alberto | responsable | 20/05/2026 | NULL | 100 |
+| Alfonso | asesor (main) | 20/05/2026 | **31/05/2026** | 100 |
+| David | asesor (main) | **01/06/2026** | NULL | 100 |
+
+Cobertura asesores `at=today` = 100% (solo David). Se publica `client-team-assignment.closed` para Alfonso y `.opened` para David en la misma transacción.
+
+### 7.3. Cambio futuro sin tramos futuros previos — reemplazo (registrado 20/06/2026 con efectividad 01/09/2026 — David sale, Juan y Paloma entran al 50%)
+
+Estado antes:
+- Perico — coordinador — 20/05/2026 → NULL — 100
+- Alberto — responsable — 20/05/2026 → NULL — 100
+- David — asesor (main) — 01/06/2026 → NULL — 100
+
+Operación: a partir de septiembre, David ya no está; Juan y Paloma asesores al 50% cada uno. Septiembre es futuro → normaliza a **01/09/2026**. David cierra **31/08/2026**.
+
+| empleado | rol | dateFrom | dateTo | % |
+|---|---|---|---|---|
+| Perico | coordinador | 20/05/2026 | NULL | 100 |
+| Alberto | responsable | 20/05/2026 | NULL | 100 |
+| David | asesor (main) | 01/06/2026 | **31/08/2026** | 100 |
+| Juan | asesor (main) | **01/09/2026** | NULL | 50 |
+| Paloma | asesor | **01/09/2026** | NULL | 50 |
+
+Hasta el 31/08 sigue David al 100. Desde el 01/09 entran Juan (main) + Paloma. El responsable elige main vía UI; el sistema no infiere. No hay tramos futuros pre-existentes que respetar — los nuevos abren sin `dateTo`.
+
+### 7.4. Cambio futuro sin tramos futuros previos — reasignación (registrado 20/06/2026 con efectividad 01/09/2026 — David sigue al 50%, Juan entra al 50%)
+
+Estado antes: igual que §7.3 (David al 100, sin tramos futuros).
+
+Operación: desde septiembre, David baja a 50% y entra Juan al 50%. Normalización a **01/09/2026**. David cierra el tramo de 100 el **31/08/2026** y abre nuevo tramo de 50 el **01/09/2026**.
+
+| empleado | rol | dateFrom | dateTo | % |
+|---|---|---|---|---|
+| Perico | coordinador | 20/05/2026 | NULL | 100 |
+| Alberto | responsable | 20/05/2026 | NULL | 100 |
+| David | asesor (main) | 01/06/2026 | **31/08/2026** | 100 |
+| David | asesor (main) | **01/09/2026** | NULL | 50 |
+| Juan | asesor | **01/09/2026** | NULL | 50 |
+
+Tramos consecutivos para David (31/08 → 01/09 son días contiguos): su antigüedad **no se reinicia** — `tenureSince = 01/06/2026`.
+
+### 7.5. Cambio futuro CON tramo futuro previo — FR-006-bis en acción (registrado 23/06/2026 con efectividad 01/08/2026)
+
+Estado antes (resultante de §7.4):
+- Perico — coordinador — 20/05/2026 → NULL — 100
+- Alberto — responsable — 20/05/2026 → NULL — 100
+- David — asesor (main) — 01/06/2026 → 31/08/2026 — 100
+- David — asesor (main) — 01/09/2026 → NULL — 50
+- Juan — asesor — 01/09/2026 → NULL — 50
+
+Operación: desde agosto, David al 75% y Juan al 25%. Normalización a **01/08/2026**. Esto cae **antes** del tramo futuro pre-existente de David (01/09 al 50) y de Juan (01/09 al 50). Por FR-006-bis, los nuevos tramos van desde 01/08/2026 hasta el **día anterior al siguiente tramo futuro pre-existente** = 31/08/2026.
+
+| empleado | rol | dateFrom | dateTo | % |
+|---|---|---|---|---|
+| Perico | coordinador | 20/05/2026 | NULL | 100 |
+| Alberto | responsable | 20/05/2026 | NULL | 100 |
+| David | asesor (main) | 01/06/2026 | **31/07/2026** | 100 |
+| David | asesor (main) | **01/08/2026** | **31/08/2026** | 75 |
+| David | asesor (main) | 01/09/2026 | NULL | 50 |
+| Juan | asesor | **01/08/2026** | **31/08/2026** | 25 |
+| Juan | asesor | 01/09/2026 | NULL | 50 |
+
+David tiene tres tramos consecutivos sin hueco (01/06 → 31/07 al 100, 01/08 → 31/08 al 75, 01/09 → ∞ al 50). Juan tiene dos: 01/08 → 31/08 al 25, 01/09 → ∞ al 50. Cobertura `at=2026-08-15` = 75 + 25 = 100 ✓. Cobertura `at=2026-09-15` = 50 + 50 = 100 ✓.
+
+### 7.6. Múltiples cambios en el mes en curso (FR-007 — el último gana)
+
+Hoy es 15/06/2026. El responsable hace **dos cambios** consecutivos durante junio:
+
+1. **05/06/2026**: reemplaza Alfonso por David (igual que §7.2). Se crea David con `dateFrom=01/06/2026`.
+2. **20/06/2026**: vuelve a meter a Alfonso al 50% + Sara al 50%. El backend detecta que el tramo de David tiene `dateFrom=01/06/2026 = primer día del mes actual` (no existía antes de este mes) y lo **borra** (DELETE) — David desaparece como si nunca hubiera entrado.
+
+Estado final tras los dos cambios, leyendo `at=today (15/06/2026)`:
+
+| empleado | rol | dateFrom | dateTo | % |
+|---|---|---|---|---|
+| Perico | coordinador | 20/05/2026 | NULL | 100 |
+| Alberto | responsable | 20/05/2026 | NULL | 100 |
+| Alfonso | asesor (main) | 20/05/2026 | **31/05/2026** | 100 |
+| Alfonso | asesor (main) | **01/06/2026** | NULL | 50 |
+| Sara | asesor | **01/06/2026** | NULL | 50 |
+
+Alfonso queda con dos tramos: el viejo cierre del 31/05 (creado por la primera operación, preservado porque cerró un tramo de mes anterior) y un nuevo tramo de junio al 50%. La auditoría de US3 capturaría las dos operaciones; la BD solo refleja la última intención.
+
+---
+
+## 8. Fuera de scope
+
+- Reasignación manual de tareas desde la UI de equipo. Las tareas las gestiona `obligations-api` automáticamente vía AMQP (FR-016).
+- Validación de continuidad (impedir huecos entre tramos consecutivos del mismo `(client, department, role)`). El sistema no exige que el % "cuadre" entre cambios sucesivos en distintas fechas — la cobertura se valida solo a la fecha actual.
+- Soft-delete o restauración de equipos completos (`ClientTeam.endDate IS NOT NULL`). Cierre de equipo enteros se trata en US posterior.
+- Migración de datos legacy de `client_assignment` a `client_team_assignment`. No hay migración: las asignaciones de los clientes ya existentes se vuelven a meter manualmente desde la UI nueva cuando un responsable abra la ficha por primera vez.
+- Sincronización con Jira Assets más allá del consumo AMQP por `jira-adapter`. Política de sync pendiente con team lead.
+- Edición de filas del log de cambios (`client_team_assignment_change`). El log es estrictamente read-only en la API; las correcciones manuales (si surgieran) se harían vía script de mantenimiento con justificación documentada.
+
+---
+
+## 9. Open Questions
+
+- **OQ-001** — Granularidad temporal de obligations: ¿obligations consume el evento y reasigna tareas por `dueDate >= effectiveDate` o por algún otro criterio? Confirmar con team lead de obligations antes de cerrar contrato AMQP.
+- **OQ-002** — Cuando la cobertura de asesores se queda en 100% pero el asesor main sale sin sustituto (queda 0 primary activos), ¿el equipo pasa a `incomplete` aunque la cobertura siga al 100%? *(propuesta: sí — FR-011 lo exige; reflejar en FR-015.)*
+- **OQ-003** — ~~Shape final de `ClientTeamAssignmentChange`~~. **Cerrada 2026-06-04**: columnas explícitas before/after por campo (`employee_id_*`, `role_*`, `percentage_*`, `is_main_*`, `date_from_*`, `date_to_*`), audit propio (`created_at`, `created_by`, `updated_at`, `updated_by`), action enum con `voided` para FR-007. Sin JSON, sin denormalización de `department`/`client_id`. Ver §4.
+- **OQ-004** — Si dos asignaciones del mismo empleado+rol+cliente entran activas a la vez (caso accidental que FR-013 no protege), ¿el cálculo de antigüedad las trata como continuas o como cadena rota? *(propuesta: las trata como continuas; los `dateFrom` se ordenan y la cadena no se rompe.)*
+- **OQ-005** — Routing key exacta del evento de onboarding (FR-020). Hoy hipotetizamos `client-onboarding-assignment`. Confirmar con el producer (cliente / portal / sistema externo) antes de cerrar contrato del subscriber.
+- **OQ-006** — Comportamiento del DELETE de FR-007 cuando el tramo machacado ya tenía un evento AMQP `opened` publicado y consumido aguas abajo. Opciones: (a) publicar un evento de "revocación" inverso, (b) confiar en que el evento `opened` posterior con el nuevo estado prevalezca aunque haya inconsistencia temporal, (c) consolidar en una transacción AMQP. Decidir antes de implementar US1.
+
+---
+
+## 10. Glosario
+
+- **Asignación** (`ClientTeamAssignment`): tramo temporal de una persona en un rol dentro de un cliente+departamento.
+- **Cobertura** (antes "bucket"): suma de `percentage` de las asignaciones activas de un rol dentro de `(client, department)`. Hay dos coberturas independientes: asesores y técnicos.
+- **Equipo vigente a fecha**: proyección de las asignaciones cuyos `dateFrom <= fecha AND (dateTo IS NULL OR dateTo >= fecha)`.
+- **Reemplazo**: operación atómica close-old + open-new compartiendo `effectiveDate` normalizado al inicio del mes.
+- **Normalización de fecha**: redondeo automático de `effectiveDate` a primer día del mes pedido (cierre del anterior = último día del mes anterior). Aplica a todo el flujo de API normal; **no** aplica al subscriber de onboarding.
+- **Onboarding**: subscriber AMQP (routing key `client-onboarding-assignment`) que materializa el alta inicial del equipo con fechas tal cual. Único camino para tramos con `dateFrom` no normalizado.
+- **`inClientSince`**: campo derivado server-side. Fecha de entrada continua más antigua del empleado en el cliente. Renombrado desde `tenureSince` en la v2.
+- **Equipo completo**: cumple las cinco condiciones de FR-015. En cualquier otro caso, `incomplete`.
+- **Machacar / void** (FR-007): un tramo abierto en el mes en curso que es reemplazado por otra operación dentro del mismo mes. Si el miembro sigue, se actualiza in-place; si ya no debe estar, se "voida" (`date_to = date_from - 1 día`) — sigue en BD pero invisible a queries vivas.
+- **Log de cambios** (US-05): tabla `client_team_assignment_change` que registra cada mutación sobre `client_team_assignment` con before/after, autor y momento. Inmutable salvo corrección documentada.
+
+---
+
+## 11. Artefactos relacionados
+
+- `er-diagram.md` — modelo ER autoritativo (consolidado 2026-06-04). Refleja las 3 tablas: `client_team`, `client_team_assignment`, `client_team_assignment_change`.
+- `decisions.md` — ADRs heredados. ADR-0017 (successor required on causes_baja close) queda **superseded** por esta spec. ADR-0012, ADR-0010, ADR-0009, ADR-0015 siguen vigentes. OQ-003 cerrada en esta v2.
+- `_archive/` — versión anterior de la spec y derivados, congelada para trazabilidad.
+- `designs/` — frames de UI; revisar contra esta spec para detectar gaps (la lista de gaps de `designs/INDEX.md` puede tener entradas obsoletas).
