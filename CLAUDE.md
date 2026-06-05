@@ -53,6 +53,7 @@ Workspace-wide guidance lives in `.claude/rules/`. Files without `paths:` frontm
 | `polyrepo-cross-service.md` | always     | Verificar en código antes de especular sobre flujos AMQP cross-service |
 | `speckit-workflow.md`   | `specs/**`, `.specify/**` | Recommended `/speckit-*` flow + active commands |
 | `speckit-extensions.md` | `.specify/extensions/**` | Crear/editar extensiones, bug del CLI |
+| `rest-api-design.md`    | `specs/**/contracts/**`, `**/application/rest/**` | Principios REST: recursos no acciones, status codes RFC, embebido de agregados |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

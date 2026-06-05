@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.afianza.internal/pgi-api/v1/client-team-assignment.closed.schema.json",
+  "title": "client-team-assignment.closed",
+  "description": "Evento publicado por pgi-api cuando un tramo de asignación se cierra (UPDATE que setea date_to) o se machaca por FR-007 (DELETE in-month). Routing key: pgi-api.v1.client-team-assignment.closed.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "occurredAt",
+    "assignmentId",
+    "clientTeamId",
+    "clientId",
+    "department",
+    "employeeId",
+    "role",
+    "closureKind"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "assignmentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "clientTeamId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "clientId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "department": {
+      "type": "string",
+      "enum": ["fiscal", "laboral"]
+    },
+    "employeeId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["responsable", "coordinador", "asesor", "tecnico"]
+    },
+    "dateTo": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de cierre efectiva. Último día del mes excepto en eventos originados por onboarding. Ausente si closureKind='deleted_in_month'."
+    },
+    "closureKind": {
+      "type": "string",
+      "enum": ["closed", "deleted_in_month"],
+      "description": "'closed' = cierre normal (UPDATE date_to). 'deleted_in_month' = el tramo fue creado y borrado en el mismo mes en curso (FR-007 machacado) — el consumer debe tratar como si nunca hubiera existido."
+    },
+    "version": {
+      "type": "integer",
+      "description": "Version de la fila tras cierre. Ausente si closureKind='deleted_in_month' (la fila ya no existe)."
+    }
+  }
+}

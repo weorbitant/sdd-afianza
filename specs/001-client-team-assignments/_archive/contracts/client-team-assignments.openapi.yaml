@@ -1,0 +1,289 @@
+openapi: 3.0.3
+info:
+  title: pgi-service-pgi-api · Client Team Assignments (US1)
+  version: 0.1.0
+  description: |
+    CRUD de miembros de equipo (ClientAssignment ligado a un ClientTeam).
+    Cada operación persiste de inmediato y recomputa el estado del equipo.
+
+servers:
+  - url: https://pgi-api.afianza.internal
+  - url: http://localhost:3000
+
+security:
+  - azureAdJwt: []
+
+paths:
+  /client-teams/{teamId}/assignments:
+    post:
+      summary: Add a member to a team
+      description: |
+        Requires `CLIENT_ASSIGNMENT_EDIT`. Persists immediately. The team may remain
+        `incomplete` after this operation if coberturas/composition rules not yet met.
+
+        Errors:
+        - 422 `CLIENT_ASSIGNMENT_DUPLICATE_ACTIVE` if the employee already has an active
+          assignment for this client (FR-021).
+        - 422 `CLIENT_ASSIGNMENT_TEAM_MISMATCH` if `clientId`/`department` would not match team's.
+        - 422 `CLIENT_TEAM_DATE_NOT_MONTH_BOUNDARY` if `dateFrom` is not first day of month.
+        - 422 `CLIENT_ASSIGNMENT_PRIMARY_REQUIRES_ASESOR` if `isPrimaryAdvisor=true` with `role!=asesor`.
+        - 409 `CLIENT_TEAM_VERSION_CONFLICT` if `If-Match` does not match current team version.
+      operationId: createAssignment
+      parameters:
+        - $ref: '#/components/parameters/TeamId'
+        - $ref: '#/components/parameters/IfMatchTeamVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssignmentRequest'
+      responses:
+        '201':
+          description: Member created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /client-team-assignments/{assignmentId}:
+    patch:
+      summary: Update an existing assignment (percentage, dates)
+      description: |
+        Only `percentage`, `dateTo` are mutable. To change `role` or `employee` close
+        the current row (`dateTo`) and create a new one (FR-016 & Clarifications 2026-06-01).
+      operationId: updateAssignment
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+        - $ref: '#/components/parameters/IfMatchAssignmentVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssignmentRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      summary: Close an assignment (sets dateTo)
+      description: |
+        Despite the verb, this NEVER deletes the row — it sets `dateTo` to the last day
+        of the requested month (FR-010 + PO 2026-06-01 decision #6). The row stays as
+        historical record. US1 scope: simple close — no `causesBaja` handling (US4).
+      operationId: closeAssignment
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+        - $ref: '#/components/parameters/IfMatchAssignmentVersion'
+        - in: query
+          name: dateTo
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Must be last day of a month (FR-012).
+      responses:
+        '200':
+          description: Closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /client-team-assignments/{assignmentId}/promote-primary:
+    patch:
+      summary: Promote an asesor as the primary advisor for (client, department)
+      description: |
+        Atomically demotes the current primary (if any) and promotes the target
+        within the same transaction (R-009). Both must be `role=asesor` and active.
+      operationId: promotePrimaryAdvisor
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+        - $ref: '#/components/parameters/IfMatchAssignmentVersion'
+      responses:
+        '200':
+          description: Primary promoted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+components:
+  securitySchemes:
+    azureAdJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TeamId:
+      in: path
+      name: teamId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AssignmentId:
+      in: path
+      name: assignmentId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IfMatchTeamVersion:
+      in: header
+      name: If-Match
+      required: true
+      schema:
+        type: integer
+      description: Current `version` of the team (optimistic concurrency — ADR-0010).
+    IfMatchAssignmentVersion:
+      in: header
+      name: If-Match
+      required: true
+      schema:
+        type: integer
+      description: Current `version` of the assignment.
+
+  schemas:
+    Department:
+      type: string
+      enum: [fiscal, laboral]
+
+    Role:
+      type: string
+      enum: [responsable, coordinador, asesor, tecnico]
+
+    CreateAssignmentRequest:
+      type: object
+      required: [employeeId, role, dateFrom]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/Role'
+        dateFrom:
+          type: string
+          format: date
+          description: First day of month (FR-012).
+        percentage:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 100
+        isPrimaryAdvisor:
+          type: boolean
+          default: false
+          description: Only valid if role=asesor. Use /promote-primary to swap an existing primary.
+
+    UpdateAssignmentRequest:
+      type: object
+      properties:
+        percentage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        dateTo:
+          type: string
+          format: date
+          nullable: true
+
+    Assignment:
+      type: object
+      required: [id, teamId, clientId, employeeId, role, department, dateFrom, percentage, isPrimaryAdvisor, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        teamId:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/Role'
+        department:
+          $ref: '#/components/schemas/Department'
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
+          nullable: true
+        percentage:
+          type: integer
+        isPrimaryAdvisor:
+          type: boolean
+        version:
+          type: integer
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+  responses:
+    Forbidden:
+      description: Missing CLIENT_ASSIGNMENT_EDIT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    VersionConflict:
+      description: Optimistic concurrency — version stale
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Domain validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
