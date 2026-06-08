@@ -112,14 +112,31 @@ Tramo temporal: una persona, en un rol, dentro de un `clientTeam`, durante un in
 Agrupador `(clientId, department)`. Multi-equipo permitido (varios `clientTeam` para el mismo `(clientId, department)`). Las validaciones de cobertura son **cross-team** dentro del par `(clientId, department)`, no por equipo individual.
 
 ### Vista vigente
-Función `getActiveTeamAt(clientId, department, date)` devuelve todas las asignaciones donde `dateFrom <= date AND (dateTo IS NULL OR dateTo > date)`. Por defecto `date = today`.
+Función `getActiveTeamAt(clientId, department, date)` devuelve todas las asignaciones donde `dateFrom <= date AND (dateTo IS NULL OR dateTo > date)` (half-open: `dateTo` del tramo saliente = `dateFrom` del tramo entrante — sin `±1 día`). Por defecto `date = today`.
+
+### Modelo de fotos de departamento (governing model)
+
+El historial temporal de un `(client, department)` es una **secuencia ordenada de fotos completas**. Cada snapshot (onboarding o UI) es una foto de todos los equipos y roles del departamento, estampada con una fecha efectiva `D`. Cada foto gobierna el intervalo `[D, N)`:
+
+- `N` = `dateFrom` del siguiente snapshot del mismo `(client, department)` — **a nivel de departamento, sin distinción de equipo ni de rol**.
+- Si no hay snapshot posterior, `N = ∞` (tramo abierto, `dateTo = NULL`).
+
+Al insertar un nuevo snapshot con fecha `D`:
+1. El engine calcula `N` department-wide.
+2. Solo el intervalo `[D, N)` se reescribe: diff contra el estado en efecto en `D`.
+3. El snapshot en `N` se **preserva byte-for-byte** — incluye a las personas que lista para ese momento. Si ese snapshot sigue listando a alguien que el nuevo elimina, esa persona "reaparece" en `N`. Para extender el cambio más allá de `N`, el usuario debe editar el snapshot de `N` explícitamente.
+4. Tramos activos en `[D, N)` que la nueva foto no incluye: **cerrados** (`dateTo = D`) si `dateFrom < F`; **borrados físicamente** si `dateFrom ≥ F` (eran provisionales — planes, no hechos).
+5. Tramos de personas nuevas en la foto: abiertos desde `D` hasta `N` (o sin `dateTo` si `N = ∞`).
+6. **Coalescing**: si una persona aparece sin cambio de atributos en fotos consecutivas, los tramos contiguos se fusionan en uno solo.
+
+> **UX**: la UI debe mostrar los snapshots futuros ya planificados. Una persona reemplazada en `D` puede "reaparecer" en un snapshot posterior que la sigue listando — este comportamiento debe ser visible para el usuario.
 
 ### Reemplazo / cambio de % / redistribución
 Vía API normal (UI backoffice):
-1. **Normalizar la fecha efectiva** a primer día del mes pedido (mes en curso o futuro). Rechazar si cae en mes pasado.
+1. **Normalizar la fecha efectiva** a `D = primer día del mes pedido` (mes en curso o futuro). Rechazar si cae en mes pasado.
 2. **Si ya existe un tramo previo en el mismo mes** (creado por otra operación dentro del mismo mes en curso), borrarlo o convertirlo según corresponda (FR-007 — solo el último estado del mes sobrevive).
-3. Para cada miembro saliente o que cambia: `UPDATE` cerrando con `dateTo = último día del mes anterior al normalizado`.
-4. Para cada miembro entrante o que cambia: `INSERT` con `dateFrom = primer día del mes normalizado` y `dateTo = día anterior al siguiente tramo futuro pre-existente` de la misma persona+rol (FR-006-bis) o `NULL` si no hay tramo futuro previo.
+3. Para cada miembro saliente o que cambia: `UPDATE` cerrando con `dateTo = D` (half-open — mismo valor que `dateFrom` del tramo entrante, ver FR-002).
+4. Para cada miembro entrante o que cambia: `INSERT` con `dateFrom = D` y `dateTo = N` donde `N` = siguiente fecha de foto del departamento (governing model, ver FR-006-bis) o `NULL` si no hay foto posterior.
 
 Todas las operaciones de un cambio ocurren en la misma transacción con `SELECT … FOR UPDATE` sobre la fila `client` para serializar transiciones (FR-024).
 
@@ -129,10 +146,9 @@ El subscriber AMQP del routing key `client-onboarding-assignment` materializa el
 ### Antigüedad (`inClientSince`)
 Campo derivado calculado al leer. Para una pareja `(clientId, employeeId)`:
 - Buscar las asignaciones de ese empleado en ese cliente ordenadas por `dateFrom` descendente.
-- Recorrer hacia atrás mientras los tramos encadenen sin hueco (`dateTo` del siguiente >= `dateFrom` del previo, considerando que tramos con la misma fecha límite son contiguos).
+- Recorrer hacia atrás mientras los tramos encadenen sin hueco (half-open: `dateTo` del tramo anterior = `dateFrom` del siguiente).
 - `inClientSince` = `dateFrom` del tramo más antiguo de esa cadena continua.
-- Si el empleado salió y volvió (hay un hueco), la cadena se rompe — `inClientSince` arranca del último re-ingreso.
-- Los tramos voided (`date_to < date_from`) se ignoran completamente — no rompen ni extienden cadenas.
+- Si el empleado salió y volvió (hay un hueco entre tramos), la cadena se rompe — `inClientSince` arranca del último re-ingreso.
 
 Implementado en `compute-in-client-since.helper.ts` con tests unitarios.
 
@@ -164,12 +180,11 @@ Como responsable o coordinador, quiero dar de alta el primer equipo de un client
 
 <!-- internal-only -->
 **Notas técnicas internas**
-- **API contract** (cerrar primero — ver `contracts/rest/client-assignments.openapi.yaml`). URLs como recursos puros (sin verbos), shape `{ data, total, ...extras }`, NestJS exception shapes, `@PermissionsRequired`:
-  - `POST /api/v1/clients/{clientId}/team-assignments` — crea una asignación (auto-crea `ClientTeam` si no existe). Body: `{ department, employeeId, role, percentage, isMain, dateFrom }`. Response 201 con `{ id }`. Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`.
-  - `GET /api/v1/clients/{clientId}/team-assignments?department={dept}&date={date?}` — listado vigente a fecha (default hoy; acepta fechas pasadas y futuras). Response: `{ data: [...], total, coverage, mainAsesorPresent, status }`. Cada miembro lleva `inClientSince` (fecha derivada server-side, ver §4). Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_VIEW`.
-  - `GET /api/v1/clients/{clientId}/team-assignments/{id}` — recupera una asignación concreta.
-  - Errores con `NestJS exception filters` built-in → shape `{ statusCode, message, error }`. Sin `application/problem+json`, sin códigos `SCREAMING_SNAKE_CASE` (consistencia con resto de pgi-api).
-  - Optimistic concurrency vía campo `version` en body de la entity (sin `If-Match` header). Conflicto = 409 `ConflictException`.
+- **API contract** (ver `contracts/rest/client-assignments.openapi.yaml`). URLs como recursos puros, NestJS exception shapes, `@PermissionsRequired`:
+  - `PUT /api/v1/clients/{clientId}/team-assignments` — aplica un snapshot completo del `(client, department)`. Body `TeamSnapshotRequest`: `{ department, dateFrom, teams: [{ clientTeamId?, responsable, coordinador?, asesores: [{ employeeId, percentage, isMain }], tecnicos: [{ employeeId, percentage }] }] }`. `dateFrom` es cualquier día del mes; el engine normaliza a día 1. RESP/COORD no llevan `percentage` (siempre 100, sistema — D4). El engine auto-crea `ClientTeam` si `clientTeamId` es ausente. Response 204. Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`.
+  - `GET /api/v1/clients/{clientId}/team-assignments?department={dept}&date={date?}` — listado vigente a fecha (default hoy; acepta fechas pasadas y futuras). Response `{ data: [...], total, coverage, mainAsesorPresent, status }`. Cada miembro lleva `inClientSince` (derivado server-side, ver §4). Requiere `BackofficePermissions.CLIENT_ASSIGNMENT_VIEW`.
+  - `GET /api/v1/clients/{clientId}/team-assignments/{id}` — detalle de una asignación.
+  - Errores: `NestJS exception filters` → `{ statusCode, message, error }`. 409 en conflicto de versión. 422 en reglas de negocio (mes pasado, % ≠ 100, main incorrecto, equipo omitido…).
 - **Convenciones REST aplicadas**: ver `.claude/rules/rest-api-design.md` (sección "Convenciones reales en uso"). El servicio pgi-api tiene patrones establecidos y este endpoint los respeta.
 - **FRs cubiertos**: FR-001, FR-002, FR-009, FR-010, FR-011, FR-012, FR-013, FR-015, FR-016, FR-021, FR-022, FR-024, FR-025.
 - **Fuera de scope**: editar miembros existentes (US-02), cambios futuros (US-03), log de cambios (US-05), verificar efecto en obligations (US-06).
@@ -190,7 +205,7 @@ Las composiciones reales de equipos cambian con frecuencia dentro del mes (algui
 Como responsable o coordinador, quiero modificar la composición del equipo dentro del mes en curso (sustituir una persona, cambiar el porcentaje de carga, redistribuir cobertura entre varios), para mantener el equipo alineado con la realidad operativa sin esperar al cambio de mes.
 
 **Criterios de aceptación**
-1. **Reemplazo simple**: en un equipo activo, sustituyo un asesor por otro al mismo porcentaje a partir de una fecha del mes en curso. El saliente queda cerrado el último día del mes anterior y el entrante activo desde el primer día del mes en curso. La cobertura no se altera.
+1. **Reemplazo simple**: en un equipo activo, sustituyo un asesor por otro al mismo porcentaje a partir de una fecha del mes en curso. El saliente cierra con `dateTo` = primer día del mes en curso (half-open — mismo valor que `dateFrom` del entrante); el entrante queda activo desde ese primer día. La cobertura no se altera.
 2. **Cambio de porcentaje**: reduzco el porcentaje de un asesor y reparto el restante a otro que entra. El asesor que se queda tiene dos tramos consecutivos sin hueco; la cobertura suma 100% y su antigüedad se preserva.
 3. **Redistribución**: un asesor sale y dos nuevos entran repartiendo su porcentaje. La cobertura sigue al 100% y queda exactamente un asesor main.
 4. **Segundo cambio en el mismo mes**: tras un cambio, hago otro distinto unos días después. El tramo del primer cambio se sobrescribe — solo el resultado final del mes queda visible en la UI; el primero se voida (queda en BD pero invisible).
@@ -201,18 +216,18 @@ Hoy es 15 de junio. Tengo el equipo fiscal con Alfonso al 100% como asesor main.
 
 | Empleado | Rol | Desde | Hasta | % |
 |---|---|---|---|---|
-| Alfonso | asesor (main) | 20/05/2026 | **31/05/2026** | 100 |
+| Alfonso | asesor (main) | 20/05/2026 | **01/06/2026** | 100 |
 | David | asesor (main) | **01/06/2026** | — | 100 |
 
 Cobertura asesores 100%, equipo `complete`. El log de cambios (US-05) registra dos filas: `action='closed'` sobre Alfonso y `action='opened'` sobre David.
 
 <!-- internal-only -->
 **Notas técnicas internas**
-- **API contract**. URLs como recursos puros (sin verbos). Sin `effectiveDate`: el cliente envía `dateFrom` (inicio del tramo nuevo) o `dateTo` (cierre del tramo existente) según corresponda. Backend valida que `dateFrom` sea primer día de mes (FR-002).
-  - **Operación atómica multi-miembro** (reemplazo, redistribución, cambio de %): `PUT /api/v1/clients/{clientId}/team-assignments?department=fiscal&dateFrom=2026-06-01` con body `{ members: [ { employeeId, role, percentage, isMain }, ... ] }`. Significa "el equipo del cliente en ese departamento desde esa fecha es éste". Backend hace el diff contra el estado actual y resuelve cierres+aperturas dentro de una transacción con `SELECT … FOR UPDATE` (FR-024). Idempotente. Response 204.
-  - **Modificar metadato de un tramo** (cambiar `isMain` o cerrar): `PUT /api/v1/clients/{clientId}/team-assignments/{id}` con body `{ isMain?, dateTo?, version }`. Response 204.
-  - **Eliminar (void) un tramo creado por error en el mes en curso (FR-007)**: `DELETE /api/v1/clients/{clientId}/team-assignments/{id}`. Response 204. No es DELETE físico — se traduce internamente a `UPDATE date_to = date_from - 1 día` para que el tramo quede invisible a queries de vista vigente pero auditable.
-  - Permission común: `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`. Errores con `NestJS exceptions`. 409 `ConflictException` si `version` no coincide. 422 `UnprocessableEntityException` si `dateFrom` cae en mes pasado o rompe `is_main` único.
+- **API contract**. URLs como recursos puros (sin verbos).
+  - **Snapshot del equipo** (reemplazo, redistribución, cambio de %): `PUT /api/v1/clients/{clientId}/team-assignments` con body `TeamSnapshotRequest`: `{ department, dateFrom, teams: [{ clientTeamId, responsable, coordinador?, asesores: [{ employeeId, percentage, isMain }], tecnicos: [...] }] }`. `dateFrom` es cualquier día del mes en curso; el engine normaliza a `F`. RESP/COORD sin `percentage`. Idempotente. Response 204.
+  - **Modificar metadato de un tramo** (cambiar `isMain` o cerrar): `PUT /api/v1/clients/{clientId}/team-assignments/{id}` con body `{ isMain?, dateTo?, version }`. `dateTo` es el half-open upper bound (primer día del mes en que deja de estar activo). Response 204.
+  - **Borrar tramo provisional (FR-007)**: `DELETE /api/v1/clients/{clientId}/team-assignments/{id}`. Solo tramos con `dateFrom ≥ F`. DELETE físico; log registra `action='voided'`. Response 204.
+  - Permission común: `BackofficePermissions.CLIENT_ASSIGNMENT_EDIT`. 409 si `version` no coincide. 422 si `dateFrom` en mes pasado, snapshot inválido (% ≠ 100, main incorrecto, equipo omitido, `clientTeamId` desconocido…).
 - **FRs cubiertos**: FR-002, FR-003, FR-005, FR-007, FR-008, FR-009, FR-013, FR-014, FR-017, FR-024.
 - **Fuera de scope**: cambios con `dateFrom` futuro (US-03), reasignación de tareas en obligations (US-06).
 
@@ -302,7 +317,7 @@ Como responsable, quiero registrar con antelación cambios de equipo que entran 
 
 <!-- internal-only -->
 **Notas técnicas internas**
-- **API contract**: mismos endpoints que US-02 admitiendo `effectiveDate` en mes futuro. `GET …/teams?at={future-date}` para previsualizar.
+- **API contract**: misma operación que US-02 — `PUT /api/v1/clients/{clientId}/team-assignments` con `TeamSnapshotRequest`. El `dateFrom` puede ser un mes futuro; el engine lo acota hasta el siguiente snapshot del departamento (`N` — governing model, FR-006-bis). Para previsualizar: `GET …/team-assignments?department={dept}&date={future-date}`.
 - **FRs cubiertos**: FR-002, FR-006, FR-006-bis.
 - **Fuera de scope**: edición destructiva de cambios futuros ya programados (se sobrescribe programando otro encima en el mismo mes — FR-007).
 
@@ -350,25 +365,26 @@ Como responsable que cambia un asesor en el equipo, quiero que las tareas abiert
 ### Composición y persistencia
 
 - **FR-001** — Toda asignación persiste como tramo con `dateFrom` obligatorio. `dateTo` NULL indica tramo activo a partir de `dateFrom`.
-- **FR-002** — Las operaciones vía API normal (UI backoffice) **normalizan la fecha efectiva del cambio al primer día del mes pedido**:
-  - Si `effectiveDate` cae en el mes en curso, se ajusta a primer día del mes en curso. El cierre del tramo anterior es el último día del mes anterior.
-  - Si `effectiveDate` cae en un mes futuro, se ajusta a primer día de ese mes futuro. El cierre del tramo anterior es el último día del mes anterior al pedido.
+- **FR-002** — Las operaciones vía API normal (UI backoffice) **normalizan la fecha efectiva del cambio al primer día del mes pedido** usando **intervalos half-open `[dateFrom, dateTo)`** (activo en `t` ssi `dateFrom <= t AND (dateTo IS NULL OR dateTo > t)`):
+  - Si `effectiveDate` cae en el mes en curso, se ajusta a `F` (primer día del mes en curso). El tramo saliente cierra con `dateTo = F` (= `dateFrom` del tramo entrante). Sin `±1 día`.
+  - Si `effectiveDate` cae en un mes futuro, se ajusta al primer día de ese mes (`D`). El tramo saliente cierra con `dateTo = D`.
   - El frontend puede dejar al usuario indicar un día concreto; el backend lo redondea de forma transparente. Se acepta perder la trazabilidad fina del día real del cambio dentro del mes, a cambio de evitar tramos sucios en mitad de mes.
+  - **`F` (rewrite frontier)** = primer día del mes en curso. Tramos con `dateFrom ≥ F` son **provisionales** (borrables cuando son superseded). Tramos con `dateFrom < F` son **inmutables** (solo se cierran, nunca se borran físicamente).
 - **FR-003** — Cambios con `effectiveDate` en un mes anterior al mes en curso **se rechazan** con HTTP 422 `CLIENT_TEAM_ASSIGNMENT_PAST_DATE_NOT_ALLOWED`. El sistema no permite manipular el histórico vía la API normal.
 - **FR-004** — **Excepción onboarding**: las asignaciones que entran por el subscriber AMQP de onboarding (routing key `client-onboarding-assignment` o equivalente — exacto pendiente de confirmar con el producer) **conservan las fechas tal cual las recibe**, sin normalización a inicio de mes y sin restricción de mes pasado/futuro. Es el único camino para introducir tramos con fechas no-normalizadas.
-- **FR-005** — Una operación de **reemplazo** (cambio de persona, cambio de %, redistribución, o salida sin sustituto) se ejecuta como una transacción atómica que cierra los tramos salientes con `dateTo = último día del mes anterior al normalizado` y abre los entrantes con `dateFrom = primer día del mes normalizado`. La fecha normalizada actúa como punto de corte único.
+- **FR-005** — Una operación de **reemplazo** (cambio de persona, cambio de %, redistribución, o salida sin sustituto) se ejecuta como una transacción atómica que cierra los tramos salientes con `dateTo = D` y abre los entrantes con `dateFrom = D`, donde `D` = primer día del mes normalizado (half-open — no `±1 día`). La fecha normalizada actúa como punto de corte único.
 - **FR-006** — Se permite registrar asignaciones con `effectiveDate` futuro (mes posterior al actual). La vista vigente del equipo a `today` no las incluye hasta que llegue la fecha normalizada.
-- **FR-006-bis** — **Preservación de tramos futuros pre-existentes**. Cuando se registra un cambio con `effectiveDate` futuro, el nuevo tramo de cada miembro entrante o que cambia va desde la `effectiveDate` normalizada hasta el **día anterior al `dateFrom` del siguiente tramo futuro pre-existente del mismo `(clientTeamId, employeeId, role)`**, si lo hay. Si no hay tramo futuro pre-existente para esa persona+rol, el nuevo tramo queda abierto (`dateTo = NULL`). Análogamente, el tramo actual que se está cortando se cierra con `dateTo = último día del mes anterior al normalizado`. Esto permite "insertar" cambios intermedios entre el estado actual y un cambio futuro ya planificado, sin invalidar la planificación previa.
+- **FR-006-bis** — **Governing model: el bound de inserción es department-wide.** Al insertar un snapshot con fecha efectiva `D`, el engine calcula `N = dateFrom` del siguiente snapshot ya registrado del mismo `(client, department)`, **sin distinción de equipo ni de rol** — cualquier cambio en cualquier equipo o rol del departamento crea un breakpoint que acota a todos los demás. Los nuevos tramos abren desde `D` hasta `N`; si no hay snapshot posterior, `dateTo = NULL`. El snapshot en `N` se preserva byte-for-byte: si sigue listando a alguien que el snapshot `D` elimina, esa persona reaparece en `N`. Para extender el cambio de `D` más allá de `N`, el usuario edita el snapshot de `N` explícitamente. Ver §4 "Modelo de fotos de departamento".
 - **FR-007** — Cuando, dentro del mes en curso, llegan **múltiples cambios sucesivos** sobre el mismo `(client, department)`, los tramos previamente creados en este mismo mes (cualquier fila con `dateFrom = primer día del mes en curso` que no exista de antes) son **machacados** por el cambio más reciente:
   - Si el miembro sigue presente con otros atributos: `UPDATE` in-place de su fila (cambia `percentage`, `role`, `isMain`).
-  - Si el miembro ya no debe estar tras el nuevo cambio: la fila se **voida** — `UPDATE date_to = date_from - 1 día`. No hay DELETE físico. El tramo queda invisible a queries de vista vigente (ningún `date` satisface `date_from <= date AND date_to >= date` cuando `date_to < date_from`) pero la fila persiste para auditoría. En el log (`client_team_assignment_change`) se registra con `action='voided'`.
+  - Si el miembro ya no debe estar tras el nuevo cambio: como estos tramos tienen `dateFrom = F` (son provisionales, ver FR-002), se **borran físicamente** (`DELETE`). El log (`client_team_assignment_change`) registra el borrado con `action='voided'` antes del `DELETE`, preservando la trazabilidad. El mismo criterio aplica a tramos futuros provisionales (`dateFrom > F`) que son superseded por un nuevo snapshot.
   - Los tramos creados en meses **anteriores** al actual NO se machacan; se cierran con `dateTo` como en una operación normal.
   Razón: el modelo no admite dos cortes en el mismo mes; solo la última intención del usuario sobrevive como tramo "vivo" en BD. El log de cambios (US-05) registra cada operación.
 - **FR-008** — La edición destructiva (UPDATE/DELETE de tramos históricos con `dateFrom` en mes anterior al actual o `dateTo` no nulo) está **prohibida** vía API normal. Solo se permite mutar tramos cuyo `dateFrom` esté en el mes en curso o tramos activos (`dateTo IS NULL`) para: (a) cerrarlos, (b) ajustar `isMain`, (c) machacar conforme a FR-007.
 
 ### Validaciones
 
-- **FR-009** — Por cada `(client, department)`, la suma de `percentage` de los asesores activos a fecha `today` debe ser exactamente **100%**. Si no se cumple, el equipo está en estado `incomplete` (banner advisory en UI, no bloquea persistencia individual).
+- **FR-009** — Por cada `(client, department)`, la suma de `percentage` de los asesores activos a fecha `today` debe ser exactamente **100%**. Si no se cumple, el equipo está en estado `incomplete` (banner advisory en UI, no bloquea persistencia individual). Los porcentajes son **enteros** (1–100, sin decimales); valores no enteros, negativos o superiores a 100 se rechazan con HTTP 422.
 - **FR-010** — Por cada `(client, department)`, la suma de `percentage` de los técnicos activos a fecha `today` debe ser exactamente **100%** **si existe al menos un técnico**. Si no hay ningún técnico, la cobertura técnica es "no aplicable" y no bloquea.
 - **FR-011** — `is_main=true` solo es válido cuando `role='asesor'`. Hay **exactamente uno** activo por `(client, department)` — validado a nivel de servicio (no a nivel BD, porque `client` y `department` no están denormalizados en `client_team_assignments`). CHECK constraint `is_main = false OR role = 'asesor'` sí se aplica a nivel BD.
 - **FR-012** — Antes de crear una asignación en departamento `X`, el cliente debe tener al menos un `ProvidedService` activo con `family=X`. Si no, rechazar con HTTP 422 `CLIENT_TEAM_ASSIGNMENT_NO_PROVIDED_SERVICE`.
@@ -397,6 +413,7 @@ Como responsable que cambia un asesor en el equipo, quiero que las tareas abiert
 
 - **FR-024** — Toda operación de escritura sobre asignaciones de un `(client, department)` adquiere `SELECT ... FOR UPDATE` sobre la fila `client` correspondiente antes de leer cobertura y persistir cambios. Esto serializa transiciones de completo/incompleto y garantiza "exactamente un evento AMQP por transición" (mantiene la lógica de ADR-0015).
 - **FR-025** — Las mutaciones de `ClientTeam` y `ClientTeamAssignment` usan optimistic concurrency con `version`. Cliente envía `version` actual; servidor incrementa o devuelve `409 VERSION_CONFLICT`.
+- **FR-026** — Un `clientTeamId` presente en el snapshot debe pertenecer al `(client, department)` indicado. Un `clientTeamId` inexistente o perteneciente a otro cliente/departamento → rechazo HTTP 422.
 
 ---
 
@@ -416,20 +433,20 @@ El evento de onboarding (`client-onboarding-assignment`) llega con tres asignaci
 
 Cobertura asesores = 100% ✓. Sin técnicos → cobertura técnica N/A. Equipo `complete` → se publican tres eventos `client-team-assignment.opened`.
 
-### 7.2. Reemplazo en mes en curso (registrado 15/06/2026 — Alfonso sale, David entra)
+### 7.2. Snapshot en mes en curso — foto única, sin fotos posteriores (registrado 15/06/2026, D = F = 01/06/2026)
 
 Estado antes (de §7.1):
 - Perico — coordinador — 20/05/2026 → NULL — 100
 - Alberto — responsable — 20/05/2026 → NULL — 100
 - Alfonso — asesor (main) — 20/05/2026 → NULL — 100
 
-Operación: reemplazar Alfonso por David al 100%. La fecha efectiva del cambio cae en el mes en curso (junio) → normaliza a **01/06/2026**. Cierre de Alfonso: **31/05/2026** (último día del mes anterior).
+Operación: reemplazar Alfonso por David al 100%. La fecha efectiva del cambio cae en el mes en curso (junio) → `D = 01/06/2026`. Cierre de Alfonso: `dateTo = 01/06/2026` (half-open — mismo valor que `dateFrom` de David).
 
 | empleado | rol | dateFrom | dateTo | % |
 |---|---|---|---|---|
 | Perico | coordinador | 20/05/2026 | NULL | 100 |
 | Alberto | responsable | 20/05/2026 | NULL | 100 |
-| Alfonso | asesor (main) | 20/05/2026 | **31/05/2026** | 100 |
+| Alfonso | asesor (main) | 20/05/2026 | **01/06/2026** | 100 |
 | David | asesor (main) | **01/06/2026** | NULL | 100 |
 
 Cobertura asesores `at=today` = 100% (solo David). Se publica `client-team-assignment.closed` para Alfonso y `.opened` para David en la misma transacción.
@@ -441,63 +458,63 @@ Estado antes:
 - Alberto — responsable — 20/05/2026 → NULL — 100
 - David — asesor (main) — 01/06/2026 → NULL — 100
 
-Operación: a partir de septiembre, David ya no está; Juan y Paloma asesores al 50% cada uno. Septiembre es futuro → normaliza a **01/09/2026**. David cierra **31/08/2026**.
+Operación: a partir de septiembre, David ya no está; Juan y Paloma asesores al 50% cada uno. Septiembre es futuro → `D = 01/09/2026`. Cierre de David: `dateTo = 01/09/2026` (half-open).
 
 | empleado | rol | dateFrom | dateTo | % |
 |---|---|---|---|---|
 | Perico | coordinador | 20/05/2026 | NULL | 100 |
 | Alberto | responsable | 20/05/2026 | NULL | 100 |
-| David | asesor (main) | 01/06/2026 | **31/08/2026** | 100 |
+| David | asesor (main) | 01/06/2026 | **01/09/2026** | 100 |
 | Juan | asesor (main) | **01/09/2026** | NULL | 50 |
 | Paloma | asesor | **01/09/2026** | NULL | 50 |
 
-Hasta el 31/08 sigue David al 100. Desde el 01/09 entran Juan (main) + Paloma. El responsable elige main vía UI; el sistema no infiere. No hay tramos futuros pre-existentes que respetar — los nuevos abren sin `dateTo`.
+Hasta el 31/08 sigue David al 100 (activo en `[01/06, 01/09)`). Desde el 01/09 entran Juan (main) + Paloma. El responsable elige main vía UI; el sistema no infiere. No hay tramos futuros pre-existentes que respetar — los nuevos abren sin `dateTo`.
 
 ### 7.4. Cambio futuro sin tramos futuros previos — reasignación (registrado 20/06/2026 con efectividad 01/09/2026 — David sigue al 50%, Juan entra al 50%)
 
 Estado antes: igual que §7.3 (David al 100, sin tramos futuros).
 
-Operación: desde septiembre, David baja a 50% y entra Juan al 50%. Normalización a **01/09/2026**. David cierra el tramo de 100 el **31/08/2026** y abre nuevo tramo de 50 el **01/09/2026**.
+Operación: desde septiembre, David baja a 50% y entra Juan al 50%. `D = 01/09/2026`. David cierra el tramo de 100 con `dateTo = 01/09/2026` (half-open) y abre nuevo tramo de 50 desde `01/09/2026`.
 
 | empleado | rol | dateFrom | dateTo | % |
 |---|---|---|---|---|
 | Perico | coordinador | 20/05/2026 | NULL | 100 |
 | Alberto | responsable | 20/05/2026 | NULL | 100 |
-| David | asesor (main) | 01/06/2026 | **31/08/2026** | 100 |
+| David | asesor (main) | 01/06/2026 | **01/09/2026** | 100 |
 | David | asesor (main) | **01/09/2026** | NULL | 50 |
 | Juan | asesor | **01/09/2026** | NULL | 50 |
 
-Tramos consecutivos para David (31/08 → 01/09 son días contiguos): su antigüedad **no se reinicia** — `tenureSince = 01/06/2026`.
+Tramos consecutivos para David (`dateTo` del primero = `dateFrom` del segundo = `01/09/2026`): su antigüedad **no se reinicia** — `inClientSince = 01/06/2026`.
 
-### 7.5. Cambio futuro CON tramo futuro previo — FR-006-bis en acción (registrado 23/06/2026 con efectividad 01/08/2026)
+### 7.5. Insert entre dos fotos — governing model en acción (registrado 23/06/2026 con efectividad 01/08/2026, foto previa en 01/09/2026)
 
 Estado antes (resultante de §7.4):
 - Perico — coordinador — 20/05/2026 → NULL — 100
 - Alberto — responsable — 20/05/2026 → NULL — 100
-- David — asesor (main) — 01/06/2026 → 31/08/2026 — 100
+- David — asesor (main) — 01/06/2026 → 01/09/2026 — 100
 - David — asesor (main) — 01/09/2026 → NULL — 50
 - Juan — asesor — 01/09/2026 → NULL — 50
 
-Operación: desde agosto, David al 75% y Juan al 25%. Normalización a **01/08/2026**. Esto cae **antes** del tramo futuro pre-existente de David (01/09 al 50) y de Juan (01/09 al 50). Por FR-006-bis, los nuevos tramos van desde 01/08/2026 hasta el **día anterior al siguiente tramo futuro pre-existente** = 31/08/2026.
+Operación: desde agosto, David al 75% y Juan al 25%. `D = 01/08/2026`. Aplicando el governing model (FR-006-bis): el siguiente snapshot del departamento está en `N = 01/09/2026` (department-wide — el snapshot de septiembre ya existe). Los nuevos tramos van desde `01/08/2026` hasta `01/09/2026` (half-open).
 
 | empleado | rol | dateFrom | dateTo | % |
 |---|---|---|---|---|
 | Perico | coordinador | 20/05/2026 | NULL | 100 |
 | Alberto | responsable | 20/05/2026 | NULL | 100 |
-| David | asesor (main) | 01/06/2026 | **31/07/2026** | 100 |
-| David | asesor (main) | **01/08/2026** | **31/08/2026** | 75 |
+| David | asesor (main) | 01/06/2026 | **01/08/2026** | 100 |
+| David | asesor (main) | **01/08/2026** | **01/09/2026** | 75 |
 | David | asesor (main) | 01/09/2026 | NULL | 50 |
-| Juan | asesor | **01/08/2026** | **31/08/2026** | 25 |
+| Juan | asesor | **01/08/2026** | **01/09/2026** | 25 |
 | Juan | asesor | 01/09/2026 | NULL | 50 |
 
-David tiene tres tramos consecutivos sin hueco (01/06 → 31/07 al 100, 01/08 → 31/08 al 75, 01/09 → ∞ al 50). Juan tiene dos: 01/08 → 31/08 al 25, 01/09 → ∞ al 50. Cobertura `at=2026-08-15` = 75 + 25 = 100 ✓. Cobertura `at=2026-09-15` = 50 + 50 = 100 ✓.
+David tiene tres tramos consecutivos sin hueco (`[01/06, 01/08)` al 100%, `[01/08, 01/09)` al 75%, `[01/09, ∞)` al 50%). Juan tiene dos: `[01/08, 01/09)` al 25%, `[01/09, ∞)` al 50%. Cobertura `at=2026-08-15` = 75 + 25 = 100 ✓. Cobertura `at=2026-09-15` = 50 + 50 = 100 ✓.
 
 ### 7.6. Múltiples cambios en el mes en curso (FR-007 — el último gana)
 
 Hoy es 15/06/2026. El responsable hace **dos cambios** consecutivos durante junio:
 
 1. **05/06/2026**: reemplaza Alfonso por David (igual que §7.2). Se crea David con `dateFrom=01/06/2026`.
-2. **20/06/2026**: vuelve a meter a Alfonso al 50% + Sara al 50%. El backend detecta que el tramo de David tiene `dateFrom=01/06/2026 = primer día del mes actual` (no existía antes de este mes) y lo **borra** (DELETE) — David desaparece como si nunca hubiera entrado.
+2. **20/06/2026**: vuelve a meter a Alfonso al 50% + Sara al 50%. El backend detecta que el tramo de David tiene `dateFrom = F = 01/06/2026` (tramo provisional, ver FR-002) y lo **borra físicamente** (`DELETE`) — David desaparece como si nunca hubiera entrado. El log registra `action='voided'` antes del borrado.
 
 Estado final tras los dos cambios, leyendo `at=today (15/06/2026)`:
 
@@ -505,11 +522,11 @@ Estado final tras los dos cambios, leyendo `at=today (15/06/2026)`:
 |---|---|---|---|---|
 | Perico | coordinador | 20/05/2026 | NULL | 100 |
 | Alberto | responsable | 20/05/2026 | NULL | 100 |
-| Alfonso | asesor (main) | 20/05/2026 | **31/05/2026** | 100 |
+| Alfonso | asesor (main) | 20/05/2026 | **01/06/2026** | 100 |
 | Alfonso | asesor (main) | **01/06/2026** | NULL | 50 |
 | Sara | asesor | **01/06/2026** | NULL | 50 |
 
-Alfonso queda con dos tramos: el viejo cierre del 31/05 (creado por la primera operación, preservado porque cerró un tramo de mes anterior) y un nuevo tramo de junio al 50%. La auditoría de US3 capturaría las dos operaciones; la BD solo refleja la última intención.
+Alfonso queda con dos tramos: el viejo cierre con `dateTo=01/06/2026` (half-open, creado por la primera operación, preservado porque cerró un tramo de mes anterior) y un nuevo tramo de junio al 50%. La auditoría de US-05 capturaría las dos operaciones; la BD solo refleja la última intención.
 
 ---
 
@@ -539,13 +556,14 @@ Alfonso queda con dos tramos: el viejo cierre del 31/05 (creado por la primera o
 
 - **Asignación** (`ClientTeamAssignment`): tramo temporal de una persona en un rol dentro de un cliente+departamento.
 - **Cobertura** (antes "bucket"): suma de `percentage` de las asignaciones activas de un rol dentro de `(client, department)`. Hay dos coberturas independientes: asesores y técnicos.
-- **Equipo vigente a fecha**: proyección de las asignaciones cuyos `dateFrom <= fecha AND (dateTo IS NULL OR dateTo >= fecha)`.
-- **Reemplazo**: operación atómica close-old + open-new compartiendo `effectiveDate` normalizado al inicio del mes.
-- **Normalización de fecha**: redondeo automático de `effectiveDate` a primer día del mes pedido (cierre del anterior = último día del mes anterior). Aplica a todo el flujo de API normal; **no** aplica al subscriber de onboarding.
+- **Equipo vigente a fecha**: proyección de las asignaciones cuyos `dateFrom <= fecha AND (dateTo IS NULL OR dateTo > fecha)` (half-open — un tramo cierra exactamente en su `dateTo`, no incluye ese día).
+- **Reemplazo**: operación atómica close-old + open-new con el mismo punto de corte `D` (half-open: `dateTo` del saliente = `dateFrom` del entrante = `D`).
+- **Normalización de fecha**: redondeo automático de `effectiveDate` a `D = primer día del mes pedido`. El tramo saliente cierra con `dateTo = D` (half-open — no "último día del mes anterior"). Aplica a todo el flujo de API normal; **no** aplica al subscriber de onboarding.
+- **Rewrite frontier `F`**: primer día del mes en curso. Tramos con `dateFrom < F` son inmutables (solo se cierran con `dateTo = D`). Tramos con `dateFrom ≥ F` son provisionales (se borran físicamente cuando son superseded).
 - **Onboarding**: subscriber AMQP (routing key `client-onboarding-assignment`) que materializa el alta inicial del equipo con fechas tal cual. Único camino para tramos con `dateFrom` no normalizado.
 - **`inClientSince`**: campo derivado server-side. Fecha de entrada continua más antigua del empleado en el cliente. Renombrado desde `tenureSince` en la v2.
 - **Equipo completo**: cumple las cinco condiciones de FR-015. En cualquier otro caso, `incomplete`.
-- **Machacar / void** (FR-007): un tramo abierto en el mes en curso que es reemplazado por otra operación dentro del mismo mes. Si el miembro sigue, se actualiza in-place; si ya no debe estar, se "voida" (`date_to = date_from - 1 día`) — sigue en BD pero invisible a queries vivas.
+- **Machacar** (FR-007): un tramo provisional (`dateFrom ≥ F`) que es reemplazado por otra operación dentro del mismo mes. Si el miembro sigue con otros atributos, se actualiza in-place; si ya no debe estar, se **borra físicamente** (`DELETE`) — el log registra `action='voided'` antes del borrado.
 - **Log de cambios** (US-05): tabla `client_team_assignment_change` que registra cada mutación sobre `client_team_assignment` con before/after, autor y momento. Inmutable salvo corrección documentada.
 
 ---
