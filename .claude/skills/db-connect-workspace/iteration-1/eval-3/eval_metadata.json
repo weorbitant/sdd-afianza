@@ -1,0 +1,16 @@
+{
+  "eval_id": 3,
+  "eval_name": "data-factory-missing-env",
+  "prompt": "Necesito consultar la base de datos de data-factory en dev. ¿Cómo me conecto?",
+  "assertions": [
+    {
+      "text": "Advierte que el repo no está clonado o que no hay .env disponible localmente"
+    },
+    {
+      "text": "Propone una alternativa concreta (kubectl, clonar repo, etc.) en lugar de dejar al usuario sin camino"
+    },
+    {
+      "text": "Menciona la base de datos correcta: pd-service-data-factory-dev"
+    }
+  ]
+}

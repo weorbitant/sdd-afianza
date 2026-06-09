@@ -360,6 +360,39 @@ Como responsable que cambia un asesor en el equipo, quiero que las tareas abiert
 
 ---
 
+#### US-07 — Propagación del nuevo equipo a plataforma del dato
+
+**Contexto**
+Cuando pgi-api crea o cierra una asignación de `ClientTeamAssignment`, `pd-service-data-factory` y `pd-service-jira-adapter` no se enteran: solo escuchan los eventos del modelo antiguo (`client_assignment_persisted`). El flujo del dato queda roto — los nuevos campos (`percentage`, `isMain`) nunca llegan a la plataforma del dato ni a Jira Assets. El modelo antiguo (`ClientAssignment`) se mantiene en paralelo; no se migra.
+
+**Objetivo**
+Como plataforma del dato, quiero recibir los eventos del nuevo modelo de equipo para persistir las asignaciones con los atributos nuevos y mantener Jira Assets sincronizado, sin romper el flujo existente del modelo antiguo.
+
+**Criterios de aceptación**
+1. Cuando se crea una asignación de equipo en pgi-api, data-factory la persiste con `percentage` e `isMain` y la propaga a los consumidores downstream.
+2. Cuando se cierra una asignación (se establece `dateTo` o se anula), data-factory actualiza su copia y propaga el cierre.
+3. El flujo existente del modelo antiguo (`ClientAssignment`) no sufre ningún cambio ni interrupción.
+4. Jira Assets refleja el cambio de equipo dentro de la ventana de sync habitual del adapter.
+5. Si el evento llega para un `clientTeamAssignmentId` desconocido, data-factory lo crea (upsert idempotente — los mensajes AMQP pueden reentregarse).
+
+<!-- internal-only -->
+**Notas técnicas internas**
+- Subscriber en `pd-service-data-factory`: routing keys `pgi-api.v1.client-team-assignment.opened` y `pgi-api.v1.client-team-assignment.closed`.
+- Nueva entidad `ClientTeamAssignment` en data-factory (paralela a `ClientAssignment` existente — **no migrar** datos del modelo antiguo).
+- Re-publica `data-factory.v1.client-team-assignment.persisted` tras cada upsert, siguiendo el patrón del modelo antiguo.
+- Subscriber en `pd-service-jira-adapter`: consume `data-factory.v1.client-team-assignment.persisted` y sincroniza a Jira Assets siguiendo el patrón del subscriber de `ClientAssignment` existente.
+- **FRs cubiertos**: FR-019.
+- **Fuera de scope**: migración de datos legacy, cambios en `pd-service-obligations-api` (cubierto en US-06), cambios en `pc-service-portalcliente-api`.
+
+<!-- jira-links -->
+- is-blocked-by: US-01
+- relates-to: cross-service pd-service-data-factory (requiere ticket espejo)
+- relates-to: cross-service pd-service-jira-adapter (requiere ticket espejo)
+<!-- /jira-links -->
+<!-- /internal-only -->
+
+---
+
 ## 6. Requisitos funcionales
 
 ### Composición y persistencia

@@ -805,9 +805,76 @@ E2E manual: cambiar asesor en pgi-api vía UI → abrir panel de tareas del clie
 
 ---
 
+### T-07-A — pd-service-data-factory: subscriber `pgi-api.v1.client-team-assignment.*` + entidad nueva
+
+**Servicio**: pd-service-data-factory
+**Branch**: `feat/dev-518-t-07-a-df`
+**Depende de**: T-01-A (publisher existe en pgi-api)
+
+**Qué hace**
+Implementa en `pd-service-data-factory` el subscriber que consume los nuevos eventos AMQP de equipo publicados por pgi-api, persiste la entidad `ClientTeamAssignment` con los atributos nuevos (`percentage`, `isMain`) y re-publica el evento downstream para que jira-adapter y otros consumidores reaccionen.
+
+**Cómo funciona**
+- Subscriber AMQP: routing keys `pgi-api.v1.client-team-assignment.opened` y `pgi-api.v1.client-team-assignment.closed`, exchange `internal`, vhost `data_platform`.
+- Nueva entidad `ClientTeamAssignment` en data-factory (paralela a `ClientAssignment` existente — no tocar el modelo antiguo ni su flujo).
+- Campos mínimos: `id`, `clientId`, `employeeId`, `role`, `department`, `percentage`, `isMain`, `dateFrom`, `dateTo`, `updatedAt`.
+- Upsert idempotente por `id`: si ya existe, actualiza; si no, crea.
+- Tras cada upsert: publica `data-factory.v1.client-team-assignment.persisted` con el mismo patrón del evento antiguo (`client_assignment_persisted`).
+- Migración MikroORM para la nueva tabla.
+
+**Qué NO entra aquí**
+- Cambios en el flujo existente de `ClientAssignment` / `client_assignment_persisted`.
+- Subscriber en jira-adapter (eso es T-07-B).
+- Migración de datos legacy del modelo antiguo.
+
+**Cómo verificar**
+| # | Escenario | Verifica |
+|---|---|---|
+| 1 | Publicar manualmente `pgi-api.v1.client-team-assignment.opened` | Fila aparece en BD de data-factory con `percentage` e `isMain` correctos. |
+| 2 | Mismo `id` enviado dos veces con `percentage` distinto | Solo persiste el más reciente; no duplica filas. |
+| 3 | Publicar `pgi-api.v1.client-team-assignment.closed` | Fila actualizada con `dateTo` correcto. |
+| 4 | Verificar en RabbitMQ Management | Evento `data-factory.v1.client-team-assignment.persisted` visible tras cada upsert. |
+
+**DoD**
+- Tests de integración verdes en data-factory.
+- Migración aplicable sin downtime (`ADD TABLE` puro).
+- Flujo antiguo (`client_assignment_persisted`) sin regresión.
+
+---
+
+### T-07-B — pd-service-jira-adapter: subscriber `data-factory.v1.client-team-assignment.persisted`
+
+**Servicio**: pd-service-jira-adapter
+**Branch**: `feat/dev-518-t-07-b-jira`
+**Depende de**: T-07-A
+
+**Qué hace**
+Implementa en `pd-service-jira-adapter` el subscriber que consume el evento re-publicado por data-factory y sincroniza el cambio de equipo con Jira Assets, siguiendo el patrón del subscriber existente de `ClientAssignment`.
+
+**Cómo funciona**
+- Subscriber AMQP: routing key `data-factory.v1.client-team-assignment.persisted`.
+- Sync a Jira Assets: misma lógica que el subscriber existente de `client_assignment_persisted` pero leyendo los campos nuevos (`percentage`, `isMain`).
+- No tocar el subscriber existente de `client_assignment_persisted`.
+
+**Qué NO entra aquí**
+- Cambios en el publisher de data-factory (eso es T-07-A).
+- Sincronización del modelo antiguo (sigue funcionando como antes).
+
+**Cómo verificar**
+| # | Escenario | Verifica |
+|---|---|---|
+| 1 | Tras T-07-A, abrir el objeto en Jira Assets | Refleja el cambio de equipo dentro de la ventana de sync. |
+| 2 | Mensaje entregado dos veces | Segunda entrega no crea duplicado en Jira Assets. |
+
+**DoD**
+- Tests verdes en jira-adapter.
+- Jira Assets actualizado en entorno de staging.
+
+---
+
 ## Resumen
 
-US-07 ha sido **fusionada en US-05** (log de cambios) y ya no aparece como tarea aparte.
+US-07 (auditoría completa) ha sido **fusionada en US-05** (log de cambios) y ya no aparece como tarea aparte. US-07 (nueva, 2026-06-08) cubre la propagación cross-service a pd-service-data-factory y pd-service-jira-adapter (FR-019).
 
 | Bloque | Tareas | Notas |
 |---|---|---|
@@ -818,7 +885,8 @@ US-07 ha sido **fusionada en US-05** (log de cambios) y ya no aparece como tarea
 | US-05 P1 | 2 | BE (log endpoint + auditoría producers), FE+E2E |
 | US-03 P2 | 2 | BE preservación (governing model), FE selector futuro |
 | US-06 P2 | 2 | pgi-api verificación, obligations subscriber |
-| **Total** | **19** | |
+| US-07 P2 | 2 | data-factory subscriber + entidad, jira-adapter subscriber |
+| **Total** | **21** | |
 
 ## Mapa de dependencias
 
@@ -835,6 +903,8 @@ T-SETUP-1 ─┬─→ T-01-A ─┬─→ T-02-A.1 ─┬─→ T-02-A.2 ─┬
            │           └─→ T-01-B
            │
            └─→ T-04-A ─→ T-04-B (coordinación)
+
+T-01-A ─→ T-07-A ─→ T-07-B (jira-adapter)
 
 T-SETUP-2 ─→ desbloquea todos los FE:
               T-01-B

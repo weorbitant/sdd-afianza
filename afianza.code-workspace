@@ -1,0 +1,18 @@
+{
+  "folders": [
+    { "name": "🗂 afianza (workspace)", "path": "." },
+    { "name": "🔐 af-nest-module-auth", "path": "shared/af-nest-module-auth" },
+    { "name": "🔐 af-nest-module-auth-v2", "path": "shared/af-nest-module-auth-v2" },
+    { "name": "🖥 pgi-app-pgi-web", "path": "asesores/pgi-app-pgi-web" },
+    { "name": "⚙️ pgi-service-pgi-api", "path": "asesores/pgi-service-pgi-api" },
+    { "name": "🌐 pc-app-portalcliente-web", "path": "cliente/pc-app-portalcliente-web" },
+    { "name": "⚙️ pc-service-portalcliente-api", "path": "cliente/pc-service-portalcliente-api" },
+    { "name": "🏭 pd-service-data-factory", "path": "plataforma-del-dato/pd-service-data-factory" },
+    { "name": "📋 pd-service-obligations-api", "path": "plataforma-del-dato/pd-service-obligations-api" },
+    { "name": "☁️ pd-service-azuread-adapter", "path": "plataforma-del-dato/pd-service-azuread-adapter" },
+    { "name": "🎫 pd-service-jira-adapter", "path": "plataforma-del-dato/pd-service-jira-adapter" }
+  ],
+  "settings": {
+    "git.detectSubmodules": false
+  }
+}

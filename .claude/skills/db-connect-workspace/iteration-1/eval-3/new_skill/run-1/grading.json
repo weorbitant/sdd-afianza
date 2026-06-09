@@ -1,0 +1,27 @@
+{
+  "eval_id": 3,
+  "configuration": "new_skill",
+  "expectations": [
+    {
+      "text": "Advierte que el repo no está clonado o que no hay .env disponible localmente",
+      "passed": true,
+      "evidence": "'El repo pd-service-data-factory no está clonado localmente, así que no hay .env disponible'"
+    },
+    {
+      "text": "Propone una alternativa concreta (kubectl, clonar repo, etc.) en lugar de dejar al usuario sin camino",
+      "passed": true,
+      "evidence": "Dos opciones: kubectl get secret con comando completo, y clonar repo con pasos detallados"
+    },
+    {
+      "text": "Menciona la base de datos correcta: pd-service-data-factory-dev",
+      "passed": true,
+      "evidence": "Aparece en la tabla de conexión y en el comando psql"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 3,
+    "failed": 0,
+    "total": 3
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "eval_id": 3,
+  "configuration": "old_skill",
+  "expectations": [
+    {
+      "text": "Advierte que el repo no está clonado o que no hay .env disponible localmente",
+      "passed": true,
+      "evidence": "'el repo pd-service-data-factory no está clonado localmente' — el agente lo detectó aunque el SKILL.md no lo documentaba explícitamente"
+    },
+    {
+      "text": "Propone una alternativa concreta (kubectl, clonar repo, etc.) en lugar de dejar al usuario sin camino",
+      "passed": true,
+      "evidence": "kubectl get secret con comando completo y alternativa node fallback"
+    },
+    {
+      "text": "Menciona la base de datos correcta: pd-service-data-factory-dev",
+      "passed": true,
+      "evidence": "'pd-service-data-factory-dev' en tabla y comandos"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 3,
+    "failed": 0,
+    "total": 3
+  }
+}
