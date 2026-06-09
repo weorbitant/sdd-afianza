@@ -1,0 +1,16 @@
+{
+  "eval_id": 2,
+  "eval_name": "obligations-local-connection",
+  "prompt": "Quiero hacer una query en la base de datos de obligations en local. Dame el comando para conectarme.",
+  "assertions": [
+    {
+      "text": "Usa .env-sample (no .env) como fuente de credenciales, o menciona explícitamente que el archivo es .env-sample"
+    },
+    {
+      "text": "Menciona la base de datos correcta: mp-service-obligations-api-local"
+    },
+    {
+      "text": "Proporciona un comando psql funcional con host localhost y puerto 5432"
+    }
+  ]
+}

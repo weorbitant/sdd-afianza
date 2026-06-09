@@ -1,0 +1,273 @@
+{
+  "metadata": {
+    "skill_name": "db-connect",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-06-09T12:28:42Z",
+    "evals_run": [
+      1,
+      2,
+      3
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "new_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Menciona el nombre correcto de la base de datos: pd-service-backoffice-api-dev (no pgi-*)",
+          "passed": true,
+          "evidence": "Incluye 'pd-service-backoffice-api-dev \u26a0\ufe0f (no pgi-*)' tanto en la tabla como en el fallback manual"
+        },
+        {
+          "text": "Menciona el host correcto: af-psql-dev.afianza-ac.es",
+          "passed": true,
+          "evidence": "Aparece en la tabla de par\u00e1metros y en el fallback manual"
+        },
+        {
+          "text": "Menciona o usa connect.sh como m\u00e9todo principal",
+          "passed": true,
+          "evidence": "connect.sh es el primer comando propuesto"
+        },
+        {
+          "text": "Advierte sobre VPN o conectividad de red",
+          "passed": true,
+          "evidence": "Secci\u00f3n 'Antes de conectar' con nc -zv y explicaci\u00f3n de VPN requerida"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "new_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Usa .env-sample (no .env) como fuente de credenciales, o menciona expl\u00edcitamente que el archivo es .env-sample",
+          "passed": true,
+          "evidence": "'Credenciales (de `.env-sample`)' mencionado expl\u00edcitamente en la tabla"
+        },
+        {
+          "text": "Menciona la base de datos correcta: mp-service-obligations-api-local",
+          "passed": true,
+          "evidence": "Aparece en la tabla de credenciales y en el fallback manual"
+        },
+        {
+          "text": "Proporciona un comando psql funcional con host localhost y puerto 5432",
+          "passed": true,
+          "evidence": "PGPASSWORD='Password123' psql -h localhost -p 5432 -U postgresql -d mp-service-obligations-api-local"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "new_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Advierte que el repo no est\u00e1 clonado o que no hay .env disponible localmente",
+          "passed": true,
+          "evidence": "'El repo pd-service-data-factory no est\u00e1 clonado localmente, as\u00ed que no hay .env disponible'"
+        },
+        {
+          "text": "Propone una alternativa concreta (kubectl, clonar repo, etc.) en lugar de dejar al usuario sin camino",
+          "passed": true,
+          "evidence": "Dos opciones: kubectl get secret con comando completo, y clonar repo con pasos detallados"
+        },
+        {
+          "text": "Menciona la base de datos correcta: pd-service-data-factory-dev",
+          "passed": true,
+          "evidence": "Aparece en la tabla de conexi\u00f3n y en el comando psql"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Menciona el nombre correcto de la base de datos: pd-service-backoffice-api-dev (no pgi-*)",
+          "passed": true,
+          "evidence": "'pd-service-backoffice-api-dev' y 'NO pgi-service-pgi-api-dev' mencionados expl\u00edcitamente"
+        },
+        {
+          "text": "Menciona el host correcto: af-psql-dev.afianza-ac.es",
+          "passed": true,
+          "evidence": "Aparece en tabla y en fallback manual"
+        },
+        {
+          "text": "Menciona o usa connect.sh como m\u00e9todo principal",
+          "passed": true,
+          "evidence": "connect.sh es el primer m\u00e9todo propuesto"
+        },
+        {
+          "text": "Advierte sobre VPN o conectividad de red",
+          "passed": true,
+          "evidence": "Secci\u00f3n 'Antes de conectarte \u2014 verifica VPN' con nc -zv"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Usa .env-sample (no .env) como fuente de credenciales, o menciona expl\u00edcitamente que el archivo es .env-sample",
+          "passed": true,
+          "evidence": "'Credentials come from `.env-sample` (obligations uses this file instead of `.env`)' \u2014 el agente ley\u00f3 el SKILL.md correctamente. Sin embargo, el SCRIPT del skill apuntaba a .env (no .env-sample), por lo que connect.sh habr\u00eda fallado en la pr\u00e1ctica"
+        },
+        {
+          "text": "Menciona la base de datos correcta: mp-service-obligations-api-local",
+          "passed": true,
+          "evidence": "Aparece en la tabla y en el comando psql"
+        },
+        {
+          "text": "Proporciona un comando psql funcional con host localhost y puerto 5432",
+          "passed": true,
+          "evidence": "psql -h localhost -p 5432 -U postgresql -d mp-service-obligations-api-local"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Advierte que el repo no est\u00e1 clonado o que no hay .env disponible localmente",
+          "passed": true,
+          "evidence": "'el repo pd-service-data-factory no est\u00e1 clonado localmente' \u2014 el agente lo detect\u00f3 aunque el SKILL.md no lo documentaba expl\u00edcitamente"
+        },
+        {
+          "text": "Propone una alternativa concreta (kubectl, clonar repo, etc.) en lugar de dejar al usuario sin camino",
+          "passed": true,
+          "evidence": "kubectl get secret con comando completo y alternativa node fallback"
+        },
+        {
+          "text": "Menciona la base de datos correcta: pd-service-data-factory-dev",
+          "passed": true,
+          "evidence": "'pd-service-data-factory-dev' en tabla y comandos"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "new_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "old_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.00",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}

@@ -1,0 +1,23 @@
+{
+  "skill_name": "db-connect",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Necesito conectarme a la base de datos de pgi-api en dev para inspeccionar la tabla de clientes. ¿Qué comando psql debo usar?",
+      "expected_output": "El comando psql correcto para pgi-api en dev: host af-psql-dev.afianza-ac.es, base de datos pd-service-backoffice-api-dev, usuario postgres. Debe usar connect.sh o el fallback manual con PGPASSWORD.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Quiero hacer una query en la base de datos de obligations en local. Dame el comando para conectarme.",
+      "expected_output": "Comando para obligations en local: host localhost, base de datos mp-service-obligations-api-local. Debe advertir que el .env es .env-sample o manejar correctamente el path real del archivo de credenciales.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Necesito consultar la base de datos de data-factory en dev. ¿Cómo me conecto?",
+      "expected_output": "Debe advertir que el repositorio de data-factory no tiene .env disponible localmente y dar instrucciones alternativas (clonar el repo, buscar credenciales en k8s/vault, etc.) en lugar de fallar silenciosamente.",
+      "files": []
+    }
+  ]
+}

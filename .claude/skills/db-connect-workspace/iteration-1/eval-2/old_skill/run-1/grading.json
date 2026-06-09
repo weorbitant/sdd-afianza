@@ -1,0 +1,27 @@
+{
+  "eval_id": 2,
+  "configuration": "old_skill",
+  "expectations": [
+    {
+      "text": "Usa .env-sample (no .env) como fuente de credenciales, o menciona explícitamente que el archivo es .env-sample",
+      "passed": true,
+      "evidence": "'Credentials come from `.env-sample` (obligations uses this file instead of `.env`)' — el agente leyó el SKILL.md correctamente. Sin embargo, el SCRIPT del skill apuntaba a .env (no .env-sample), por lo que connect.sh habría fallado en la práctica"
+    },
+    {
+      "text": "Menciona la base de datos correcta: mp-service-obligations-api-local",
+      "passed": true,
+      "evidence": "Aparece en la tabla y en el comando psql"
+    },
+    {
+      "text": "Proporciona un comando psql funcional con host localhost y puerto 5432",
+      "passed": true,
+      "evidence": "psql -h localhost -p 5432 -U postgresql -d mp-service-obligations-api-local"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 3,
+    "failed": 0,
+    "total": 3
+  }
+}

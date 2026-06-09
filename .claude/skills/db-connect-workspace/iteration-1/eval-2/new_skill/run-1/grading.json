@@ -1,0 +1,27 @@
+{
+  "eval_id": 2,
+  "configuration": "new_skill",
+  "expectations": [
+    {
+      "text": "Usa .env-sample (no .env) como fuente de credenciales, o menciona explícitamente que el archivo es .env-sample",
+      "passed": true,
+      "evidence": "'Credenciales (de `.env-sample`)' mencionado explícitamente en la tabla"
+    },
+    {
+      "text": "Menciona la base de datos correcta: mp-service-obligations-api-local",
+      "passed": true,
+      "evidence": "Aparece en la tabla de credenciales y en el fallback manual"
+    },
+    {
+      "text": "Proporciona un comando psql funcional con host localhost y puerto 5432",
+      "passed": true,
+      "evidence": "PGPASSWORD='Password123' psql -h localhost -p 5432 -U postgresql -d mp-service-obligations-api-local"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 3,
+    "failed": 0,
+    "total": 3
+  }
+}

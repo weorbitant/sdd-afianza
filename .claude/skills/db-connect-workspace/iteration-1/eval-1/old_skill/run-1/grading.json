@@ -1,0 +1,32 @@
+{
+  "eval_id": 1,
+  "configuration": "old_skill",
+  "expectations": [
+    {
+      "text": "Menciona el nombre correcto de la base de datos: pd-service-backoffice-api-dev (no pgi-*)",
+      "passed": true,
+      "evidence": "'pd-service-backoffice-api-dev' y 'NO pgi-service-pgi-api-dev' mencionados explícitamente"
+    },
+    {
+      "text": "Menciona el host correcto: af-psql-dev.afianza-ac.es",
+      "passed": true,
+      "evidence": "Aparece en tabla y en fallback manual"
+    },
+    {
+      "text": "Menciona o usa connect.sh como método principal",
+      "passed": true,
+      "evidence": "connect.sh es el primer método propuesto"
+    },
+    {
+      "text": "Advierte sobre VPN o conectividad de red",
+      "passed": true,
+      "evidence": "Sección 'Antes de conectarte — verifica VPN' con nc -zv"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 4,
+    "failed": 0,
+    "total": 4
+  }
+}

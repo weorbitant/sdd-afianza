@@ -51,12 +51,4 @@ Workspace-wide guidance lives in `.claude/rules/`. Files without `paths:` frontm
 | `po-communication.md`   | always         | How to draft PO questions in Jira |
 | `mcps.md`               | always         | Active MCPs and RTK token optimization |
 | `polyrepo-cross-service.md` | always     | Verificar en código antes de especular sobre flujos AMQP cross-service |
-| `speckit-workflow.md`   | `specs/**`, `.specify/**` | Recommended `/speckit-*` flow + active commands |
-| `speckit-extensions.md` | `.specify/extensions/**` | Crear/editar extensiones, bug del CLI |
 | `rest-api-design.md`    | `specs/**/contracts/**`, `**/application/rest/**` | Principios REST: recursos no acciones, status codes RFC, embebido de agregados |
-
-<!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan at:
-`specs/001-client-team-assignments/plan.md`
-<!-- SPECKIT END -->

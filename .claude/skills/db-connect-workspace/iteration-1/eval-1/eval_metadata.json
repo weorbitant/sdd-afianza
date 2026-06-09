@@ -1,0 +1,19 @@
+{
+  "eval_id": 1,
+  "eval_name": "pgi-dev-connection",
+  "prompt": "Necesito conectarme a la base de datos de pgi-api en dev para inspeccionar la tabla de clientes. ¿Qué comando psql debo usar?",
+  "assertions": [
+    {
+      "text": "Menciona el nombre correcto de la base de datos: pd-service-backoffice-api-dev (no pgi-*)"
+    },
+    {
+      "text": "Menciona el host correcto: af-psql-dev.afianza-ac.es"
+    },
+    {
+      "text": "Menciona o usa connect.sh como método principal"
+    },
+    {
+      "text": "Advierte sobre VPN o conectividad de red"
+    }
+  ]
+}
