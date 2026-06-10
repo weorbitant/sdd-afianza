@@ -80,8 +80,8 @@ fi
 if [[ "$ENV" != "local" ]] && grep -qE "^POSTGRES_CONNECTION_STRING=" "$ENV_FILE"; then
   CONN_STR=$(parse_env "POSTGRES_CONNECTION_STRING")
   echo "Connecting to $SERVICE_ALIAS ($ENV)..."
-  PGPASSWORD="$PG_PASS" psql "$CONN_STR" "${EXTRA_ARGS[@]}"
+  PGPASSWORD="$PG_PASS" psql "$CONN_STR" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
 else
   echo "Connecting to $SERVICE_ALIAS ($ENV) → $PG_HOST:$PG_PORT/$DB_NAME as $PG_USER"
-  PGPASSWORD="$PG_PASS" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" "${EXTRA_ARGS[@]}"
+  PGPASSWORD="$PG_PASS" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
 fi
