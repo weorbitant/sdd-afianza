@@ -8,7 +8,7 @@
   },
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true,
-    "ops-suite@workbench-dev": true,
+    "ops-suite@workbench-dev": false,
     "azure@azure-skills": true
   },
   "hooks": {
