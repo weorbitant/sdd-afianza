@@ -25,7 +25,6 @@ Afianza uses **external Azure PostgreSQL** instances — not k8s-internal. Conne
 | `pc-service-portalcliente-api` | `pc-api` | `pc-service-portalcliente-api-{env}` |
 | `pd-service-obligations-api` | `obligations` | `mp-service-obligations-api-{env}` |
 | `pd-service-data-factory` | `data-factory` | `pd-service-data-factory-{env}` *(no .env locally — see note below)* |
-| `pd-service-jira-adapter` | `jira-adapter` | `pd-service-jira-adapter-{env}` *(no .env locally — see note below)* |
 
 `{env}` = `local` / `dev` / `prod`
 
@@ -49,7 +48,7 @@ cliente/pc-service-portalcliente-api/.env
 plataforma-del-dato/pd-service-obligations-api/.env-sample   ← filename es .env-sample, no .env
 ```
 
-> **data-factory y jira-adapter no tienen `.env` local** — los repos no están clonados. Para conectar, clona el repo primero o lee las credenciales desde k8s: `kubectl get secret <service>-secret -n <env> -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d`
+> **data-factory está clonado pero no tiene `.env` local.** Para conectar, copia un `.env` (desde `.env.example`) o lee las credenciales desde k8s: `kubectl get secret <service>-secret -n <env> -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d`. `jira-adapter` y `azuread-adapter` ya no están en este workspace — clónalos antes si necesitas su DB.
 
 ## Connect
 

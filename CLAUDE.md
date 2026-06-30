@@ -6,36 +6,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **polyrepo** — independent services that form the Afianza data platform. Each has its own `package.json`, git history, and service-level `CLAUDE.md` with detailed guidance.
 
+All repos live flat at the workspace root. The name prefix marks the domain — `af-*` shared libs, `pc-*` client portal, `pgi-*` advisor backoffice, `pd-*` data platform.
+
 ```
-# Shared / Auth
-af-nest-module-auth/          # Shared NestJS library: Azure AD JWT auth (passport + JWKS)
-af-nest-module-auth-v2/       # Next-gen auth module: Entra External ID / CIAM (WIP)
-af-service-auth-idp/          # IDP Adapter: Authorization Code Flow + JWT interno (NestJS)
+# Shared NestJS libraries (@afianza-ac/*) — libraries, not running services (no DB, no HTTP server)
+af-nest-module-auth/             # Azure AD JWT auth (passport + JWKS) — stable
+af-nest-module-auth-v2/          # Entra External ID / CIAM (WIP — new auth work goes here)
 
 # Portal del Cliente (pc-)
-pc-app-portalcliente-web/     # Client portal SPA
-pc-service-portalcliente-api/ # Client portal API (NestJS + PostgreSQL)
+pc-app-portalcliente-web/        # Client portal SPA
+pc-service-portalcliente-api/    # Client portal API (NestJS + PostgreSQL)
 
 # Portal del Asesor / Backoffice (pgi-)
-pgi-app-pgi-web/              # Internal backoffice SPA (React 19 + Vite)
-pgi-service-pgi-api/          # Client & employee management API (NestJS + PostgreSQL)
+pgi-app-pgi-web/                 # Internal backoffice SPA (React 19 + Vite)
+pgi-service-pgi-api/             # Client & employee management API (NestJS + PostgreSQL)
 
 # Plataforma del Dato (pd-)
-pd-service-obligations-api/   # Fiscal obligations management (NestJS + PostgreSQL)
-pd-service-azuread-adapter/   # Azure AD / Microsoft Graph integration (NestJS)
-pd-service-data-factory/      # Data aggregation hub: Sage, AEAT, Jira, Azure AD, HubSpot (NestJS)
-pd-service-jira-adapter/      # Jira integration adapter (NestJS)
+pd-service-data-factory/         # Data aggregation hub: Sage, AEAT, Jira, Azure AD, HubSpot
+pd-service-obligations-api/      # Fiscal obligations management (NestJS + PostgreSQL)
 ```
 
 Each service has its own `CLAUDE.md` — always read it before working in that service.
-- `pd-service-data-factory` stores its CLAUDE.md at `.claude/CLAUDE.md` (non-standard — read it explicitly).
-- `af-nest-module-auth/`, `af-nest-module-auth-v2/` and `pd-service-azuread-adapter/` have no service-level CLAUDE.md — rely on workspace root guidance.
+- `pd-service-data-factory` and `pc-app-portalcliente-web` store their CLAUDE.md at `.claude/CLAUDE.md` (non-standard — read it explicitly).
+- `af-nest-module-auth/` and `af-nest-module-auth-v2/` have no service-level CLAUDE.md — rely on workspace root guidance. They are shared libraries: changes affect all consumers, so check dependents before publishing.
 
-## Sub-namespaces
+> **Not checked out locally:** `pd-service-jira-adapter` and `pd-service-azuread-adapter` are deployed services with their own repos in `github.com/afianza-ac`, but are intentionally **not cloned in this workspace**. `data-factory` still exchanges AMQP events with them — clone them on demand if you need to inspect their side of a cross-service flow.
 
-- `plataforma-del-dato/` → `pd-*` services (data factory, obligations, azure ad, jira adapter)
-- `cliente/` → `pc-*` client portal (web SPA + API)
-- `asesores/` → `pgi-*` backoffice (web + API)
+## Plataforma del Dato (pd-*) — shared infra
+
+- **Kubernetes namespace** `plataformadato`: `kubectl --context=dev get pods -n plataformadato` (or `--context=prod`).
+- **RabbitMQ**: vhost `data_platform`, exchange `internal`. `pd-*` services publish with routing key `pd-<service>.v1.<entity>.<event>`.
 
 ## Rules
 

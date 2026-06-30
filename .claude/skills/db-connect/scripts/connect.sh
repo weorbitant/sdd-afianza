@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: connect.sh <service-alias> <env> [psql-args...]
-#   service-alias: pgi-api | pc-api | obligations | data-factory | jira-adapter
+#   service-alias: pgi-api | pc-api | obligations | data-factory
 #   env:           local | dev | prod
 #
 # Called by Claude after prompting via AskUserQuestion.
@@ -15,7 +15,7 @@ ENV="${2:-}"
 
 if [[ -z "$SERVICE_ALIAS" || -z "$ENV" ]]; then
   echo "Usage: $0 <service-alias> <env> [psql-args...]"
-  echo "  aliases: pgi-api | pc-api | obligations | data-factory | jira-adapter"
+  echo "  aliases: pgi-api | pc-api | obligations | data-factory"
   echo "  env:     local | dev | prod"
   exit 1
 fi
@@ -40,10 +40,6 @@ case "$SERVICE_ALIAS" in
     ENV_FILE="$WORKSPACE_ROOT/plataforma-del-dato/pd-service-data-factory/.env"
     DB_NAME="pd-service-data-factory-$ENV"
     ;;
-  jira-adapter)
-    ENV_FILE="$WORKSPACE_ROOT/plataforma-del-dato/pd-service-jira-adapter/.env"
-    DB_NAME="pd-service-jira-adapter-$ENV"
-    ;;
   *)
     echo "Unknown alias: $SERVICE_ALIAS"
     exit 1
@@ -54,7 +50,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
   echo "Error: credentials file not found at $ENV_FILE"
   echo ""
   echo "Possible reasons:"
-  echo "  - The repo may not be cloned locally (data-factory, jira-adapter)"
+  echo "  - The repo/.env may not exist locally (e.g. data-factory has no local .env)"
   echo "  - The .env file may not exist yet (copy from .env.example or .env-sample)"
   echo ""
   echo "Alternative: read credentials from k8s:"

@@ -29,7 +29,7 @@ src/
   - `pgi-service-pgi-api` publishes: `backoffice-api.v1.<entity>.<event>`.
   - `pd-*` publishes: `pd-<service>.v1.<entity>.<event>`.
 - Subscribers live in `src/application/amqp/<topic>-subscriber/`.
-- `ClientAssignment` entity exists independently in `pgi-service-pgi-api`, `pd-service-data-factory`, and `pd-service-jira-adapter` — desacoplado, each has its own model. Check all three before speculating on cross-service flows.
+- `ClientAssignment` entity exists independently in `pgi-service-pgi-api`, `pd-service-data-factory`, and `pd-service-jira-adapter` — desacoplado, each has its own model. Check all before speculating on cross-service flows. Note: `pd-service-jira-adapter` is no longer checked out locally — clone it to grep its model.
 
 ## Naming & code style
 - Code, variables, and comments in **English**.

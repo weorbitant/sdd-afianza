@@ -8,13 +8,18 @@ Antes de redactar preguntas, decisiones o spec sobre **flujos de datos que cruza
 
 ## Servicios principales a comprobar
 
+Clonados en este workspace (grep directo):
+
 - `asesores/pgi-service-pgi-api` — backoffice (clientes, asignaciones, equipos).
 - `asesores/pgi-app-pgi-web` — frontend backoffice.
 - `cliente/pc-service-portalcliente-api` — portal del cliente.
 - `plataforma-del-dato/pd-service-data-factory` — hub de agregación; consume de Jira, Sage, AzureAD; publica a backoffice y otros.
-- `plataforma-del-dato/pd-service-jira-adapter` — sync con Jira Assets y eventos `issueClientServicePersisted`.
 - `plataforma-del-dato/pd-service-obligations-api` — obligaciones fiscales.
-- `plataforma-del-dato/pd-service-azuread-adapter` — Microsoft Graph.
+
+Desplegados pero **no clonados en local** (clónalos desde `github.com/afianza-ac` si necesitas verificar su lado):
+
+- `pd-service-jira-adapter` — sync con Jira Assets y eventos `issueClientServicePersisted`. Mantiene su propio `ClientAssignment`.
+- `pd-service-azuread-adapter` — Microsoft Graph.
 
 ## Patrones útiles
 

@@ -19,9 +19,9 @@ specs/             → feature specs (speckit workflow)
 - `cliente/pc-service-portalcliente-api` — client portal API (NestJS + PostgreSQL)  
 - `cliente/pc-app-portalcliente-web` — client portal SPA  
 - `plataforma-del-dato/pd-service-data-factory` — aggregation hub (Sage, AEAT, Jira, AzureAD, HubSpot); CLAUDE.md at `.claude/CLAUDE.md` (non-standard path)  
-- `plataforma-del-dato/pd-service-jira-adapter` — Jira Assets sync  
 - `plataforma-del-dato/pd-service-obligations-api` — fiscal obligations  
-- `plataforma-del-dato/pd-service-azuread-adapter` — Microsoft Graph sync  
+
+Deployed but **not checked out locally** (clone from `github.com/afianza-ac` if needed): `pd-service-jira-adapter` (Jira Assets sync), `pd-service-azuread-adapter` (Microsoft Graph sync).  
 
 ## Invariants
 - Each service has its own `package.json` and git history within this monorepo.
