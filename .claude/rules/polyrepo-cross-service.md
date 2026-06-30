@@ -10,11 +10,11 @@ Antes de redactar preguntas, decisiones o spec sobre **flujos de datos que cruza
 
 Clonados en este workspace (grep directo):
 
-- `asesores/pgi-service-pgi-api` — backoffice (clientes, asignaciones, equipos).
-- `asesores/pgi-app-pgi-web` — frontend backoffice.
-- `cliente/pc-service-portalcliente-api` — portal del cliente.
-- `plataforma-del-dato/pd-service-data-factory` — hub de agregación; consume de Jira, Sage, AzureAD; publica a backoffice y otros.
-- `plataforma-del-dato/pd-service-obligations-api` — obligaciones fiscales.
+- `pgi-service-pgi-api` — backoffice (clientes, asignaciones, equipos).
+- `pgi-app-pgi-web` — frontend backoffice.
+- `pc-service-portalcliente-api` — portal del cliente.
+- `pd-service-data-factory` — hub de agregación; consume de Jira, Sage, AzureAD; publica a backoffice y otros.
+- `pd-service-obligations-api` — obligaciones fiscales.
 
 Desplegados pero **no clonados en local** (clónalos desde `github.com/afianza-ac` si necesitas verificar su lado):
 

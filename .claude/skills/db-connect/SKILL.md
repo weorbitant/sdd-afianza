@@ -43,9 +43,9 @@ Read from the service's `.env` file. Never hardcode passwords in commands persis
 **`.env` file paths** (relative to workspace root `~/Documents/afianza/`):
 
 ```
-asesores/pgi-service-pgi-api/.env
-cliente/pc-service-portalcliente-api/.env
-plataforma-del-dato/pd-service-obligations-api/.env-sample   ← filename es .env-sample, no .env
+pgi-service-pgi-api/.env
+pc-service-portalcliente-api/.env
+pd-service-obligations-api/.env-sample   ← filename es .env-sample, no .env
 ```
 
 > **data-factory está clonado pero no tiene `.env` local.** Para conectar, copia un `.env` (desde `.env.example`) o lee las credenciales desde k8s: `kubectl get secret <service>-secret -n <env> -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d`. `jira-adapter` y `azuread-adapter` ya no están en este workspace — clónalos antes si necesitas su DB.

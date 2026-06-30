@@ -25,19 +25,19 @@ EXTRA_ARGS=("$@")
 
 case "$SERVICE_ALIAS" in
   pgi-api)
-    ENV_FILE="$WORKSPACE_ROOT/asesores/pgi-service-pgi-api/.env"
+    ENV_FILE="$WORKSPACE_ROOT/pgi-service-pgi-api/.env"
     DB_NAME="pd-service-backoffice-api-$ENV"
     ;;
   pc-api)
-    ENV_FILE="$WORKSPACE_ROOT/cliente/pc-service-portalcliente-api/.env"
+    ENV_FILE="$WORKSPACE_ROOT/pc-service-portalcliente-api/.env"
     DB_NAME="pc-service-portalcliente-api-$ENV"
     ;;
   obligations)
-    ENV_FILE="$WORKSPACE_ROOT/plataforma-del-dato/pd-service-obligations-api/.env-sample"
+    ENV_FILE="$WORKSPACE_ROOT/pd-service-obligations-api/.env-sample"
     DB_NAME="mp-service-obligations-api-$ENV"
     ;;
   data-factory)
-    ENV_FILE="$WORKSPACE_ROOT/plataforma-del-dato/pd-service-data-factory/.env"
+    ENV_FILE="$WORKSPACE_ROOT/pd-service-data-factory/.env"
     DB_NAME="pd-service-data-factory-$ENV"
     ;;
   *)
