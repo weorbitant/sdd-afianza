@@ -32,6 +32,15 @@ Each service has its own `CLAUDE.md` — always read it before working in that s
 
 > **Not checked out locally:** `pd-service-jira-adapter` and `pd-service-azuread-adapter` are deployed services with their own repos in `github.com/afianza-ac`, but are intentionally **not cloned in this workspace**. `data-factory` still exchanges AMQP events with them — clone them on demand if you need to inspect their side of a cross-service flow.
 
+## Document subsystem (gd-* / http2bus / bus2storage) — not cloned locally
+
+A document-management pipeline lives in `github.com/afianza-ac` but is **not cloned in this workspace** — clone on demand to inspect any side of the flow:
+
+- `gd-service-gestor-documental-api` — the "gestor documental". Ingests via REST `POST /v1/documents/upload` (multipart; SHA-256 staging `DocumentIngestion` → `Document`) or AMQP (SharePoint). Stores in Azure Blob, publishes `document_persisted`.
+- `gd-service-document-classifier-api` — AI classification + metadata extraction (Ollama) for Spanish fiscal documents. Downstream of the gestor.
+- `pd-service-http2bus` — generic HTTP→AMQP gateway. `POST /http-handler/:source/:version/:entity/:eventType`, auth per source, publishes routing key `http2bus.<source>.<version>.<entity>.<event>`. **JSON bodies only** today.
+- `pd-service-bus2storage` — consumes the bus and archives raw payloads to S3.
+
 ## Plataforma del Dato (pd-*) — shared infra
 
 - **Kubernetes namespace** `plataformadato`: `kubectl --context=dev get pods -n plataformadato` (or `--context=prod`).

@@ -6,11 +6,6 @@
       "Edit(.claude/skills/**)"
     ]
   },
-  "enabledPlugins": {
-    "superpowers@superpowers-marketplace": true,
-    "ops-suite@workbench-dev": false,
-    "azure@azure-skills": true
-  },
   "hooks": {
     "PreToolUse": [
       {
@@ -32,5 +27,11 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "ops-suite@workbench-dev": false,
+    "azure@azure-skills": true,
+    "superpowers@claude-plugins-official": true
   }
 }
